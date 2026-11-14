@@ -8,6 +8,14 @@ import { createExcelRouter } from './routes/excel.routes.js';
 import { createStatsRouter } from './routes/stats.routes.js';
 import { createVolunteersRouter } from './routes/volunteers.routes.js';
 
+function parseAllowedOrigins(clientUrl) {
+  const origins = String(clientUrl)
+    .split(',')
+    .map((origin) => origin.trim().replace(/\/+$/, ''))
+    .filter(Boolean);
+  return origins.length === 1 ? origins[0] : origins;
+}
+
 /**
  * Creates the Express application with public health/login routes and JWT-protected API routes.
  * @param {{ clientUrl: string, jwtSecret: string }} options
@@ -16,7 +24,7 @@ import { createVolunteersRouter } from './routes/volunteers.routes.js';
 export function createApp({ clientUrl, jwtSecret }) {
   const app = express();
 
-  app.use(cors({ origin: clientUrl }));
+  app.use(cors({ origin: parseAllowedOrigins(clientUrl) }));
   app.use(express.json());
 
   app.get('/api/health', (_req, res) => {

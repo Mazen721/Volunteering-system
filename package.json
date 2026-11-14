@@ -1,0 +1,12 @@
+{
+  "name": "volunteer-hours-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/dev.js",
+    "seed": "npm --prefix server run seed",
+    "test": "npm --prefix server test && npm --prefix client test",
+    "lint": "npm --prefix server run lint && npm --prefix client run lint"
+  }
+}

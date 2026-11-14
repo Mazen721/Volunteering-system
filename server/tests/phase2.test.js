@@ -160,6 +160,23 @@ describe('Phase 2 API features integration', () => {
     assert.equal(filtered.body.total, 1);
     assert.equal(filtered.body.pages, 1);
     assert.equal(filtered.body.volunteers[0].volunteerId, '20260001');
+
+    const pendingVolunteers = await apiJson(
+      apiServer.baseUrl,
+      '/api/volunteers?activityStatus=pending',
+      token
+    );
+    assert.equal(pendingVolunteers.status, 200);
+    assert.equal(pendingVolunteers.body.total, 1);
+    assert.equal(pendingVolunteers.body.volunteers[0].volunteerId, '20260008');
+
+    const eligibleAndPending = await apiJson(
+      apiServer.baseUrl,
+      '/api/volunteers?eligibility=eligible&activityStatus=pending',
+      token
+    );
+    assert.equal(eligibleAndPending.status, 200);
+    assert.equal(eligibleAndPending.body.total, 0);
   });
 
   it('updates_totals_when_activity_status_changes_from_pending_to_approved', async () => {

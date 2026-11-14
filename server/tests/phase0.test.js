@@ -60,4 +60,30 @@ describe('GET /api/health', () => {
       });
     }
   });
+
+  it('supports_multiple_cors_origins_and_strips_trailing_slashes', async () => {
+    const app = createApp({
+      clientUrl: 'https://mnu-volunteers.vercel.app/, http://localhost:5173/',
+      jwtSecret: 'test-secret',
+    });
+    const server = await new Promise((resolve) => {
+      const instance = app.listen(0, '127.0.0.1', () => resolve(instance));
+    });
+
+    try {
+      const { port } = server.address();
+      const response = await fetch(`http://127.0.0.1:${port}/api/health`, {
+        headers: { Origin: 'https://mnu-volunteers.vercel.app' },
+      });
+      assert.equal(response.status, 200);
+      assert.equal(
+        response.headers.get('access-control-allow-origin'),
+        'https://mnu-volunteers.vercel.app'
+      );
+    } finally {
+      await new Promise((resolve, reject) => {
+        server.close((err) => (err ? reject(err) : resolve()));
+      });
+    }
+  });
 });

@@ -17,21 +17,26 @@ export function computeEligibility(approvedHours, certificateHours) {
   };
 }
 
-export function buildVolunteerStatsStages(matchStage, certificateHours) {
+export function buildVolunteerStatsStages(matchStage, certificateHours, activityStatus) {
   const stages = [];
   if (matchStage && Object.keys(matchStage).length > 0) {
     stages.push({ $match: matchStage });
   }
 
-  stages.push(
-    {
-      $lookup: {
-        from: 'activities',
-        localField: '_id',
-        foreignField: 'volunteer',
-        as: 'activities',
-      },
+  stages.push({
+    $lookup: {
+      from: 'activities',
+      localField: '_id',
+      foreignField: 'volunteer',
+      as: 'activities',
     },
+  });
+
+  if (activityStatus) {
+    stages.push({ $match: { 'activities.status': activityStatus } });
+  }
+
+  stages.push(
     {
       $addFields: {
         totalActivities: { $size: '$activities' },

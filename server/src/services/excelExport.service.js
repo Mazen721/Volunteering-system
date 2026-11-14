@@ -3,7 +3,7 @@ import { CATEGORY_LABELS, STATUS_LABELS } from '../constants/enums.js';
 import { Activity } from '../models/Activity.js';
 import { getCertificateHours } from '../utils/volunteerLookup.js';
 import { getCategoryStats, getFacultyStats } from './stats.service.js';
-import { listVolunteers } from './volunteer.service.js';
+import { listAllVolunteersWithStats } from './volunteer.service.js';
 
 const HEADER_FILL = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F4E79' } };
 const HEADER_FONT = { bold: true, color: { argb: 'FFFFFFFF' } };
@@ -188,18 +188,19 @@ function addActivitiesSheet(workbook, activities) {
 }
 
 export async function exportWorkbookBuffer() {
-  const [facultyStats, categoryStats, volunteersPage, activities, certificateHours] =
-    await Promise.all([
+  const [facultyStats, categoryStats, volunteers, activities, certificateHours] = await Promise.all(
+    [
       getFacultyStats(),
       getCategoryStats(),
-      listVolunteers({ page: 1, limit: 10000 }),
+      listAllVolunteersWithStats(),
       Activity.find().populate('volunteer').sort({ date: 1, createdAt: 1 }).lean(),
       getCertificateHours(),
-    ]);
+    ]
+  );
 
   const workbook = new ExcelJS.Workbook();
   addSummarySheet(workbook, facultyStats, categoryStats);
-  addVolunteersSheet(workbook, volunteersPage.volunteers, certificateHours);
+  addVolunteersSheet(workbook, volunteers, certificateHours);
   addActivitiesSheet(workbook, activities);
 
   return workbook.xlsx.writeBuffer();

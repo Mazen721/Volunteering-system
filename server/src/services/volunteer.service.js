@@ -1,4 +1,4 @@
-import { CATEGORY_LABELS } from '../constants/enums.js';
+import { ACTIVITY_STATUSES, CATEGORY_LABELS } from '../constants/enums.js';
 import { Activity } from '../models/Activity.js';
 import { Volunteer } from '../models/Volunteer.js';
 import { AppError } from '../utils/errors.js';
@@ -25,13 +25,35 @@ function buildVolunteerMatchFilter({ search, category, faculty }) {
   return filter;
 }
 
+function attachCategoryLabels(volunteers) {
+  return volunteers.map((volunteer) => ({
+    ...volunteer,
+    categoryLabel: CATEGORY_LABELS[volunteer.category],
+  }));
+}
+
+export async function listAllVolunteersWithStats() {
+  const certificateHours = await getCertificateHours();
+  const rows = await Volunteer.aggregate([
+    ...buildVolunteerStatsStages({}, certificateHours),
+    { $sort: { approvedHours: -1, volunteerId: 1 } },
+  ]);
+  return attachCategoryLabels(rows);
+}
+
 export async function listVolunteers(query = {}) {
+  if (query.activityStatus && !ACTIVITY_STATUSES.includes(query.activityStatus)) {
+    throw new AppError(400, 'حالة الاعتماد غير صالحة');
+  }
+
   const page = Math.max(Number(query.page) || 1, 1);
   const limit = Math.min(Math.max(Number(query.limit) || 10, 1), 100);
   const certificateHours = await getCertificateHours();
   const matchStage = buildVolunteerMatchFilter(query);
 
-  const pipeline = [...buildVolunteerStatsStages(matchStage, certificateHours)];
+  const pipeline = [
+    ...buildVolunteerStatsStages(matchStage, certificateHours, query.activityStatus),
+  ];
   if (query.eligibility === 'eligible') {
     pipeline.push({ $match: { eligible: true } });
   } else if (query.eligibility === 'in_progress') {
@@ -50,10 +72,7 @@ export async function listVolunteers(query = {}) {
 
   const [aggregated] = await Volunteer.aggregate(pipeline);
   const total = aggregated.meta[0]?.total || 0;
-  const volunteers = aggregated.items.map((volunteer) => ({
-    ...volunteer,
-    categoryLabel: CATEGORY_LABELS[volunteer.category],
-  }));
+  const volunteers = attachCategoryLabels(aggregated.items);
 
   return {
     volunteers,

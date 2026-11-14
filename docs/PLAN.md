@@ -122,13 +122,13 @@ volunteer-hours/
 - Navbar, then the Dashboard: KPI cards, animated faculty bars, leaderboard with category tabs (ported from the prototype's markup).
 
 **Verify ✅**
-- [ ] Opening `/` while logged out redirects to `/login`. After login you land on the dashboard, and the session survives a refresh.
-- [ ] Logout clears the token, and the back button doesn't show protected pages.
-- [ ] The KPI cards show the same numbers as `/stats/overview`, in Arabic digits.
-- [ ] Faculty bars are sorted, and the percentages add up to about 100%.
-- [ ] Each leaderboard tab (الكل / الطلاب / أعضاء الكادر الأكاديمي / أعضاء الجهاز الإداري) shows the correct top 5.
-- [ ] With the API stopped: an Arabic error message is shown, not a blank page.
-- [ ] It looks fine on mobile width (375px), and there's **no English text anywhere** in the UI.
+- [x] Opening `/` while logged out redirects to `/login`. After login you land on the dashboard, and the session survives a refresh.
+- [x] Logout clears the token, and the back button doesn't show protected pages.
+- [x] The KPI cards show the same numbers as `/stats/overview`, in Arabic digits.
+- [x] Faculty bars are sorted, and the percentages add up to about 100%.
+- [x] Each leaderboard tab (الكل / الطلاب / أعضاء الكادر الأكاديمي / أعضاء الجهاز الإداري) shows the correct top 5.
+- [x] With the API stopped: an Arabic error message is shown, not a blank page.
+- [x] It looks fine on mobile width (375px), and there's **no English text anywhere** in the UI.
 
 ### Phase 4: Frontend management
 - Volunteers table with search and filters (C7 fixed), plus an add/edit volunteer modal.
@@ -138,16 +138,16 @@ volunteer-hours/
 - Toasts and confetti on success, plus loading skeletons.
 
 **Verify ✅**
-- [ ] Add a volunteer → it appears in the table right away and **still exists after a refresh**.
-- [ ] Add an activity: typing an existing ID fills in the volunteer's name, category and faculty as read-only. An unknown ID shows an Arabic error.
-- [ ] Add 30+ approved hours to a volunteer → the badge changes to "مؤهل لإصدار الشهادة 🎓" and the certificate button unlocks.
-- [ ] Change an activity to مرفوض → its hours are removed from the totals and the red badge shows.
-- [ ] Edit a volunteer's faculty → the faculty stats on the dashboard update.
-- [ ] Every filter works on its own and together with the others. The eligibility filter and the activity-status filter are separate (C7).
-- [ ] A name containing `'` or `<script>` displays as plain text and nothing breaks (C12).
-- [ ] Forms reject: empty fields, hours ≤ 0, invalid dates. All error messages are in Arabic.
-- [ ] Deleting anything asks for confirmation first, in Arabic.
-- [ ] The Import/Export page round-trips: export → import the same file → no changes, no duplicates.
+- [x] Add a volunteer → it appears in the table right away and **still exists after a refresh**.
+- [x] Add an activity: typing an existing ID fills in the volunteer's name, category and faculty as read-only. An unknown ID shows an Arabic error.
+- [x] Add 30+ approved hours to a volunteer → the badge changes to "مؤهل لإصدار الشهادة 🎓" and the certificate button unlocks.
+- [x] Change an activity to مرفوض → its hours are removed from the totals and the red badge shows.
+- [x] Edit a volunteer's faculty → the faculty stats on the dashboard update.
+- [x] Every filter works on its own and together with the others. The eligibility filter and the activity-status filter are separate (C7).
+- [x] A name containing `'` or `<script>` displays as plain text and nothing breaks (C12).
+- [x] Forms reject: empty fields, hours ≤ 0, invalid dates. All error messages are in Arabic.
+- [x] Deleting anything asks for confirmation first, in Arabic.
+- [x] The Import/Export page round-trips: export → import the same file → no changes, no duplicates.
 
 ### Phase 5: Certificate
 - `/certificate/:volunteerId` page, only available if the volunteer is eligible.
@@ -155,10 +155,10 @@ volunteer-hours/
 - Print CSS (A4 landscape) so only the certificate prints.
 
 **Verify ✅**
-- [ ] Opening `/certificate/20260002` (15 hours, not eligible) by URL directly → blocked with an Arabic message.
-- [ ] For أحمد (31 hours): the certificate shows the correct name, ID, category, faculty, 31 hours, 3 activities and today's date in Arabic.
-- [ ] Print preview: exactly **1 A4 landscape page**, with no navbar or buttons.
-- [ ] Long Arabic names (four-part names) don't overflow the layout.
+- [x] Opening `/certificate/20260002` (15 hours, not eligible) by URL directly → blocked with an Arabic message.
+- [x] For أحمد (31 hours): the certificate shows the correct name, ID, category, faculty, 31 hours, 3 activities and today's date in Arabic.
+- [x] Print preview: exactly **1 A4 landscape page**, with no navbar or buttons.
+- [x] Long Arabic names (four-part names) don't overflow the layout.
 
 ### Phase 6: Testing and data check
 - Check by hand that the totals per volunteer, faculty and category match a corrected copy of the Excel.

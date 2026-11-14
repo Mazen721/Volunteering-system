@@ -7,25 +7,36 @@
     "dev": "node ./node_modules/vite/bin/vite.js",
     "build": "node ./node_modules/vite/bin/vite.js build",
     "preview": "node ./node_modules/vite/bin/vite.js preview",
+    "test": "node ./node_modules/vitest/vitest.mjs run",
     "lint": "node ./node_modules/eslint/bin/eslint.js .",
     "format": "node ./node_modules/prettier/bin/prettier.cjs --write .",
     "format:check": "node ./node_modules/prettier/bin/prettier.cjs --check ."
   },
   "dependencies": {
+    "axios": "^1.21.1",
+    "canvas-confetti": "^1.9.4",
+    "lucide-react": "^1.73.0",
     "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react-dom": "^19.3.1",
+    "react-router-dom": "^7.18.5"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@tailwindcss/vite": "^4.3.5",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.10",
     "@vitejs/plugin-react": "^6.3.0",
     "eslint": "^10.15.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.7",
     "globals": "^17.14.0",
+    "jsdom": "^29.1.1",
+    "msw": "^3.0.5",
     "prettier": "^3.10.1",
     "tailwindcss": "^4.3.5",
-    "vite": "^8.3.8"
+    "vite": "^8.3.8",
+    "vitest": "^5.1.0"
   }
 }
