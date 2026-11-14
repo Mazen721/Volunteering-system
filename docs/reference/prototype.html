@@ -1,0 +1,1397 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة ساعات التطوع الحية - جامعة المنصورة الأهلية</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Cairo -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Canvas Confetti for Achievements -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        mnu: {
+                            50: '#f0f5fa',
+                            100: '#e1ebd4',
+                            500: '#1F4E79',
+                            600: '#183e61',
+                            700: '#122f4a',
+                            gold: '#D4AF37',
+                            emerald: '#10B981',
+                        }
+                    },
+                    fontFamily: {
+                        cairo: ['Cairo', 'sans-serif'],
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 4s ease-in-out infinite',
+                        'glow': 'glow 2s ease-in-out infinite alternate',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-6px)' },
+                        },
+                        glow: {
+                            '0%': { boxShadow: '0 0 5px rgba(31, 78, 121, 0.2)' },
+                            '100%': { boxShadow: '0 0 20px rgba(31, 78, 121, 0.6)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: linear-gradient(135deg, #f4f7fa 0%, #e9eef5 100%);
+            min-height: 100vh;
+        }
+
+        /* Glassmorphism styling */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 10px 30px rgba(31, 78, 121, 0.08);
+        }
+
+        .glass-nav {
+            background: rgba(31, 78, 121, 0.95);
+            backdrop-filter: blur(10px);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1F4E79;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #122f4a;
+        }
+
+        /* Shimmer loading effect */
+        .shimmer {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased selection:bg-mnu-500 selection:text-white">
+
+    <!-- Top Navigation Bar -->
+    <header class="sticky top-0 z-40 glass-nav text-white shadow-xl transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <!-- Brand & Logo -->
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center border border-white/20 shadow-inner backdrop-blur-md">
+                        <i class="fa-solid fa-graduation-cap text-2xl text-mnu-gold"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-extrabold text-lg sm:text-xl tracking-wide flex items-center gap-2">
+                            جامعة المنصورة الأهلية
+                            <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-mnu-gold/20 text-yellow-300 border border-yellow-400/30">ساعات التطوع</span>
+                        </h1>
+                        <p class="text-xs text-blue-200 font-light">لوحة متابعة الأنشطة المباشرة</p>
+                    </div>
+                </div>
+
+                <!-- Live Status & Quick Actions -->
+                <div class="flex items-center gap-3">
+                    <!-- Live Sync Indicator -->
+                    <div id="syncStatusBadge" class="hidden sm:flex items-center gap-2 bg-emerald-500/15 border border-emerald-400/30 px-3 py-1.5 rounded-full text-xs font-semibold text-emerald-300 backdrop-blur-sm">
+                        <span class="relative flex h-2.5 w-2.5">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                        </span>
+                        <span>مضمّن حيّ (Live Sync)</span>
+                    </div>
+
+                    <!-- Connect / Settings Button -->
+                    <button onclick="openSettingsModal()" class="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-xl border border-white/20 text-xs font-bold transition-all duration-300 active:scale-95 shadow-lg">
+                        <i class="fa-solid fa-link text-mnu-gold"></i>
+                        <span>ربط Sheet</span>
+                    </button>
+
+                    <!-- Add Activity Button -->
+                    <button onclick="openAddModal()" class="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all duration-300 shadow-lg shadow-amber-500/30 active:scale-95">
+                        <i class="fa-solid fa-plus"></i>
+                        <span class="hidden md:inline">تسجيل نشاط</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Progress bar for auto-refresh -->
+        <div class="w-full bg-white/10 h-1">
+            <div id="refreshProgressBar" class="bg-gradient-to-r from-amber-400 to-emerald-400 h-1 w-0 transition-all duration-300"></div>
+        </div>
+    </header>
+
+    <!-- Main Content Layout -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        
+        <!-- Welcome Banner & Quick Search Header -->
+        <div class="glass-card rounded-3xl p-6 sm:p-8 relative overflow-hidden">
+            <div class="absolute -left-12 -bottom-12 w-64 h-64 bg-mnu-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -right-12 -top-12 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+            <div class="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                <div>
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-mnu-500/10 text-mnu-500 text-xs font-bold mb-3">
+                        <i class="fa-solid fa-chart-line"></i> الإحصائيات العامة المباشرة
+                    </div>
+                    <h2 class="text-2xl sm:text-3xl font-black text-slate-800">
+                        متابعة الساعات التطوعية المعتمدة 🌟
+                    </h2>
+                    <p class="text-sm text-slate-500 mt-1">تحديث حي ومباشر للمستندات والأنشطة الطلابية بمختلف كليات جامعة المنصورة الأهلية</p>
+                </div>
+
+                <div class="flex items-center gap-2 w-full md:w-auto">
+                    <button onclick="triggerConfetti()" class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition flex items-center gap-2">
+                        <i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i>
+                        احتفال بالإنجازات
+                    </button>
+                    <button onclick="fetchSheetData()" class="px-4 py-2.5 rounded-xl bg-mnu-500 hover:bg-mnu-600 text-white text-xs font-bold transition flex items-center gap-2 shadow-md shadow-mnu-500/20 active:scale-95">
+                        <i id="syncIcon" class="fa-solid fa-rotate"></i>
+                        تحديث البيانات
+                    </button>
+                </div>
+            </div>
+
+            <!-- KPI Cards Grid -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+                <!-- Card 1 -->
+                <div class="glass-card p-5 rounded-2xl border-r-4 border-r-mnu-500 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-500">إجمالي الساعات</span>
+                        <div class="w-10 h-10 rounded-xl bg-mnu-500/10 text-mnu-500 flex items-center justify-center">
+                            <i class="fa-solid fa-clock text-lg"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex items-baseline justify-between">
+                        <span id="kpiTotalHours" class="text-2xl sm:text-3xl font-black text-mnu-500">0</span>
+                        <span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md"><i class="fa-solid fa-arrow-up text-[10px]"></i> +12%</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 mt-1">ساعة تطوعية معتمدة</p>
+                </div>
+
+                <!-- Card 2 -->
+                <div class="glass-card p-5 rounded-2xl border-r-4 border-r-amber-500 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-500">عدد المتطوعين</span>
+                        <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
+                            <i class="fa-solid fa-users text-lg"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex items-baseline justify-between">
+                        <span id="kpiTotalVolunteers" class="text-2xl sm:text-3xl font-black text-amber-600">0</span>
+                        <span class="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md">شخص</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 mt-1">متطوع مسجل بالمنظومة</p>
+                </div>
+
+                <!-- Card 3 -->
+                <div class="glass-card p-5 rounded-2xl border-r-4 border-r-emerald-500 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-500">الكليات/الجهات</span>
+                        <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+                            <i class="fa-solid fa-building-columns text-lg"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex items-baseline justify-between">
+                        <span id="kpiActiveFaculties" class="text-2xl sm:text-3xl font-black text-emerald-600">0</span>
+                        <span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">جهة</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 mt-1">من كليات وإدارات الجامعة</p>
+                </div>
+
+                <!-- Card 4 -->
+                <div class="glass-card p-5 rounded-2xl border-r-4 border-r-purple-500 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-500">متوسط الساعات</span>
+                        <div class="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-600 flex items-center justify-center">
+                            <i class="fa-solid fa-chart-pie text-lg"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex items-baseline justify-between">
+                        <span id="kpiAvgHours" class="text-2xl sm:text-3xl font-black text-purple-600">0</span>
+                        <span class="text-xs font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-md">ساعة/متطوع</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 mt-1">معدل المشاركة المعتمدة</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Animated Faculty Hours Progress Chart Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Faculty Comparison Chart -->
+            <div class="lg:col-span-2 glass-card rounded-3xl p-6 sm:p-8 space-y-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-chart-column text-mnu-500"></i>
+                            توزيع الساعات التطوعية حسب الكلية / الجهة
+                        </h3>
+                        <p class="text-xs text-slate-500 mt-0.5">مقارنة تفاعلية لحجم المشاركة والأنشطة لكل جهة</p>
+                    </div>
+                    <span class="text-xs font-bold bg-mnu-500/10 text-mnu-500 px-3 py-1 rounded-full">حي ومباشر</span>
+                </div>
+
+                <!-- Custom Animated Bars -->
+                <div id="facultyBarsContainer" class="space-y-4 pt-2">
+                    <!-- Bars injected dynamically -->
+                </div>
+            </div>
+
+            <!-- Top Volunteers Leaderboard Widget (Filterable by Category) -->
+            <div class="glass-card rounded-3xl p-6 sm:p-8 space-y-5 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-trophy text-amber-500 animate-bounce"></i>
+                            أبرز المتطوعين
+                        </h3>
+                        <span class="text-xs font-semibold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full">نجمة التطوع</span>
+                    </div>
+
+                    <!-- Category Filter Tabs for Leaderboard -->
+                    <div class="flex items-center gap-1.5 overflow-x-auto pb-2 text-xs font-bold scrollbar-none" id="topVolunteersTabs">
+                        <button onclick="setTopCategory('الكل')" id="tab-top-الكل" class="top-cat-btn px-2.5 py-1 rounded-lg bg-mnu-500 text-white transition whitespace-nowrap shadow-sm">الكل</button>
+                        <button onclick="setTopCategory('طالب')" id="tab-top-طالب" class="top-cat-btn px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition whitespace-nowrap">الطلاب 🎓</button>
+                        <button onclick="setTopCategory('عضو هيئة تدريس')" id="tab-top-عضو هيئة تدريس" class="top-cat-btn px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition whitespace-nowrap">الأكاديمي 👨‍🏫</button>
+                        <button onclick="setTopCategory('جهاز إداري')" id="tab-top-جهاز إداري" class="top-cat-btn px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition whitespace-nowrap">الإداريون 💼</button>
+                    </div>
+
+                    <div id="topVolunteersList" class="space-y-2.5 mt-2">
+                        <!-- Top volunteers injected dynamically -->
+                    </div>
+                </div>
+
+                <div class="pt-4 border-t border-slate-100 text-center">
+                    <p class="text-xs text-slate-400">يتم منح شهادات شكر وتكريم رقمي للمتطوعين المتجاوزين لـ 30 ساعة</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interactive Live Table Section -->
+        <div class="glass-card rounded-3xl p-6 sm:p-8 space-y-6">
+            <!-- Search & Filters Toolbar -->
+            <div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+                <!-- Search Box -->
+                <div class="relative flex-1">
+                    <i class="fa-solid fa-magnifying-glass absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    <input type="text" id="searchInput" oninput="filterTable()" placeholder="ابحث باسم المتطوع، الكلية، الرقم التعريفي، أو النشاط..." 
+                           class="w-full pl-4 pr-11 py-3 bg-white/70 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-mnu-500/50 focus:bg-white transition">
+                </div>
+
+                <!-- Filters -->
+                <div class="flex items-center gap-3 overflow-x-auto pb-1 md:pb-0">
+                    <!-- Category Filter -->
+                    <select id="categoryFilter" onchange="filterTable()" class="bg-white/70 border border-slate-200 rounded-2xl px-4 py-3 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-mnu-500/50">
+                        <option value="">جميع الفئات</option>
+                        <option value="طالب">الطلاب 🎓</option>
+                        <option value="عضو هيئة تدريس">الكادر الأكاديمي 👨‍🏫</option>
+                        <option value="جهاز إداري">الجهاز الإداري 💼</option>
+                    </select>
+
+                    <!-- Faculty Filter -->
+                    <select id="facultyFilter" onchange="filterTable()" class="bg-white/70 border border-slate-200 rounded-2xl px-4 py-3 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-mnu-500/50">
+                        <option value="">جميع الكليات والجهات</option>
+                        <option value="كلية الطب البشري">كلية الطب البشري</option>
+                        <option value="كلية طب الأسنان">كلية طب الأسنان</option>
+                        <option value="كلية الصيدلة">كلية الصيدلة</option>
+                        <option value="كلية الهندسة">كلية الهندسة</option>
+                        <option value="كلية تكنولوجيا العلوم الصحية">تكنولوجيا العلوم الصحية</option>
+                        <option value="كلية الاقتصاد والعلوم الإدارية">الاقتصاد والعلوم الإدارية</option>
+                        <option value="كلية التمريض">كلية التمريض</option>
+                        <option value="الإدارة العامة">الإدارة العامة</option>
+                    </select>
+
+                    <!-- Status Filter -->
+                    <select id="statusFilter" onchange="filterTable()" class="bg-white/70 border border-slate-200 rounded-2xl px-4 py-3 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-mnu-500/50">
+                        <option value="">جميع الحالات</option>
+                        <option value="معتمد">مكتمل للشهادة (30+ ساعة)</option>
+                        <option value="قيد المراجعة">قيد المستهدف (أقل من 30 ساعة)</option>
+                    </select>
+
+                    <!-- Export Excel / CSV -->
+                    <button onclick="exportToCSV()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-3 rounded-2xl text-xs font-bold transition flex items-center gap-2 shrink-0">
+                        <i class="fa-solid fa-file-csv text-emerald-600"></i>
+                        تصدير CSV
+                    </button>
+                </div>
+            </div>
+
+            <!-- Table Container -->
+            <div class="overflow-x-auto rounded-2xl border border-slate-100 bg-white/40">
+                <table class="w-full text-right border-collapse">
+                    <thead>
+                        <tr class="bg-mnu-500 text-white text-xs font-bold">
+                            <th class="p-4 rounded-tr-2xl">الرقم التعريفى</th>
+                            <th class="p-4">المتطوع (انقر للتفاصيل)</th>
+                            <th class="p-4">الفئة</th>
+                            <th class="p-4">الكلية/الجهة</th>
+                            <th class="p-4 text-center">إجمالي الأنشطة</th>
+                            <th class="p-4 text-center">إجمالي الساعات</th>
+                            <th class="p-4 text-center">شرط الشهادة (30 ساعة)</th>
+                            <th class="p-4 rounded-tl-2xl text-center">الإجراءات / الشهادة</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
+                        <!-- Dynamic Rows -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Table Footer Pagination Info -->
+            <div class="flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 pt-2 gap-2">
+                <div>عرض <span id="shownCount" class="font-bold text-slate-800">0</span> من إجمالي <span id="totalCount" class="font-bold text-slate-800">0</span> متطوع مسجل</div>
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-circle-info text-mnu-500"></i>
+                    <span>انقر على اسم المتطوع لعرض سجل أنشطته التفصيلية وتواريخها</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal 1: Google Sheet Connection Setup -->
+    <div id="settingsModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="glass-card w-full max-w-lg rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl relative animate-float">
+            <button onclick="closeSettingsModal()" class="absolute left-6 top-6 text-slate-400 hover:text-slate-600 transition text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-file-excel"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800">ربط Google Sheets الحي</h3>
+                    <p class="text-xs text-slate-500">قم بإدخال رابط Web App أو رابط Published CSV للتزامن الفوري</p>
+                </div>
+            </div>
+
+            <div class="space-y-4 text-xs">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">رابط Google Apps Script Web App أو CSV URL:</label>
+                    <input type="url" id="sheetUrlInput" placeholder="https://script.google.com/macros/s/..." 
+                           class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-mnu-500/50 outline-none text-left font-mono text-[11px]">
+                </div>
+
+                <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                    <p class="font-bold text-slate-700 flex items-center gap-2">
+                        <i class="fa-solid fa-lightbulb text-amber-500"></i> كيف تحصل على الرابط؟
+                    </p>
+                    <ol class="list-decimal list-inside text-slate-600 space-y-1 pr-2">
+                        <li>من ملف Google Sheet: اختر <b>File > Share > Publish to web</b>.</li>
+                        <li>اختر شيت <b>"سجل الأنشطة والساعات"</b> ثم حدد صيغة <b>Comma-separated values (.csv)</b>.</li>
+                        <li>انسخ الرابط وانصقه في الصندوق أعلاه للحصول على تحديث مجاني ومباشر!</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-2">
+                <button onclick="closeSettingsModal()" class="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold hover:bg-slate-200 transition">إلغاء</button>
+                <button onclick="saveSheetUrl()" class="px-5 py-2.5 rounded-xl bg-mnu-500 text-white text-xs font-bold hover:bg-mnu-600 transition shadow-lg shadow-mnu-500/30">حفظ وتزامن</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 2: Add New Activity Form -->
+    <div id="addModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="glass-card w-full max-w-lg rounded-3xl p-6 sm:p-8 space-y-5 shadow-2xl relative">
+            <button onclick="closeAddModal()" class="absolute left-6 top-6 text-slate-400 hover:text-slate-600 transition text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-square-plus"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800">تسجيل نشاط تطوعي جديد</h3>
+                    <p class="text-xs text-slate-500">سيتم إضافة النشاط مباشرة إلى الجدول الحي وحسابه فوراً</p>
+                </div>
+            </div>
+
+            <form id="addActivityForm" onsubmit="handleAddActivity(event)" class="space-y-4 text-xs">
+                <!-- إشعار التعبئة التلقائية للبيانات -->
+                <div id="autoFillNotice" class="hidden p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold flex items-center gap-2 transition-all">
+                    <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                    <span>تم التعرف على المتطوع وتعبئة البيانات الشخصية تلقائياً!</span>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">الرقم التعريفي / الجامعي</label>
+                        <input type="text" id="addId" oninput="autoFillVolunteerData(this.value)" required placeholder="20260010" class="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-mnu-500/50 outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">الاسم الرباعي</label>
+                        <input type="text" id="addName" required placeholder="د. أحمد مصطفى / الطالب محمد أحمد" class="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-mnu-500/50 outline-none">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">فئة المتطوع</label>
+                        <select id="addCategory" required class="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-mnu-500/50 outline-none">
+                            <option value="طالب">طالب 🎓</option>
+                            <option value="عضو هيئة تدريس">عضو كادر أكاديمي 👨‍🏫</option>
+                            <option value="جهاز إداري">عضو جهاز إداري 💼</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">الكلية / الإدارة</label>
+                        <select id="addFaculty" required class="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-mnu-500/50 outline-none">
+                            <option value="كلية الطب البشري">كلية الطب البشري</option>
+                            <option value="كلية طب الأسنان">كلية طب الأسنان</option>
+                            <option value="كلية الصيدلة">كلية الصيدلة</option>
+                            <option value="كلية الهندسة">كلية الهندسة</option>
+                            <option value="كلية تكنولوجيا العلوم الصحية">تكنولوجيا العلوم الصحية</option>
+                            <option value="كلية الاقتصاد والعلوم الإدارية">الاقتصاد والعلوم الإدارية</option>
+                            <option value="كلية التمريض">كلية التمريض</option>
+                            <option value="الإدارة العامة">الإدارة العامة والخدمات</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">عدد الساعات التطوعية</label>
+                        <input type="number" id="addHours" min="1" max="50" required placeholder="5" class="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-mnu-500/50 outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">تاريخ النشاط</label>
+                        <input type="date" id="addDate" required class="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-mnu-500/50 outline-none">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">اسم الفعالية / النشاط التطوعي</label>
+                        <input type="text" id="addActivity" required placeholder="تنظيم اليوم التعريفي / إشراف على قافلة طبية" class="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-mnu-500/50 outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">اسم المشرف على النشاط</label>
+                        <input type="text" id="addSupervisor" required placeholder="د. محمد السعيد / أ. سارة محمود" class="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-mnu-500/50 outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">حالة الاعتماد</label>
+                    <select id="addStatus" class="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-mnu-500/50 outline-none">
+                        <option value="معتمد">معتمد ✅</option>
+                        <option value="قيد المراجعة">قيد المراجعة ⏳</option>
+                    </select>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-4">
+                    <button type="button" onclick="closeAddModal()" class="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold hover:bg-slate-200 transition">إلغاء</button>
+                    <button type="submit" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-white text-xs font-bold hover:from-amber-600 hover:to-amber-700 transition shadow-lg shadow-amber-500/30">إضافة فورية</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal 3: Student Certificate Preview Modal -->
+    <div id="certModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="glass-card w-full max-w-xl rounded-3xl p-8 space-y-6 shadow-2xl relative text-center border-2 border-amber-400/40">
+            <button onclick="closeCertModal()" class="absolute left-6 top-6 text-slate-400 hover:text-slate-600 transition text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <!-- Certificate Layout -->
+            <div class="border-4 border-double border-mnu-500 p-6 rounded-2xl bg-white space-y-4">
+                <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-bold text-slate-400">جامعة المنصورة الأهلية</span>
+                    <i class="fa-solid fa-award text-3xl text-amber-500"></i>
+                    <!-- Changed Authority to مركز المسؤولية المجتمعية -->
+                    <span class="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">مركز المسؤولية المجتمعية</span>
+                </div>
+
+                <h4 class="text-xl font-black text-mnu-500 tracking-wide">شهادة تقدير وإثبات مشاركة تطوعية</h4>
+                <p class="text-xs text-slate-600 leading-relaxed">
+                    يشهد <span class="font-bold text-mnu-500">مركز المسؤولية المجتمعية</span> بجامعة المنصورة الأهلية بأن السيد/ـة:<br>
+                    <span id="certName" class="text-lg font-black text-slate-800 underline decoration-amber-500 decoration-2"></span><br>
+                    فئة: <span id="certCategory" class="font-bold text-amber-600"></span> - جهة العمل/الكلية: <span id="certFaculty" class="font-bold text-mnu-500"></span> (الرقم: <span id="certId" class="font-mono"></span>)<br>
+                    قد شارك في إجمالي <span id="certActivitiesCount" class="font-extrabold text-amber-600"></span> أنشطة تطوعية، وحصل على <span id="certHours" class="font-extrabold text-emerald-600 text-base"></span> ساعة تطوعية معتمدة.
+                </p>
+
+                <div class="pt-4 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                    <div>التاريخ: <span id="certDate" class="font-bold"></span></div>
+                    <div class="font-bold text-mnu-500 flex items-center gap-1">
+                        <i class="fa-solid fa-seal-check text-emerald-600"></i> اعتماد مركز المسؤولية المجتمعية ✅
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-center gap-3">
+                <button onclick="printCertificate()" class="px-6 py-2.5 rounded-xl bg-mnu-500 text-white text-xs font-bold hover:bg-mnu-600 transition flex items-center gap-2 shadow-lg shadow-mnu-500/20">
+                    <i class="fa-solid fa-print"></i> طباعة الشهادة
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 4: Volunteer Detailed Log & Profile Modal -->
+    <div id="volunteerDetailModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="glass-card w-full max-w-3xl rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <button onclick="closeVolunteerDetailModal()" class="absolute left-6 top-6 text-slate-400 hover:text-slate-600 transition text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <!-- Profile Header -->
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+                <div class="flex items-center gap-4">
+                    <div class="w-14 h-14 rounded-2xl bg-mnu-500/10 text-mnu-500 flex items-center justify-center text-2xl font-bold shadow-inner">
+                        <i class="fa-solid fa-user-graduate"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 id="modalVolName" class="text-xl font-extrabold text-slate-800">---</h3>
+                            <span id="modalVolCategory" class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">---</span>
+                            <button onclick="openEditVolunteerModal()" title="تعديل البيانات الشخصية" class="text-xs text-amber-600 bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded-lg border border-amber-200 font-bold transition flex items-center gap-1">
+                                <i class="fa-solid fa-pen-to-square"></i> تعديل الشخصية
+                            </button>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-1">
+                            الرقم التعريفي: <span id="modalVolId" class="font-mono font-bold text-slate-700">---</span> | الكلية/الجهة: <span id="modalVolFaculty" class="font-bold text-mnu-500">---</span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Certificate Quick Action inside detail modal -->
+                <div id="modalCertActionContainer">
+                    <!-- Dynamic cert button will be placed here -->
+                </div>
+            </div>
+
+            <!-- Stats & 30-Hour Goal Progress Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                    <span class="text-xs text-slate-400 block font-bold">إجمالي الساعات المعتمدة</span>
+                    <span id="modalVolTotalHours" class="text-2xl font-black text-mnu-500">0</span>
+                    <span class="text-xs text-slate-500">/ 30 ساعة مطلوبة</span>
+                </div>
+                <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                    <span class="text-xs text-slate-400 block font-bold">إجمالي الأنشطة</span>
+                    <span id="modalVolTotalActs" class="text-2xl font-black text-amber-600">0</span>
+                    <span class="text-xs text-slate-500">نشاط تطوعي</span>
+                </div>
+                <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                    <span class="text-xs text-slate-400 block font-bold">المتبقي للشهادة</span>
+                    <span id="modalVolRemainingHours" class="text-2xl font-black text-purple-600">30</span>
+                    <span class="text-xs text-slate-500">ساعة تطوعية</span>
+                </div>
+            </div>
+
+            <!-- Progress Bar to 30 Hours -->
+            <div class="space-y-1.5 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                <div class="flex justify-between items-center text-xs font-bold">
+                    <span class="text-slate-700 flex items-center gap-1.5">
+                        <i class="fa-solid fa-trophy text-amber-500"></i> التقدم نحو شهادة مركز المسؤولية المجتمعية (30 ساعة)
+                    </span>
+                    <span id="modalProgressText" class="text-mnu-500 font-black">0%</span>
+                </div>
+                <div class="w-full bg-slate-200 h-3 rounded-full overflow-hidden">
+                    <div id="modalProgressBar" class="bg-gradient-to-r from-amber-500 via-emerald-500 to-mnu-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Activities Table -->
+            <div class="space-y-3">
+                <h4 class="text-sm font-bold text-slate-800 flex items-center justify-between">
+                    <span class="flex items-center gap-2"><i class="fa-solid fa-list-check text-mnu-500"></i> قائمة الأنشطة التطوعية وتواريخها</span>
+                    <span class="text-[11px] font-normal text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md"><i class="fa-solid fa-hand-pointer text-[10px]"></i> انقر على اسم النشاط لتعديل بياناته</span>
+                </h4>
+                <div class="overflow-x-auto rounded-2xl border border-slate-100 bg-white">
+                    <table class="w-full text-right text-xs">
+                        <thead class="bg-slate-100 text-slate-700 font-bold">
+                            <tr>
+                                <th class="p-3">اسم النشاط التطوعي (اضغط للتعديل)</th>
+                                <th class="p-3">المشرف المسؤول</th>
+                                <th class="p-3 text-center">التاريخ</th>
+                                <th class="p-3 text-center">ساعات النشاط</th>
+                                <th class="p-3 text-center">الحالة</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modalVolActivitiesTable" class="divide-y divide-slate-100">
+                            <!-- Activities rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 5: Edit Personal Info Modal -->
+    <div id="editVolunteerModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="glass-card w-full max-w-md rounded-3xl p-6 sm:p-8 space-y-5 shadow-2xl relative">
+            <button onclick="closeEditVolunteerModal()" class="absolute left-6 top-6 text-slate-400 hover:text-slate-600 transition text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-user-pen"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800">تعديل البيانات الشخصية للمتطوع</h3>
+                    <p class="text-xs text-slate-500">سيتم تحديث هذه البيانات في جميع السجلات الخاصة بالمتطوع</p>
+                </div>
+            </div>
+
+            <form onsubmit="handleSaveVolunteerPersonalInfo(event)" class="space-y-4 text-xs">
+                <input type="hidden" id="editVolId">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">الاسم الرباعي</label>
+                    <input type="text" id="editVolName" required class="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-mnu-500/50 outline-none">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">فئة المتطوع</label>
+                    <select id="editVolCategory" required class="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-mnu-500/50 outline-none">
+                        <option value="طالب">طالب 🎓</option>
+                        <option value="عضو هيئة تدريس">عضو كادر أكاديمي 👨‍🏫</option>
+                        <option value="جهاز إداري">عضو جهاز إداري 💼</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">الكلية / الجهة</label>
+                    <select id="editVolFaculty" required class="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-mnu-500/50 outline-none">
+                        <option value="كلية الطب البشري">كلية الطب البشري</option>
+                        <option value="كلية طب الأسنان">كلية طب الأسنان</option>
+                        <option value="كلية الصيدلة">كلية الصيدلة</option>
+                        <option value="كلية الهندسة">كلية الهندسة</option>
+                        <option value="كلية تكنولوجيا العلوم الصحية">تكنولوجيا العلوم الصحية</option>
+                        <option value="كلية الاقتصاد والعلوم الإدارية">الاقتصاد والعلوم الإدارية</option>
+                        <option value="كلية التمريض">كلية التمريض</option>
+                        <option value="الإدارة العامة">الإدارة العامة والخدمات</option>
+                    </select>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-3">
+                    <button type="button" onclick="closeEditVolunteerModal()" class="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 transition">إلغاء</button>
+                    <button type="submit" class="px-5 py-2.5 rounded-xl bg-mnu-500 text-white font-bold hover:bg-mnu-600 transition shadow-lg shadow-mnu-500/30">حفظ التغييرات</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal 6: Edit Specific Activity Modal -->
+    <div id="editActivityModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="glass-card w-full max-w-lg rounded-3xl p-6 sm:p-8 space-y-5 shadow-2xl relative">
+            <button onclick="closeEditActivityModal()" class="absolute left-6 top-6 text-slate-400 hover:text-slate-600 transition text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-2xl bg-purple-500/10 text-purple-600 flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800">تعديل بيانات النشاط التطوعي</h3>
+                    <p class="text-xs text-slate-500">تعديل اسم النشاط، التاريخ، عدد الساعات، اسم المشرف، وحالة الاعتماد</p>
+                </div>
+            </div>
+
+            <form onsubmit="handleSaveActivityEdit(event)" class="space-y-4 text-xs">
+                <input type="hidden" id="editActIndex">
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">اسم النشاط التطوعي</label>
+                    <input type="text" id="editActName" required class="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-mnu-500/50 outline-none">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">اسم المشرف على النشاط</label>
+                    <input type="text" id="editActSupervisor" required class="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-mnu-500/50 outline-none">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">عدد الساعات التطوعية</label>
+                        <input type="number" id="editActHours" min="1" max="100" required class="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-mnu-500/50 outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">تاريخ النشاط</label>
+                        <input type="date" id="editActDate" required class="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-mnu-500/50 outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">حالة الاعتماد</label>
+                    <select id="editActStatus" class="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-mnu-500/50 outline-none">
+                        <option value="معتمد">معتمد ✅</option>
+                        <option value="قيد المراجعة">قيد المراجعة ⏳</option>
+                    </select>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-3">
+                    <button type="button" onclick="closeEditActivityModal()" class="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 transition">إلغاء</button>
+                    <button type="submit" class="px-5 py-2.5 rounded-xl bg-purple-600 text-white font-bold hover:bg-purple-700 transition shadow-lg shadow-purple-600/30">حفظ التغييرات</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Sample Data with dynamic categories & supervisor
+        const sampleData = [
+            { id: "20260001", name: "أحمد محمد علي", category: "طالب", faculty: "كلية الطب البشري", activity: "حملة التبرع بالدم بالجامعة", date: "2026-10-05", hours: 12, supervisor: "د. خالد السعيد", status: "معتمد" },
+            { id: "20260001", name: "أحمد محمد علي", category: "طالب", faculty: "كلية الطب البشري", activity: "ورشة الإسعافات الأولية للطلاب", date: "2026-10-20", hours: 10, supervisor: "د. منى عبدالفتاح", status: "معتمد" },
+            { id: "20260001", name: "أحمد محمد علي", category: "طالب", faculty: "كلية الطب البشري", activity: "مؤتمر الطب التجديدي السنوي", date: "2026-10-28", hours: 10, supervisor: "أ.د. حسام مصطفى", status: "معتمد" },
+            { id: "20260002", name: "سارة محمود حسن", category: "طالب", faculty: "كلية الهندسة", activity: "تنظيم معرض التخصصات والابتكار", date: "2026-10-10", hours: 18, supervisor: "د. إيهاب مجدي", status: "معتمد" },
+            { id: "20260003", name: "د. إبراهيم عبد الرحمن", category: "عضو هيئة تدريس", faculty: "كلية الصيدلة", activity: "الإشراف العلمي على التوعية بالأدوية", date: "2026-10-12", hours: 14, supervisor: "أ.د. عميد الكلية", status: "معتمد" },
+            { id: "20260003", name: "د. إبراهيم عبد الرحمن", category: "عضو هيئة تدريس", faculty: "كلية الصيدلة", activity: "تنظيم ورشة عمل أبحاث التخرج", date: "2026-10-24", hours: 18, supervisor: "د. شريف رضوان", status: "معتمد" },
+            { id: "20260004", name: "آية إبراهيم السيد", category: "طالب", faculty: "كلية طب الأسنان", activity: "قافلة طب الأسنان الميدانية", date: "2026-10-15", hours: 10, supervisor: "د. ريم فاروق", status: "معتمد" },
+            { id: "20260005", name: "أ. محمود مصطفى الشريف", category: "جهاز إداري", faculty: "الإدارة العامة", activity: "تنظيم المنتدى الاقتصادي الطلابي", date: "2026-10-18", hours: 16, supervisor: "أ. أحمد توفيق", status: "معتمد" },
+            { id: "20260005", name: "أ. محمود مصطفى الشريف", category: "جهاز إداري", faculty: "الإدارة العامة", activity: "إدارة المسابقات الثقافية بالجامعة", date: "2026-10-29", hours: 15, supervisor: "أ. نهى كامل", status: "معتمد" },
+            { id: "20260006", name: "مريم طارق فؤاد", category: "طالب", faculty: "كلية تكنولوجيا العلوم الصحية", activity: "حملة الفحص الطبي الدوري", date: "2026-10-22", hours: 8, supervisor: "د. سامح جاد", status: "معتمد" },
+            { id: "20260008", name: "نور طاهر حسين", category: "طالب", faculty: "كلية التمريض", activity: "التوعية الصحية بالأساليب الوقائية", date: "2026-10-25", hours: 5, supervisor: "د. هناء النجار", status: "قيد المراجعة" }
+        ];
+
+        let activitiesData = [...sampleData];
+        let currentTopCategory = 'الكل'; 
+        let currentActiveVolunteerId = null;
+
+        function openAddModal() {
+            document.getElementById('addModal').classList.remove('hidden');
+            const addDateInput = document.getElementById('addDate');
+            if (addDateInput) addDateInput.valueAsDate = new Date();
+        }
+
+        function closeAddModal() {
+            document.getElementById('addModal').classList.add('hidden');
+            const autoNotice = document.getElementById('autoFillNotice');
+            if (autoNotice) autoNotice.classList.add('hidden');
+        }
+
+        // دالة التعبئة التلقائية للبيانات الشخصية عند كتابة الرقم التعريفي
+        function autoFillVolunteerData(id) {
+            const trimmedId = id.trim();
+            const autoNotice = document.getElementById('autoFillNotice');
+
+            if (!trimmedId) {
+                if (autoNotice) autoNotice.classList.add('hidden');
+                return;
+            }
+
+            // البحث عن أول سجل للمتطوع بنفس الرقم التعريفي
+            const match = activitiesData.find(item => item.id === trimmedId);
+            if (match) {
+                if (match.name) document.getElementById('addName').value = match.name;
+                if (match.category) document.getElementById('addCategory').value = match.category;
+                if (match.faculty) document.getElementById('addFaculty').value = match.faculty;
+
+                if (autoNotice) autoNotice.classList.remove('hidden');
+            } else {
+                if (autoNotice) autoNotice.classList.add('hidden');
+            }
+        }
+
+        function openSettingsModal() {
+            const savedUrl = localStorage.getItem('mnu_sheet_url') || '';
+            document.getElementById('sheetUrlInput').value = savedUrl;
+            document.getElementById('settingsModal').classList.remove('hidden');
+        }
+
+        function closeSettingsModal() {
+            document.getElementById('settingsModal').classList.add('hidden');
+        }
+
+        function closeCertModal() {
+            document.getElementById('certModal').classList.add('hidden');
+        }
+
+        function closeVolunteerDetailModal() {
+            document.getElementById('volunteerDetailModal').classList.add('hidden');
+        }
+
+        function triggerConfetti() {
+            if (typeof confetti === 'function') {
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+            }
+        }
+
+        function printCertificate() {
+            window.print();
+        }
+
+        // Group activities list by volunteer ID
+        function getGroupedVolunteers() {
+            const volunteerMap = {};
+            activitiesData.forEach(item => {
+                if (!volunteerMap[item.id]) {
+                    volunteerMap[item.id] = {
+                        id: item.id,
+                        name: item.name,
+                        category: item.category || 'طالب',
+                        faculty: item.faculty,
+                        totalHours: 0,
+                        activitiesCount: 0,
+                        activities: []
+                    };
+                }
+                volunteerMap[item.id].activities.push(item);
+                if (item.status === 'معتمد') {
+                    volunteerMap[item.id].totalHours += Number(item.hours);
+                }
+                volunteerMap[item.id].activitiesCount += 1;
+            });
+            return Object.values(volunteerMap);
+        }
+
+        function saveSheetUrl() {
+            const url = document.getElementById('sheetUrlInput').value.trim();
+            if (url) {
+                localStorage.setItem('mnu_sheet_url', url);
+                const badge = document.getElementById('syncStatusBadge');
+                if (badge) badge.classList.remove('hidden');
+            } else {
+                localStorage.removeItem('mnu_sheet_url');
+                const badge = document.getElementById('syncStatusBadge');
+                if (badge) badge.classList.add('hidden');
+            }
+            closeSettingsModal();
+            fetchSheetData();
+        }
+
+        async function fetchSheetData() {
+            const syncIcon = document.getElementById('syncIcon');
+            if (syncIcon) syncIcon.classList.add('fa-spin');
+
+            const sheetUrl = localStorage.getItem('mnu_sheet_url');
+            if (sheetUrl) {
+                try {
+                    const res = await fetch(sheetUrl);
+                    const text = await res.text();
+                    if (text) parseCSV(text);
+                } catch (err) {
+                    console.warn('Could not fetch external sheet data:', err);
+                }
+            }
+
+            setTimeout(() => {
+                if (syncIcon) syncIcon.classList.remove('fa-spin');
+                renderDashboard();
+            }, 500);
+        }
+
+        function renderDashboard() {
+            const approvedActivities = activitiesData.filter(a => a.status === 'معتمد');
+            const totalHours = approvedActivities.reduce((sum, a) => sum + Number(a.hours), 0);
+            const uniqueVolunteers = new Set(approvedActivities.map(a => a.id)).size;
+            const uniqueFaculties = new Set(approvedActivities.map(a => a.faculty)).size;
+            const avgHours = uniqueVolunteers > 0 ? (totalHours / uniqueVolunteers).toFixed(1) : 0;
+
+            const totalHoursEl = document.getElementById('kpiTotalHours');
+            if (totalHoursEl) totalHoursEl.innerText = totalHours.toLocaleString('ar-EG');
+            const totalVolunteersEl = document.getElementById('kpiTotalVolunteers');
+            if (totalVolunteersEl) totalVolunteersEl.innerText = uniqueVolunteers.toLocaleString('ar-EG');
+            const activeFacultiesEl = document.getElementById('kpiActiveFaculties');
+            if (activeFacultiesEl) activeFacultiesEl.innerText = uniqueFaculties.toLocaleString('ar-EG');
+            const avgHoursEl = document.getElementById('kpiAvgHours');
+            if (avgHoursEl) avgHoursEl.innerText = avgHours;
+
+            renderFacultyBars(approvedActivities, totalHours);
+            renderTopVolunteers();
+            filterTable();
+        }
+
+        function renderFacultyBars(approvedActivities, totalHours) {
+            const container = document.getElementById('facultyBarsContainer');
+            if (!container) return;
+
+            const facultyMap = {};
+            approvedActivities.forEach(a => {
+                facultyMap[a.faculty] = (facultyMap[a.faculty] || 0) + Number(a.hours);
+            });
+
+            const sortedFaculties = Object.entries(facultyMap).sort((a, b) => b[1] - a[1]);
+            container.innerHTML = '';
+
+            if (sortedFaculties.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-4">لا توجد بيانات متاحة</p>`;
+                return;
+            }
+
+            const maxHours = sortedFaculties[0][1] || 1;
+
+            sortedFaculties.forEach(([facultyName, hours]) => {
+                const percentage = Math.round((hours / (totalHours || 1)) * 100);
+                const barWidth = Math.max(8, Math.round((hours / maxHours) * 100));
+
+                const item = document.createElement('div');
+                item.className = 'space-y-1.5';
+                item.innerHTML = `
+                    <div class="flex items-center justify-between text-xs font-bold">
+                        <span class="text-slate-700">${facultyName}</span>
+                        <span class="text-mnu-500 font-black">${hours} ساعة (${percentage}%)</span>
+                    </div>
+                    <div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden p-0.5 border border-slate-200">
+                        <div class="bg-gradient-to-r from-mnu-500 to-amber-500 h-full rounded-full transition-all duration-700" style="width: ${barWidth}%"></div>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        // Set top volunteers active category tab
+        function setTopCategory(category) {
+            currentTopCategory = category;
+            const buttons = document.querySelectorAll('.top-cat-btn');
+            buttons.forEach(btn => {
+                btn.classList.remove('bg-mnu-500', 'text-white', 'shadow-sm');
+                btn.classList.add('bg-slate-100', 'text-slate-600');
+            });
+
+            const activeBtn = document.getElementById(`tab-top-${category}`);
+            if (activeBtn) {
+                activeBtn.classList.remove('bg-slate-100', 'text-slate-600');
+                activeBtn.classList.add('bg-mnu-500', 'text-white', 'shadow-sm');
+            }
+
+            renderTopVolunteers();
+        }
+
+        // Render Leaderboard (Top Volunteers filtered by selected Category)
+        function renderTopVolunteers() {
+            const volunteers = getGroupedVolunteers();
+            
+            // Filter by selected category tab if not 'الكل'
+            let filtered = volunteers;
+            if (currentTopCategory !== 'الكل') {
+                filtered = volunteers.filter(v => v.category === currentTopCategory);
+            }
+
+            const sorted = filtered.sort((a, b) => b.totalHours - a.totalHours).slice(0, 5);
+            const container = document.getElementById('topVolunteersList');
+            container.innerHTML = '';
+
+            if (sorted.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">لا يوجد متطوعون مسجلون في هذه الفئة حالياً</p>`;
+                return;
+            }
+
+            sorted.forEach((item, index) => {
+                const medals = ['🥇', '🥈', '🥉', '⭐', '✨'];
+                const badgeColor = item.category === 'عضو هيئة تدريس' ? 'bg-purple-100 text-purple-700 border-purple-200'
+                                 : item.category === 'جهاز إداري' ? 'bg-blue-100 text-blue-700 border-blue-200'
+                                 : 'bg-emerald-100 text-emerald-700 border-emerald-200';
+
+                const card = document.createElement('div');
+                card.className = 'flex items-center justify-between p-3 rounded-2xl bg-white/70 border border-slate-100 shadow-sm hover:scale-[1.02] transition duration-200 cursor-pointer';
+                card.onclick = () => openVolunteerDetail(item.id);
+                card.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="text-lg">${medals[index]}</span>
+                        <div>
+                            <div class="text-xs font-bold text-slate-800 flex items-center gap-1.5 hover:text-mnu-500">
+                                <span>${item.name}</span>
+                                <span class="text-[9px] px-1.5 py-0.2 rounded-full border ${badgeColor}">${item.category}</span>
+                            </div>
+                            <div class="text-[10px] text-slate-400">${item.faculty}</div>
+                        </div>
+                    </div>
+                    <div class="text-left">
+                        <div class="text-xs font-black text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-lg">
+                            ${item.totalHours} ساعة
+                        </div>
+                        <div class="text-[10px] text-slate-500 font-bold mt-0.5">
+                            <i class="fa-solid fa-list-check text-slate-400"></i> ${item.activitiesCount} أنشطة
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // Filter Table Rows dynamically by Volunteer Profile
+        function filterTable() {
+            const searchVal = document.getElementById('searchInput').value.toLowerCase();
+            const categoryVal = document.getElementById('categoryFilter').value;
+            const facultyVal = document.getElementById('facultyFilter').value;
+            const statusVal = document.getElementById('statusFilter').value;
+
+            const volunteers = getGroupedVolunteers();
+
+            const filtered = volunteers.filter(vol => {
+                const matchesSearch = vol.name.toLowerCase().includes(searchVal) || 
+                                      vol.id.toLowerCase().includes(searchVal) || 
+                                      vol.faculty.toLowerCase().includes(searchVal) ||
+                                      vol.category.toLowerCase().includes(searchVal);
+                const matchesCategory = !categoryVal || vol.category === categoryVal;
+                const matchesFaculty = !facultyVal || vol.faculty === facultyVal;
+                
+                let matchesStatus = true;
+                if (statusVal === 'معتمد') {
+                    matchesStatus = vol.totalHours >= 30; // Volunteer completed 30 hours
+                } else if (statusVal === 'قيد المراجعة') {
+                    matchesStatus = vol.totalHours < 30;  // Volunteer still progressing
+                }
+
+                return matchesSearch && matchesCategory && matchesFaculty && matchesStatus;
+            });
+
+            renderTableRows(filtered);
+            document.getElementById('shownCount').innerText = filtered.length;
+            document.getElementById('totalCount').innerText = volunteers.length;
+        }
+
+        // Render Volunteer Summary Rows
+        function renderTableRows(volunteersList) {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            if (volunteersList.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="text-center py-8 text-slate-400">
+                            <i class="fa-solid fa-folder-open text-3xl mb-2 block text-slate-300"></i>
+                            لا توجد سجلات مطابقة للبحث
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            volunteersList.forEach((vol) => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50/80 transition duration-150';
+
+                const category = vol.category || 'طالب';
+                const categoryClass = category === 'عضو هيئة تدريس' 
+                    ? 'bg-purple-50 text-purple-700 border-purple-200' 
+                    : category === 'جهاز إداري' 
+                    ? 'bg-blue-50 text-blue-700 border-blue-200' 
+                    : 'bg-emerald-50 text-emerald-700 border-emerald-200';
+
+                const categoryIcon = category === 'عضو هيئة تدريس' ? 'fa-user-tie' : category === 'جهاز إداري' ? 'fa-briefcase' : 'fa-user-graduate';
+
+                const remainingHours = Math.max(0, 30 - vol.totalHours);
+
+                // 30 Hours Certificate Condition Badge
+                const certConditionBadge = vol.totalHours >= 30 
+                    ? `<span class="inline-flex items-center gap-1.5 bg-emerald-100 text-emerald-800 border border-emerald-300 px-3 py-1 rounded-full text-xs font-black shadow-sm">
+                        <i class="fa-solid fa-circle-check text-emerald-600"></i> مكتمل (${vol.totalHours}/30)
+                       </span>`
+                    : `<span class="inline-flex items-center gap-1.5 bg-amber-50 text-amber-800 border border-amber-200 px-3 py-1 rounded-full text-xs font-bold">
+                        <i class="fa-solid fa-hourglass-half text-amber-500"></i> متبقي ${remainingHours} ساعة
+                       </span>`;
+
+                // Action Column: Certificate button unlocked ONLY if 30+ hours
+                const actionButton = vol.totalHours >= 30 
+                    ? `<button onclick="openCertificate('${vol.id}', '${vol.name}', '${vol.faculty}', '${category}')" class="text-xs bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 shadow-md shadow-amber-500/20 mx-auto">
+                        <i class="fa-solid fa-award"></i> أصدر الشهادة
+                       </button>`
+                    : `<button onclick="openVolunteerDetail('${vol.id}')" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1 mx-auto">
+                        <i class="fa-solid fa-eye text-mnu-500"></i> التفاصيل
+                       </button>`;
+
+                tr.innerHTML = `
+                    <td class="p-4 font-mono font-bold text-slate-600">${vol.id}</td>
+                    <td class="p-4 font-bold text-slate-800">
+                        <button onclick="openVolunteerDetail('${vol.id}')" class="text-right hover:text-mnu-500 transition underline decoration-amber-400 decoration-2 font-black flex items-center gap-2">
+                            <i class="fa-solid fa-id-card-clip text-amber-500"></i>
+                            <span>${vol.name}</span>
+                        </button>
+                    </td>
+                    <td class="p-4">
+                        <span class="inline-flex items-center gap-1.5 border ${categoryClass} px-2.5 py-1 rounded-full text-[10px] font-bold">
+                            <i class="fa-solid ${categoryIcon}"></i> ${category}
+                        </span>
+                    </td>
+                    <td class="p-4 text-slate-600">${vol.faculty}</td>
+                    <td class="p-4 text-center">
+                        <span class="inline-block bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-black border border-slate-200">
+                            ${vol.activitiesCount} ${vol.activitiesCount === 1 ? 'نشاط' : 'أنشطة'}
+                        </span>
+                    </td>
+                    <td class="p-4 text-center font-black text-mnu-500 text-sm">${vol.totalHours} ساعة</td>
+                    <td class="p-4 text-center">${certConditionBadge}</td>
+                    <td class="p-4 text-center">${actionButton}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Open Detailed Profile & Activities Modal when clicking on Volunteer Name
+        function openVolunteerDetail(volunteerId) {
+            currentActiveVolunteerId = volunteerId;
+            const volunteers = getGroupedVolunteers();
+            const vol = volunteers.find(v => v.id === volunteerId);
+            if (!vol) return;
+
+            document.getElementById('modalVolName').innerText = vol.name;
+            document.getElementById('modalVolId').innerText = vol.id;
+            document.getElementById('modalVolCategory').innerText = vol.category;
+            document.getElementById('modalVolFaculty').innerText = vol.faculty;
+
+            document.getElementById('modalVolTotalHours').innerText = vol.totalHours;
+            document.getElementById('modalVolTotalActs').innerText = vol.activitiesCount;
+
+            const remainingHours = Math.max(0, 30 - vol.totalHours);
+            document.getElementById('modalVolRemainingHours').innerText = remainingHours;
+
+            // Update Progress Bar
+            const progressPercent = Math.min(100, Math.round((vol.totalHours / 30) * 100));
+            document.getElementById('modalProgressBar').style.width = `${progressPercent}%`;
+            document.getElementById('modalProgressText').innerText = `${progressPercent}%`;
+
+            // Action container inside Modal
+            const actionContainer = document.getElementById('modalCertActionContainer');
+            if (vol.totalHours >= 30) {
+                actionContainer.innerHTML = `
+                    <button onclick="openCertificate('${vol.id}', '${vol.name}', '${vol.faculty}', '${vol.category}')" class="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-lg shadow-amber-500/30">
+                        <i class="fa-solid fa-award"></i> عرض وتنزيل الشهادة
+                    </button>
+                `;
+            } else {
+                actionContainer.innerHTML = `
+                    <span class="px-3 py-1.5 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-xs font-bold inline-flex items-center gap-1.5">
+                        <i class="fa-solid fa-lock text-amber-500"></i> متبقي ${remainingHours} ساعة للشهادة
+                    </span>
+                `;
+            }
+
+            // Render Activities Sub-Table inside Modal with Supervisor & Clickable Activity Edit Links
+            const subTableBody = document.getElementById('modalVolActivitiesTable');
+            subTableBody.innerHTML = '';
+
+            activitiesData.forEach((act, index) => {
+                if (act.id === volunteerId) {
+                    const tr = document.createElement('tr');
+                    const statusBadge = act.status === 'معتمد' 
+                        ? `<span class="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full text-[10px] font-bold">معتمد ✅</span>`
+                        : `<span class="bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full text-[10px] font-bold">قيد المراجعة ⏳</span>`;
+
+                    tr.innerHTML = `
+                        <td class="p-3 font-semibold text-slate-800">
+                            <button onclick="openEditActivityModal(${index})" class="hover:text-purple-600 transition underline decoration-purple-400 decoration-2 font-bold text-right flex items-center gap-2">
+                                <i class="fa-solid fa-pen text-purple-500 text-[10px]"></i>
+                                <span>${act.activity}</span>
+                            </button>
+                        </td>
+                        <td class="p-3 text-slate-600 font-bold">${act.supervisor || 'غير محدد'}</td>
+                        <td class="p-3 text-center font-mono text-slate-500">${act.date}</td>
+                        <td class="p-3 text-center font-black text-mnu-500">${act.hours} ساعة</td>
+                        <td class="p-3 text-center">${statusBadge}</td>
+                    `;
+                    subTableBody.appendChild(tr);
+                }
+            });
+
+            document.getElementById('volunteerDetailModal').classList.remove('hidden');
+        }
+
+        // Open Edit Volunteer Personal Info Modal
+        function openEditVolunteerModal() {
+            if (!currentActiveVolunteerId) return;
+            const volunteers = getGroupedVolunteers();
+            const vol = volunteers.find(v => v.id === currentActiveVolunteerId);
+            if (!vol) return;
+
+            document.getElementById('editVolId').value = vol.id;
+            document.getElementById('editVolName').value = vol.name;
+            document.getElementById('editVolCategory').value = vol.category;
+            document.getElementById('editVolFaculty').value = vol.faculty;
+
+            document.getElementById('editVolunteerModal').classList.remove('hidden');
+        }
+
+        function closeEditVolunteerModal() {
+            document.getElementById('editVolunteerModal').classList.add('hidden');
+        }
+
+        function handleSaveVolunteerPersonalInfo(e) {
+            e.preventDefault();
+            const volId = document.getElementById('editVolId').value;
+            const newName = document.getElementById('editVolName').value.trim();
+            const newCategory = document.getElementById('editVolCategory').value;
+            const newFaculty = document.getElementById('editVolFaculty').value;
+
+            // Update all records matching this ID
+            activitiesData.forEach(act => {
+                if (act.id === volId) {
+                    act.name = newName;
+                    act.category = newCategory;
+                    act.faculty = newFaculty;
+                }
+            });
+
+            closeEditVolunteerModal();
+            renderDashboard();
+            openVolunteerDetail(volId);
+            triggerConfetti();
+        }
+
+        // Open Edit Activity Modal
+        function openEditActivityModal(activityIndex) {
+            const act = activitiesData[activityIndex];
+            if (!act) return;
+
+            document.getElementById('editActIndex').value = activityIndex;
+            document.getElementById('editActName').value = act.activity;
+            document.getElementById('editActSupervisor').value = act.supervisor || '';
+            document.getElementById('editActHours').value = act.hours;
+            document.getElementById('editActDate').value = act.date;
+            document.getElementById('editActStatus').value = act.status;
+
+            document.getElementById('editActivityModal').classList.remove('hidden');
+        }
+
+        function closeEditActivityModal() {
+            document.getElementById('editActivityModal').classList.add('hidden');
+        }
+
+        function handleSaveActivityEdit(e) {
+            e.preventDefault();
+            const idx = Number(document.getElementById('editActIndex').value);
+            if (isNaN(idx) || idx < 0 || idx >= activitiesData.length) return;
+
+            const targetAct = activitiesData[idx];
+            targetAct.activity = document.getElementById('editActName').value.trim();
+            targetAct.supervisor = document.getElementById('editActSupervisor').value.trim();
+            targetAct.hours = Number(document.getElementById('editActHours').value);
+            targetAct.date = document.getElementById('editActDate').value;
+            targetAct.status = document.getElementById('editActStatus').value;
+
+            closeEditActivityModal();
+            renderDashboard();
+            if (currentActiveVolunteerId) {
+                openVolunteerDetail(currentActiveVolunteerId);
+            }
+            triggerConfetti();
+        }
+
+        // Add New Activity Handler
+        function handleAddActivity(e) {
+            e.preventDefault();
+            const newEntry = {
+                id: document.getElementById('addId').value.trim(),
+                name: document.getElementById('addName').value.trim(),
+                category: document.getElementById('addCategory').value,
+                faculty: document.getElementById('addFaculty').value,
+                hours: Number(document.getElementById('addHours').value),
+                activity: document.getElementById('addActivity').value.trim(),
+                supervisor: document.getElementById('addSupervisor').value.trim(),
+                date: document.getElementById('addDate').value,
+                status: document.getElementById('addStatus').value
+            };
+
+            activitiesData.unshift(newEntry);
+            renderDashboard();
+            closeAddModal();
+            triggerConfetti();
+            document.getElementById('addActivityForm').reset();
+            const autoNotice = document.getElementById('autoFillNotice');
+            if (autoNotice) autoNotice.classList.add('hidden');
+            document.getElementById('addDate').valueAsDate = new Date();
+        }
+
+        // Certificate Generator Modal Handler
+        function openCertificate(studentId, name, faculty, category) {
+            const userActivities = activitiesData.filter(a => a.id === studentId && a.status === 'معتمد');
+            const totalHours = userActivities.reduce((acc, curr) => acc + Number(curr.hours), 0);
+            const totalActivitiesCount = userActivities.length;
+
+            document.getElementById('certName').innerText = name;
+            document.getElementById('certId').innerText = studentId;
+            document.getElementById('certCategory').innerText = category || 'طالب';
+            document.getElementById('certFaculty').innerText = faculty;
+            document.getElementById('certHours').innerText = totalHours || 0;
+            document.getElementById('certActivitiesCount').innerText = totalActivitiesCount || 0;
+            document.getElementById('certDate').innerText = new Date().toLocaleDateString('ar-EG');
+            
+            document.getElementById('certModal').classList.remove('hidden');
+            triggerConfetti();
+        }
+
+        // CSV Parser Helper updated with Category
+        function parseCSV(text) {
+            const lines = text.split('\n');
+            const newEntries = [];
+            for (let i = 1; i < lines.length; i++) {
+                const cols = lines[i].split(',').map(c => c.replace(/^"(.*)"$/, '$1').trim());
+                if(cols.length >= 7 && cols[1]) {
+                    newEntries.push({
+                        id: cols[1],
+                        name: cols[2],
+                        category: cols[3] || 'طالب',
+                        faculty: cols[4],
+                        activity: cols[5],
+                        date: cols[6],
+                        hours: Number(cols[7]) || 0,
+                        status: cols[8] || 'معتمد'
+                    });
+                }
+            }
+            if(newEntries.length > 0) {
+                activitiesData = newEntries;
+                renderDashboard();
+            }
+        }
+
+        // Export aggregated volunteers data to CSV
+        function exportToCSV() {
+            let csvContent = "\uFEFFالرقم التعريفي,الاسم,الفئة,الكلية/الجهة,إجمالي الأنشطة,إجمالي الساعات,المتبقي للشهادة (30 ساعة),حالة الاستحقاق\n";
+            const volunteers = getGroupedVolunteers();
+            volunteers.forEach(vol => {
+                const rem = Math.max(0, 30 - vol.totalHours);
+                const isEligible = vol.totalHours >= 30 ? "مستحق للشهادة" : "قيد الاستكمال";
+                csvContent += `"${vol.id}","${vol.name}","${vol.category}","${vol.faculty}","${vol.activitiesCount}","${vol.totalHours}","${rem}","${isEligible}"\n`;
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute("download", `تقرير_المتطوعين_جامعة_المنصورة_الأهلية_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedUrl = localStorage.getItem('mnu_sheet_url');
+            if (savedUrl) {
+                const badge = document.getElementById('syncStatusBadge');
+                if (badge) badge.classList.remove('hidden');
+                fetchSheetData();
+            } else {
+                renderDashboard();
+            }
+        });
+    </script>
+</body>
+</html>

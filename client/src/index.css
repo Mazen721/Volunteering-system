@@ -1,0 +1,31 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-mnu-50: #f0f5fa;
+  --color-mnu-100: #e1ebd4;
+  --color-mnu-500: #1f4e79;
+  --color-mnu-600: #183e61;
+  --color-mnu-700: #122f4a;
+  --color-mnu-gold: #d4af37;
+  --color-mnu-emerald: #10b981;
+  --font-cairo: 'Cairo', sans-serif;
+}
+
+body {
+  font-family: var(--font-cairo);
+  background: linear-gradient(135deg, #f4f7fa 0%, #e9eef5 100%);
+  min-height: 100vh;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 10px 30px rgba(31, 78, 121, 0.08);
+}
+
+.glass-nav {
+  background: rgba(31, 78, 121, 0.95);
+  backdrop-filter: blur(10px);
+}
