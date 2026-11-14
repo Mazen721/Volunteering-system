@@ -39,7 +39,7 @@ describe('validateEnv', () => {
 
 describe('GET /api/health', () => {
   it('returns_ok_json_and_cors_header_for_client_origin', async () => {
-    const app = createApp('http://localhost:5173');
+    const app = createApp({ clientUrl: 'http://localhost:5173', jwtSecret: 'test-secret' });
     const server = await new Promise((resolve) => {
       const instance = app.listen(0, '127.0.0.1', () => resolve(instance));
     });

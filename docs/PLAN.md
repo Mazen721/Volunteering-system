@@ -79,10 +79,10 @@ volunteer-hours/
 - Add ESLint/Prettier and `.gitignore`, then push to GitHub.
 
 **Verify ✅**
-- [ ] `npm run dev` in `server/` logs "MongoDB connected" with no errors.
-- [ ] `GET /api/health` returns `{ status: "ok" }`.
-- [ ] The client opens at `localhost:5173` with the page in RTL, Cairo font loaded, and the title in Arabic.
-- [ ] `.env` is **not** in git (`git status` doesn't show it). `.env.example` is committed.
+- [x] `npm run dev` in `server/` logs "MongoDB connected" with no errors.
+- [x] `GET /api/health` returns `{ status: "ok" }`.
+- [x] The client opens at `localhost:5173` with the page in RTL, Cairo font loaded, and the title in Arabic.
+- [x] `.env` is **not** in git (`git status` doesn't show it). `.env.example` is committed.
 
 ### Phase 1: Backend core
 - Write the models and indexes, plus error-handling middleware and Zod validation.
@@ -90,13 +90,13 @@ volunteer-hours/
 - Auth: `POST /api/auth/login` and `GET /api/auth/me`, using a JWT middleware that protects all routes.
 
 **Verify ✅**
-- [ ] `npm run seed` creates **8 volunteers, 12 activities, 1 admin** (check in Atlas or Compass).
-- [ ] Each volunteer's faculty matches the **volunteers sheet** (e.g. سارة = كلية طب الأسنان).
-- [ ] The activity from row 15 (serial date 46270) is stored as a real date (2026-09-05). All dates are valid `Date` values.
-- [ ] Running the seed twice doesn't create duplicates.
-- [ ] Login with the correct credentials → 200 + token. Wrong password → 401 with an Arabic message ("بيانات الدخول غير صحيحة").
-- [ ] Any protected route without a token → 401. With a token → 200.
-- [ ] Invalid body (e.g. hours = -5) → 400 with an Arabic validation message.
+- [x] `npm run seed` creates **8 volunteers, 12 activities, 1 admin** (check in Atlas or Compass).
+- [x] Each volunteer's faculty matches the **volunteers sheet** (e.g. سارة = كلية طب الأسنان).
+- [x] The activity from row 15 (serial date 46270) is stored as a real date (2026-09-05). All dates are valid `Date` values.
+- [x] Running the seed twice doesn't create duplicates.
+- [x] Login with the correct credentials → 200 + token. Wrong password → 401 with an Arabic message ("بيانات الدخول غير صحيحة").
+- [x] Any protected route without a token → 401. With a token → 200.
+- [x] Invalid body (e.g. hours = -5) → 400 with an Arabic validation message.
 
 ### Phase 2: Backend features
 - **Volunteers:** CRUD, plus a list endpoint with search, category, faculty, eligibility and pagination that returns the computed totals (aggregation).
@@ -105,17 +105,17 @@ volunteer-hours/
 - **Excel:** `POST /import` (multer + exceljs, with a preview report of errors and conflicts) and `GET /export` (3 sheets in the doctor's layout, with the fixes applied).
 
 **Verify ✅** (expected numbers come from the seed data with only approved activities counted)
-- [ ] `/stats/overview`: **129** approved hours (139 minus نور's 10 pending), **8** registered volunteers, **7** active volunteers.
-- [ ] Volunteer 20260001 (أحمد): 31 hours, eligible ✅. 20260003 (د. عمرو): 37 hours, eligible ✅. 20260008 (نور): 0 approved hours, 30 remaining, 1 activity in total.
-- [ ] `/stats/categories` returns **all 3 categories**, including الطلاب (fixes E1).
-- [ ] The averages equal total hours ÷ volunteers, not an average of averages (E5).
-- [ ] Changing an activity's status pending → approved updates the totals right away.
-- [ ] Duplicate `volunteerId` → 409 with an Arabic message.
-- [ ] Deleting a volunteer who still has activities → blocked with a clear message (or cascades, whichever you decide, but be consistent).
-- [ ] Filters and search combine correctly, and pagination returns `total` and `pages`.
-- [ ] Export → open the file in Excel: 3 sheets with Arabic names and headers, Arabic text shows correctly, and the numbers match the API.
-- [ ] Import the doctor's original file → the preview reports the faculty conflicts (E3) and the possible duplicate (E8) **before** anything is saved.
-- [ ] Optional: Jest + Supertest tests for the stats service and the eligibility rule (29 / 30 / 31 hours).
+- [x] `/stats/overview`: **129** approved hours (139 minus نور's 10 pending), **8** registered volunteers, **7** active volunteers.
+- [x] Volunteer 20260001 (أحمد): 31 hours, eligible ✅. 20260003 (د. عمرو): 37 hours, eligible ✅. 20260008 (نور): 0 approved hours, 30 remaining, 1 activity in total.
+- [x] `/stats/categories` returns **all 3 categories**, including الطلاب (fixes E1).
+- [x] The averages equal total hours ÷ volunteers, not an average of averages (E5).
+- [x] Changing an activity's status pending → approved updates the totals right away.
+- [x] Duplicate `volunteerId` → 409 with an Arabic message.
+- [x] Deleting a volunteer who still has activities → blocked with a clear message (or cascades, whichever you decide, but be consistent).
+- [x] Filters and search combine correctly, and pagination returns `total` and `pages`.
+- [x] Export → open the file in Excel: 3 sheets with Arabic names and headers, Arabic text shows correctly, and the numbers match the API.
+- [x] Import the doctor's original file → the preview reports the faculty conflicts (E3) and the possible duplicate (E8) **before** anything is saved.
+- [x] Optional: Jest + Supertest tests for the stats service and the eligibility rule (29 / 30 / 31 hours).
 
 ### Phase 3: Frontend, layout and dashboard
 - Axios client with the JWT, a login page and protected routes.

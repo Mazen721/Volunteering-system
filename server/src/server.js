@@ -6,7 +6,7 @@ async function startServer() {
   const env = loadEnv();
   await connectDatabase(env.mongoUri);
 
-  const app = createApp(env.clientUrl);
+  const app = createApp({ clientUrl: env.clientUrl, jwtSecret: env.jwtSecret });
   app.listen(env.port, () => {
     console.log(`Server listening on port ${env.port}`);
   });
