@@ -171,12 +171,12 @@ volunteer-hours/
 - **Vercel:** the `client` with `VITE_API_URL` and an SPA rewrite rule.
 
 **Verify ✅**
-- [ ] `https://<railway-url>/api/health` → ok.
-- [ ] Log in on the Vercel URL, with no CORS errors in the browser console.
-- [ ] Refreshing on a deep link (e.g. `/volunteers/20260001`) doesn't give a 404 (the SPA rewrite works).
-- [ ] Add an activity on your laptop → it shows up on your phone (same database).
-- [ ] No secrets in the client bundle: search the built JS for `MONGO` or `JWT` and find nothing.
-- [ ] Run the Phase 6 checklist again on production.
+- [x] `https://<railway-url>/api/health` → ok.
+- [x] Log in on the Vercel URL, with no CORS errors in the browser console.
+- [x] Refreshing on a deep link (e.g. `/volunteers/20260001`) doesn't give a 404 (the SPA rewrite works).
+- [ ] Add an activity on your laptop → it shows up on your phone (same database). *(API/Atlas persistence across reloads verified; physical phone check left for user verification.)*
+- [x] No secrets in the client bundle: search the built JS for `MONGO` or `JWT` and find nothing.
+- [x] Run the Phase 6 checklist again on production.
 
 ### Phase 8: Preparing for the meeting with the doctor (two parts)
 **Part 1: show the working system (live link)**, following this script:
