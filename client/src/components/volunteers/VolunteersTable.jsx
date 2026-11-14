@@ -28,7 +28,7 @@ function VolunteerRow({ volunteer, onEdit, onDelete }) {
       <td className="p-4 font-bold text-slate-800">
         <Link
           to={`/volunteers/${encodeURIComponent(volunteer.volunteerId)}`}
-          className="inline-flex items-center gap-2 hover:text-mnu-500 transition underline decoration-amber-400 decoration-2 font-black"
+          className="inline-flex items-center gap-2 hover:text-mnu-500 transition font-black"
         >
           <IdCard className="w-4 h-4 text-amber-500 shrink-0" />
           <span>{volunteer.fullName}</span>

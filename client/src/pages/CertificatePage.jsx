@@ -143,7 +143,7 @@ export function CertificatePage() {
     <div className="min-h-screen flex flex-col print:min-h-0 print:block">
       <Navbar />
 
-      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 print:max-w-none print:p-0 print:m-0">
+      <main className="flex-1 max-w-[1328px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-5 print:max-w-none print:p-0 print:m-0">
         {loading && !profile ? (
           <CertificateSkeleton />
         ) : (error && !profile) || !volunteer ? (
@@ -152,11 +152,11 @@ export function CertificatePage() {
           <BlockedCertificateNotice volunteer={volunteer} certificateHours={certificateHours} />
         ) : (
           <>
-            <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
-              <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white/95 px-4 py-3 shadow-xs print:hidden">
+              <div className="flex flex-wrap items-center gap-2.5">
                 <Link
                   to={`/volunteers/${encodeURIComponent(volunteer.volunteerId)}`}
-                  className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-xs font-bold text-mnu-500 transition"
+                  className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs font-bold text-[#091b3f] transition"
                 >
                   <ArrowRight className="w-4 h-4" />
                   <span>{AR.certificate.backToProfile}</span>
@@ -173,9 +173,9 @@ export function CertificatePage() {
               <button
                 type="button"
                 onClick={() => window.print()}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-mnu-500 hover:bg-mnu-600 text-white text-xs font-bold transition shadow-lg shadow-mnu-500/20 cursor-pointer"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#091b3f] hover:bg-[#1f4e79] border border-[#92845c]/50 text-white text-xs font-bold transition shadow-md shadow-[#091b3f]/15 cursor-pointer"
               >
-                <Printer className="w-4 h-4" />
+                <Printer className="w-4 h-4 text-[#d4af37]" />
                 <span>{AR.certificate.printButton}</span>
               </button>
             </div>

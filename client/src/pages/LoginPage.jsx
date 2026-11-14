@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { AlertCircle, GraduationCap, Lock, Mail } from 'lucide-react';
+import { AlertCircle, Lock, Mail } from 'lucide-react';
 import { extractApiErrorMessage } from '../api/client.js';
+import { UniversityLogo } from '../components/UniversityLogo.jsx';
 import { AR } from '../constants/ar.js';
 import { useAuth } from '../context/authContext.js';
 
@@ -92,9 +93,7 @@ export function LoginPage() {
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="glass-card w-full max-w-md rounded-3xl p-6 sm:p-8 space-y-6 relative overflow-hidden">
         <div className="text-center space-y-3">
-          <div className="w-16 h-16 rounded-2xl bg-mnu-500 text-mnu-gold flex items-center justify-center mx-auto shadow-lg shadow-mnu-500/20">
-            <GraduationCap className="w-9 h-9" />
-          </div>
+          <UniversityLogo className="w-20 h-20 mx-auto bg-white shadow-lg shadow-mnu-500/20 ring-2 ring-mnu-500/15" />
           <div>
             <h1 className="text-xl sm:text-2xl font-black text-mnu-500">{AR.brand.university}</h1>
             <p className="text-xs text-slate-500 mt-1">{AR.brand.subtitle}</p>

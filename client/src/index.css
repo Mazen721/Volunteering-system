@@ -8,7 +8,14 @@
   --color-mnu-700: #122f4a;
   --color-mnu-gold: #d4af37;
   --color-mnu-emerald: #10b981;
+  --color-cert-paper: #ffffff;
+  --color-cert-navy: #091b3f;
+  --color-cert-ink: #0e0e0e;
+  --color-cert-gold: #92845c;
+  --color-cert-gold-light: #b9a66b;
   --font-cairo: 'Cairo', sans-serif;
+  --font-cert-display: 'Aref Ruqaa', 'Scheherazade New', 'Noto Naskh Arabic', serif;
+  --font-cert-body: 'Noto Naskh Arabic', 'Cairo', serif;
 }
 
 body {
@@ -69,6 +76,122 @@ body {
   margin: 8mm;
 }
 
+/* Academic certificate folio surface and ornamental rule grammar */
+.certificate-folio {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1264 / 848;
+  background-color: var(--color-cert-paper);
+  color: var(--color-cert-ink);
+  container-type: inline-size;
+  overflow: hidden;
+  font-family: var(--font-cert-body);
+}
+
+.cert-divider-gold {
+  width: 100%;
+  height: 2.5px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    #92845c 12%,
+    #8a784c 50%,
+    #92845c 88%,
+    transparent 100%
+  );
+}
+
+/* Concave-notched double-hairline gold cartouche for recipient name */
+.cert-name-cartouche {
+  position: relative;
+  border: 1.5px solid var(--color-cert-gold);
+  background: transparent;
+}
+
+.cert-name-cartouche::before {
+  content: '';
+  position: absolute;
+  inset: 0.34cqw;
+  border: 1.25px solid var(--color-cert-gold);
+  pointer-events: none;
+}
+
+.cert-cartouche-notch {
+  position: absolute;
+  width: 1.15cqw;
+  height: 1.15cqw;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.cert-cartouche-notch--tr {
+  top: -1.5px;
+  right: -1.5px;
+  background: radial-gradient(
+    circle at 100% 0%,
+    #ffffff 0,
+    #ffffff 0.72cqw,
+    #92845c 0.72cqw,
+    #92845c calc(0.72cqw + 1.5px),
+    #ffffff calc(0.72cqw + 1.5px),
+    #ffffff 1.04cqw,
+    #92845c 1.04cqw,
+    #92845c calc(1.04cqw + 1.25px),
+    transparent calc(1.04cqw + 1.5px)
+  );
+}
+
+.cert-cartouche-notch--tl {
+  top: -1.5px;
+  left: -1.5px;
+  background: radial-gradient(
+    circle at 0% 0%,
+    #ffffff 0,
+    #ffffff 0.72cqw,
+    #92845c 0.72cqw,
+    #92845c calc(0.72cqw + 1.5px),
+    #ffffff calc(0.72cqw + 1.5px),
+    #ffffff 1.04cqw,
+    #92845c 1.04cqw,
+    #92845c calc(1.04cqw + 1.25px),
+    transparent calc(1.04cqw + 1.5px)
+  );
+}
+
+.cert-cartouche-notch--br {
+  bottom: -1.5px;
+  right: -1.5px;
+  background: radial-gradient(
+    circle at 100% 100%,
+    #ffffff 0,
+    #ffffff 0.72cqw,
+    #92845c 0.72cqw,
+    #92845c calc(0.72cqw + 1.5px),
+    #ffffff calc(0.72cqw + 1.5px),
+    #ffffff 1.04cqw,
+    #92845c 1.04cqw,
+    #92845c calc(1.04cqw + 1.25px),
+    transparent calc(1.04cqw + 1.5px)
+  );
+}
+
+.cert-cartouche-notch--bl {
+  bottom: -1.5px;
+  left: -1.5px;
+  background: radial-gradient(
+    circle at 0% 100%,
+    #ffffff 0,
+    #ffffff 0.72cqw,
+    #92845c 0.72cqw,
+    #92845c calc(0.72cqw + 1.5px),
+    #ffffff calc(0.72cqw + 1.5px),
+    #ffffff 1.04cqw,
+    #92845c 1.04cqw,
+    #92845c calc(1.04cqw + 1.25px),
+    transparent calc(1.04cqw + 1.5px)
+  );
+}
+
 @media print {
   html,
   body {
@@ -84,9 +207,9 @@ body {
   /* Constrain the certificate to one printable A4 landscape page (210mm height minus 16mm margins). */
   .certificate-print-shell {
     width: 100% !important;
-    max-width: 100% !important;
-    min-height: 184mm !important;
-    max-height: 192mm !important;
+    max-width: 281mm !important;
+    aspect-ratio: 1264 / 848 !important;
+    max-height: 190mm !important;
     margin: 0 auto !important;
     box-shadow: none !important;
     break-inside: avoid;

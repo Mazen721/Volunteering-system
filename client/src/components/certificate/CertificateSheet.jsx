@@ -1,103 +1,456 @@
-import { Award, BadgeCheck } from 'lucide-react';
 import { AR } from '../../constants/ar.js';
 import { formatDateAr, formatNumber } from '../../utils/format.js';
+import cornerBottomLeft from '../../assets/plates/corner-bottom-left.png';
+import cornerBottomRight from '../../assets/plates/corner-bottom-right.png';
+import cornerTopLeft from '../../assets/plates/corner-top-left.png';
+import cornerTopRight from '../../assets/plates/corner-top-right.png';
+import mnuCrest from '../../assets/plates/mnu-crest.png';
+import officialSeal from '../../assets/plates/official-seal.png';
 
-function CertificateMetaCard({ label, value, valueClassName = 'text-slate-800' }) {
-  return (
-    <div className="rounded-xl bg-slate-50 border border-slate-200/80 px-3 py-2 min-w-0">
-      <span className="block text-[11px] font-bold text-slate-500">{label}</span>
-      <span className={`block text-xs sm:text-sm font-black break-words mt-0.5 ${valueClassName}`}>
-        {value}
-      </span>
-    </div>
-  );
-}
+const CORNER_PLATES = [
+  {
+    id: 'corner-top-left',
+    src: cornerTopLeft,
+    style: { left: '0.320%', top: '0.710%', width: '12.970%', height: '20.280%' },
+  },
+  {
+    id: 'corner-top-right',
+    src: cornerTopRight,
+    style: { left: '86.710%', top: '0.710%', width: '12.970%', height: '20.280%' },
+  },
+  {
+    id: 'corner-bottom-left',
+    src: cornerBottomLeft,
+    style: { left: '0.320%', top: '79.010%', width: '12.970%', height: '20.280%' },
+  },
+  {
+    id: 'corner-bottom-right',
+    src: cornerBottomRight,
+    style: { left: '86.710%', top: '79.010%', width: '12.970%', height: '20.280%' },
+  },
+];
+
+const CARTOUCHE_NOTCHES = [
+  { key: 'tr', className: 'cert-cartouche-notch--tr' },
+  { key: 'tl', className: 'cert-cartouche-notch--tl' },
+  { key: 'br', className: 'cert-cartouche-notch--br' },
+  { key: 'bl', className: 'cert-cartouche-notch--bl' },
+];
+
+const HORIZONTAL_FRAME_BARS = [
+  { key: 'outer-navy', offset: '1.85%', height: '0.88%', color: '#091b3f' },
+  { key: 'inner-navy', offset: '3.22%', height: '0.78%', color: '#091b3f' },
+  { key: 'gold-trim', offset: '4.04%', height: '0.36%', color: '#92845c' },
+];
+
+const VERTICAL_FRAME_BARS = [
+  { key: 'outer-navy', offset: '0.95%', width: '0.60%', color: '#091b3f' },
+  { key: 'inner-navy', offset: '1.90%', width: '0.56%', color: '#091b3f' },
+  { key: 'gold-trim', offset: '2.50%', width: '0.26%', color: '#92845c' },
+];
+
+const CORNER_BEVEL_CAPS = [
+  // Horizontal edge transitions where corner diagonal bevel meets horizontal frame rules
+  {
+    key: 'tl-h',
+    style: {
+      left: '13.15%',
+      top: '3.22%',
+      width: '3.6%',
+      height: '5.31%',
+      background:
+        'linear-gradient(to top left, transparent 47%, #92845c 47%, #92845c 52%, #ffffff 52%, #ffffff 67%, #92845c 67%, #92845c 72%, #091b3f 72%)',
+    },
+  },
+  {
+    key: 'tr-h',
+    style: {
+      right: '13.15%',
+      top: '3.22%',
+      width: '3.6%',
+      height: '5.31%',
+      background:
+        'linear-gradient(to top right, transparent 47%, #92845c 47%, #92845c 52%, #ffffff 52%, #ffffff 67%, #92845c 67%, #92845c 72%, #091b3f 72%)',
+    },
+  },
+  {
+    key: 'bl-h',
+    style: {
+      left: '13.15%',
+      bottom: '3.22%',
+      width: '3.6%',
+      height: '5.31%',
+      background:
+        'linear-gradient(to bottom left, transparent 47%, #92845c 47%, #92845c 52%, #ffffff 52%, #ffffff 67%, #92845c 67%, #92845c 72%, #091b3f 72%)',
+    },
+  },
+  {
+    key: 'br-h',
+    style: {
+      right: '13.15%',
+      bottom: '3.22%',
+      width: '3.6%',
+      height: '5.31%',
+      background:
+        'linear-gradient(to bottom right, transparent 47%, #92845c 47%, #92845c 52%, #ffffff 52%, #ffffff 67%, #92845c 67%, #92845c 72%, #091b3f 72%)',
+    },
+  },
+  // Vertical edge transitions where corner diagonal bevel meets vertical frame rules
+  {
+    key: 'tl-v',
+    style: {
+      left: '1.90%',
+      top: '20.80%',
+      width: '2.98%',
+      height: '4.4%',
+      background:
+        'linear-gradient(to top left, transparent 47%, #92845c 47%, #92845c 52%, #ffffff 52%, #ffffff 67%, #92845c 67%, #92845c 72%, #091b3f 72%)',
+    },
+  },
+  {
+    key: 'tr-v',
+    style: {
+      right: '1.90%',
+      top: '20.80%',
+      width: '2.98%',
+      height: '4.4%',
+      background:
+        'linear-gradient(to top right, transparent 47%, #92845c 47%, #92845c 52%, #ffffff 52%, #ffffff 67%, #92845c 67%, #92845c 72%, #091b3f 72%)',
+    },
+  },
+  {
+    key: 'bl-v',
+    style: {
+      left: '1.90%',
+      bottom: '20.80%',
+      width: '2.98%',
+      height: '4.4%',
+      background:
+        'linear-gradient(to bottom left, transparent 47%, #92845c 47%, #92845c 52%, #ffffff 52%, #ffffff 67%, #92845c 67%, #92845c 72%, #091b3f 72%)',
+    },
+  },
+  {
+    key: 'br-v',
+    style: {
+      right: '1.90%',
+      bottom: '20.80%',
+      width: '2.98%',
+      height: '4.4%',
+      background:
+        'linear-gradient(to bottom right, transparent 47%, #92845c 47%, #92845c 52%, #ffffff 52%, #ffffff 67%, #92845c 67%, #92845c 72%, #091b3f 72%)',
+    },
+  },
+];
 
 /**
- * Printable A4-landscape volunteer appreciation certificate for eligible volunteers.
+ * Renders an official Mansoura National University academic volunteer completion certificate.
+ * @param {{ volunteer: import('../../types').Volunteer, issueDate?: Date | string }} props
  */
 export function CertificateSheet({ volunteer, issueDate = new Date() }) {
-  const categoryText = volunteer.categoryLabel || AR.categories[volunteer.category] || '';
+  const formattedHours = formatNumber(volunteer.approvedHours);
+  const formattedActivities = formatNumber(volunteer.approvedActivities);
   const activityWord =
     volunteer.approvedActivities === 1
       ? AR.certificate.activitySingular
       : AR.certificate.activityPlural;
+  const formattedDate = formatDateAr(issueDate);
+  const nameLength = (volunteer.fullName || '').trim().length;
+  const facultyLength = (volunteer.faculty || '').trim().length;
+  const nameFontSize = nameLength > 34 ? '2.80cqw' : nameLength > 24 ? '3.35cqw' : '4.05cqw';
+  const attestation = `${AR.certificate.attestationPrefix} ${AR.certificate.authority} ${AR.certificate.attestationConnector}`;
 
   return (
     <article
+      dir="rtl"
       aria-label={AR.certificate.heading}
-      className="certificate-print-shell glass-card rounded-3xl p-4 sm:p-6 print:rounded-none print:border-0 print:bg-white print:p-0 flex flex-col"
+      className="certificate-print-shell certificate-folio shadow-xl print:shadow-none select-text"
     >
-      <div className="flex-1 border-4 border-double border-mnu-500 rounded-2xl print:rounded-xl bg-white p-5 sm:p-8 print:p-7 flex flex-col justify-between gap-5 print:gap-4 text-center relative overflow-hidden">
-        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4 print:pb-3">
-          <span className="text-xs sm:text-sm font-black text-mnu-500">{AR.brand.university}</span>
+      {/* Top & bottom triple-rule perimeter borders joining the corner plates */}
+      {HORIZONTAL_FRAME_BARS.map((bar) => (
+        <span
+          key={`top-${bar.key}`}
+          aria-hidden="true"
+          className="absolute pointer-events-none z-[5]"
+          style={{
+            left: '12.6%',
+            width: '74.8%',
+            top: bar.offset,
+            height: bar.height,
+            backgroundColor: bar.color,
+          }}
+        />
+      ))}
+      {HORIZONTAL_FRAME_BARS.map((bar) => (
+        <span
+          key={`bottom-${bar.key}`}
+          aria-hidden="true"
+          className="absolute pointer-events-none z-[5]"
+          style={{
+            left: '12.6%',
+            width: '74.8%',
+            bottom: bar.offset,
+            height: bar.height,
+            backgroundColor: bar.color,
+          }}
+        />
+      ))}
 
-          <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center mx-auto sm:mx-0">
-            <Award className="w-7 h-7 text-amber-500" />
-          </div>
+      {/* Left & right triple-rule perimeter borders joining the corner plates */}
+      {VERTICAL_FRAME_BARS.map((bar) => (
+        <span
+          key={`left-${bar.key}`}
+          aria-hidden="true"
+          className="absolute pointer-events-none z-[5]"
+          style={{
+            top: '19.8%',
+            height: '60.4%',
+            left: bar.offset,
+            width: bar.width,
+            backgroundColor: bar.color,
+          }}
+        />
+      ))}
+      {VERTICAL_FRAME_BARS.map((bar) => (
+        <span
+          key={`right-${bar.key}`}
+          aria-hidden="true"
+          className="absolute pointer-events-none z-[5]"
+          style={{
+            top: '19.8%',
+            height: '60.4%',
+            right: bar.offset,
+            width: bar.width,
+            backgroundColor: bar.color,
+          }}
+        />
+      ))}
 
-          <h2 className="text-xs sm:text-sm font-black text-mnu-600 bg-mnu-50 px-3 py-1.5 rounded-xl border border-mnu-500/20">
-            {AR.certificate.authority}
-          </h2>
-        </header>
+      {/* Four illuminated navy-and-gold corner rosette plates */}
+      {CORNER_PLATES.map((corner) => (
+        <figure
+          key={corner.id}
+          aria-hidden="true"
+          className="absolute m-0 pointer-events-none select-none z-10"
+          style={corner.style}
+        >
+          <img src={corner.src} alt="" className="w-full h-full object-contain" />
+        </figure>
+      ))}
 
-        <div className="space-y-4 print:space-y-3 my-auto">
-          <h1 className="text-xl sm:text-3xl print:text-3xl font-black text-mnu-500 tracking-wide">
-            {AR.certificate.heading}
-          </h1>
+      {/* Seamless diagonal bevel caps joining corner spandrels to straight rules */}
+      {CORNER_BEVEL_CAPS.map((cap) => (
+        <span
+          key={cap.key}
+          aria-hidden="true"
+          className="absolute pointer-events-none z-[6]"
+          style={cap.style}
+        />
+      ))}
 
-          <p className="text-xs sm:text-sm text-slate-600 font-semibold">
-            {AR.certificate.attestationPrefix}{' '}
-            <span className="font-black text-mnu-500">{AR.certificate.authority}</span>{' '}
-            {AR.certificate.attestationConnector}
-          </p>
+      {/* Subtle centered MNU crest watermark behind body copy */}
+      <div
+        aria-hidden="true"
+        className="absolute pointer-events-none select-none opacity-[0.06] flex items-center justify-center z-[1]"
+        style={{ left: '34.5%', top: '29.5%', width: '31%', height: '46%' }}
+      >
+        <img src={mnuCrest} alt="" className="w-full h-full object-contain" />
+      </div>
 
-          <div className="py-1 px-2 max-w-full">
-            <p className="text-2xl sm:text-3xl print:text-3xl font-black text-slate-800 break-words leading-snug max-w-2xl mx-auto">
-              {volunteer.fullName}
-            </p>
-            <div className="w-40 sm:w-56 h-1 mx-auto mt-2 rounded-full bg-gradient-to-r from-mnu-500 via-mnu-gold to-mnu-500" />
-          </div>
+      {/* Header row: University title (right), MNU crest (center), Authority title (left) */}
+      <p
+        className="absolute m-0 flex items-center justify-center text-center font-bold text-[#0e0e0e] z-10 whitespace-nowrap"
+        style={{
+          left: '61.5%',
+          top: '13.560%',
+          width: '25%',
+          height: '7.080%',
+          fontFamily: 'var(--font-cert-body)',
+          fontSize: '3.05cqw',
+          lineHeight: 1.1,
+        }}
+      >
+        {AR.brand.university}
+      </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 print:grid-cols-3 gap-2.5 sm:gap-3 w-full max-w-3xl mx-auto">
-            <CertificateMetaCard
-              label={AR.certificate.categoryPrefix}
-              value={categoryText}
-              valueClassName="text-amber-700"
+      <figure
+        className="absolute m-0 pointer-events-none select-none z-10"
+        style={{ left: '43.040%', top: '6.370%', width: '13.920%', height: '20.750%' }}
+      >
+        <img src={mnuCrest} alt={AR.brand.logoAlt} className="w-full h-full object-contain" />
+      </figure>
+
+      <h2
+        className="absolute m-0 flex items-center justify-center text-center font-bold text-[#0e0e0e] z-10 whitespace-nowrap"
+        style={{
+          left: '13%',
+          top: '13.560%',
+          width: '28%',
+          height: '7.080%',
+          fontFamily: 'var(--font-cert-body)',
+          fontSize: '2.90cqw',
+          lineHeight: 1.1,
+        }}
+      >
+        {AR.certificate.authority}
+      </h2>
+
+      {/* Tapered antique-gold header divider */}
+      <div
+        aria-hidden="true"
+        className="absolute z-10 flex items-center"
+        style={{ left: '11.870%', top: '28.5%', width: '76.270%', height: '1.2%' }}
+      >
+        <span className="cert-divider-gold" />
+      </div>
+
+      {/* Main calligraphic certificate title */}
+      <h1
+        className="absolute m-0 flex items-center justify-center text-center font-normal text-[#091b3f] z-10 whitespace-nowrap"
+        style={{
+          left: '14%',
+          top: '29.2%',
+          width: '72%',
+          height: '10.2%',
+          fontFamily: 'var(--font-cert-display)',
+          fontSize: '5.20cqw',
+          lineHeight: 1.15,
+        }}
+      >
+        {AR.certificate.heading}
+      </h1>
+
+      {/* Formal attestation line */}
+      <p
+        className="absolute m-0 flex items-center justify-center text-center font-semibold text-[#0e0e0e] z-10 whitespace-nowrap"
+        style={{
+          left: '12%',
+          top: '40.330%',
+          width: '76%',
+          height: '5.190%',
+          fontFamily: 'var(--font-cert-body)',
+          fontSize: '2.05cqw',
+          lineHeight: 1.15,
+        }}
+      >
+        {attestation}
+      </p>
+
+      {/* Octagonal-notched double-hairline gold cartouche framing volunteer name */}
+      <div
+        className="absolute inset-x-0 flex justify-center z-10"
+        style={{ top: '45.800%', height: '11.400%' }}
+      >
+        <div
+          className="cert-name-cartouche h-full flex items-center justify-center"
+          style={{
+            minWidth: '38.610%',
+            maxWidth: '72%',
+            paddingInline: '3.2cqw',
+          }}
+        >
+          {CARTOUCHE_NOTCHES.map((notch) => (
+            <span
+              key={notch.key}
+              aria-hidden="true"
+              className={`cert-cartouche-notch ${notch.className}`}
             />
-            <CertificateMetaCard
-              label={AR.certificate.facultyPrefix}
-              value={volunteer.faculty}
-              valueClassName="text-mnu-500"
-            />
-            <CertificateMetaCard label={AR.certificate.idPrefix} value={volunteer.volunteerId} />
-          </div>
-
-          <p className="text-xs sm:text-base print:text-base text-slate-700 leading-relaxed max-w-2xl mx-auto font-semibold">
-            {AR.certificate.participationPrefix}{' '}
-            <span className="font-black text-amber-600">
-              {formatNumber(volunteer.approvedActivities)}
-            </span>{' '}
-            {activityWord} {AR.certificate.participationMiddle}{' '}
-            <span className="font-black text-emerald-700 text-base sm:text-lg">
-              {formatNumber(volunteer.approvedHours)}
-            </span>{' '}
-            {AR.certificate.hoursSuffix}
+          ))}
+          <p
+            className="relative m-0 text-center font-bold text-[#0e0e0e] whitespace-nowrap z-[3]"
+            style={{
+              fontFamily: 'var(--font-cert-body)',
+              fontSize: nameFontSize,
+              lineHeight: 1.45,
+            }}
+          >
+            {volunteer.fullName}
           </p>
         </div>
-
-        <footer className="pt-4 print:pt-3 border-t border-slate-200 flex flex-col sm:flex-row print:flex-row items-center justify-between gap-3 text-xs text-slate-600">
-          <div className="font-semibold">
-            {AR.certificate.dateLabel}{' '}
-            <span className="font-black text-slate-800">{formatDateAr(issueDate)}</span>
-          </div>
-
-          <div className="inline-flex items-center gap-1.5 font-black text-mnu-500 bg-emerald-50 border border-emerald-200 px-3.5 py-1.5 rounded-full">
-            <BadgeCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>{AR.certificate.approvedSeal}</span>
-          </div>
-        </footer>
       </div>
+
+      {/* Three-column hairline-ruled credential table */}
+      <div
+        className="absolute z-10 grid grid-cols-[29fr_42fr_29fr] border-[1.5px] border-[#091b3f] bg-white/80"
+        style={{
+          left: '13.840%',
+          top: '58.730%',
+          width: '72.310%',
+          height: '7.310%',
+        }}
+      >
+        <div className="flex items-center justify-center px-[0.8cqw] text-center border-l-[1.5px] border-[#091b3f]">
+          <span
+            className="font-bold text-[#0e0e0e] whitespace-nowrap"
+            style={{ fontSize: '1.92cqw', lineHeight: 1.15 }}
+          >
+            {AR.certificate.categoryPrefix}: <span>{volunteer.categoryLabel}</span>
+          </span>
+        </div>
+        <div className="flex items-center justify-center px-[0.8cqw] text-center border-l-[1.5px] border-[#091b3f]">
+          <span
+            className="font-bold text-[#0e0e0e] whitespace-nowrap"
+            style={{
+              fontSize: facultyLength > 24 ? '1.55cqw' : '1.90cqw',
+              lineHeight: 1.15,
+            }}
+          >
+            {AR.certificate.facultyPrefix}: <span>{volunteer.faculty}</span>
+          </span>
+        </div>
+        <div className="flex items-center justify-center px-[0.8cqw] text-center">
+          <span
+            className="font-bold text-[#0e0e0e] whitespace-nowrap"
+            style={{ fontSize: '1.92cqw', lineHeight: 1.15 }}
+          >
+            {AR.certificate.idPrefix}: <span>{volunteer.volunteerId}</span>
+          </span>
+        </div>
+      </div>
+
+      {/* Formal completion citation naming approved activities and volunteer hours */}
+      <p
+        className="absolute m-0 text-center font-semibold text-[#0e0e0e] z-10"
+        style={{
+          left: '14%',
+          top: '67.2%',
+          width: '72%',
+          fontFamily: 'var(--font-cert-body)',
+          fontSize: '2.35cqw',
+          lineHeight: 1.4,
+        }}
+      >
+        {AR.certificate.participationPrefix}{' '}
+        <strong className="font-bold">{formattedActivities}</strong> {activityWord}{' '}
+        {AR.certificate.participationMiddle} <strong className="font-bold">{formattedHours}</strong>{' '}
+        {AR.certificate.hoursSuffix}
+      </p>
+
+      {/* Footer: issue date (right) and concentric embossed university seal (left) */}
+      <p
+        className="absolute m-0 flex items-center justify-center gap-[0.4cqw] text-center font-bold text-[#0e0e0e] z-10 whitespace-nowrap"
+        style={{
+          left: '60%',
+          top: '84.430%',
+          width: '26%',
+          height: '5.660%',
+          fontFamily: 'var(--font-cert-body)',
+          fontSize: '2.15cqw',
+          lineHeight: 1.15,
+        }}
+      >
+        <span>{AR.certificate.dateLabel}</span> <span>{formattedDate}</span>
+      </p>
+
+      <figure
+        className="absolute m-0 pointer-events-none select-none z-10"
+        style={{ left: '18.990%', top: '76.420%', width: '13.450%', height: '18.870%' }}
+      >
+        <img
+          src={officialSeal}
+          alt={AR.certificate.approvedSeal}
+          className="w-full h-full object-contain"
+        />
+      </figure>
     </article>
   );
 }

@@ -1,14 +1,8 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import {
-  FileSpreadsheet,
-  GraduationCap,
-  LayoutDashboard,
-  LogOut,
-  ShieldCheck,
-  Users,
-} from 'lucide-react';
+import { FileSpreadsheet, LayoutDashboard, LogOut, ShieldCheck, Users } from 'lucide-react';
 import { AR } from '../constants/ar.js';
 import { useAuth } from '../context/authContext.js';
+import { UniversityLogo } from './UniversityLogo.jsx';
 
 const NAV_LINKS = [
   { to: '/', label: AR.nav.dashboard, Icon: LayoutDashboard, end: true },
@@ -33,8 +27,8 @@ export function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="min-h-20 py-3 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-11 h-11 shrink-0 rounded-2xl bg-white/10 flex items-center justify-center border border-white/20 shadow-inner">
-              <GraduationCap className="w-6 h-6 text-mnu-gold" />
+            <div className="w-12 h-12 shrink-0 rounded-full bg-white p-0.5 flex items-center justify-center shadow-md ring-2 ring-mnu-gold/50 overflow-hidden">
+              <UniversityLogo className="w-full h-full" />
             </div>
             <div className="min-w-0">
               <h1 className="font-extrabold text-base sm:text-xl flex flex-wrap items-center gap-2">

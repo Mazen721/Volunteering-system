@@ -15,7 +15,13 @@ export function triggerCelebration() {
     if (!probeCanvas.getContext('2d')) {
       return;
     }
-    confetti({ particleCount: 90, spread: 70, origin: { y: 0.6 } });
+    confetti({
+      particleCount: 70,
+      spread: 65,
+      origin: { y: 0.6 },
+      colors: ['#091b3f', '#1f4e79', '#92845c', '#d4af37'],
+      disableForReducedMotion: true,
+    });
   } catch {
     // jsdom does not implement canvas 2D context; skip visual confetti in tests.
   }
