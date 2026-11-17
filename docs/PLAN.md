@@ -192,7 +192,7 @@ volunteer-hours/
 
 **Verify ✅**
 - [ ] You've rehearsed the whole script once on the live link (it should take under 10 minutes).
-- [ ] The report is ready as a PDF or printed.
+- [x] The report is ready as a PDF or printed. *(Generated at `docs/phase8-report.pdf` with sources `docs/phase8-report.md` and `docs/phase8-report.html`.)*
 - [ ] A backup in case the internet fails: screenshots or a short screen recording, and the project running locally.
 
 ---

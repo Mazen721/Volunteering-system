@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 const SERVICES = [
-  { name: 'server', cwd: path.join(ROOT_DIR, 'server'), args: ['--watch', 'src/server.js'] },
+  { name: 'server', cwd: path.join(ROOT_DIR, 'server'), args: ['--import', 'tsx', '--watch', 'src/server.ts'] },
   {
     name: 'client',
     cwd: path.join(ROOT_DIR, 'client'),
