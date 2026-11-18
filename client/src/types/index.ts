@@ -531,7 +531,7 @@ export interface StudentApplicationsResponse {
 }
 
 export interface StudentDashboardSummary {
-  volunteer: StudentVolunteer;
+  volunteer: StudentVolunteer | null;
   approvedHours: number;
   pendingHours: number;
   certificateHours: number;
