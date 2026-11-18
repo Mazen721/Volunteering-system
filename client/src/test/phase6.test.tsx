@@ -103,6 +103,10 @@ const EDGE_VOLUNTEERS: Record<string, VolunteerProfileResponse> = {
 };
 
 const mswServer = setupServer(
+  // The mobile dock asks for the pending-approvals count on staff pages.
+  http.get(`${API_BASE}/registrations`, () => {
+    return HttpResponse.json({ registrations: [] });
+  }),
   http.get(`${API_BASE}/auth/me`, () =>
     HttpResponse.json({ admin: { id: 'admin-1', email: 'admin@mnu.edu.eg' } })
   ),

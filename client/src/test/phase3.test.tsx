@@ -141,6 +141,10 @@ let capturedAuthHeaders: Array<string | null> = [];
 let capturedLeaderboardQueries: LeaderboardQueryCapture[] = [];
 
 const mswServer = setupServer(
+  // The mobile dock asks for the pending-approvals count on staff pages.
+  http.get(`${API_BASE}/registrations`, () => {
+    return HttpResponse.json({ registrations: [] });
+  }),
   http.post(`${API_BASE}/auth/login`, async ({ request }) => {
     const body = (await request.json()) as LoginRequestBody;
     if (body.email === 'admin@mnu.edu.eg' && body.password === 'secret123') {
@@ -269,7 +273,10 @@ describe('Phase 3 Authentication and Dashboard', () => {
 
     expect(await screen.findByRole('heading', { name: AR.dashboard.title })).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: AR.nav.logout }));
+    // Scoped to the desktop nav inside the banner: since Phase 3 the header
+    // also carries a compact mobile logout button with the same name.
+    const bannerNav = screen.getByRole('banner').querySelector('nav');
+    await user.click(within(bannerNav!).getByRole('button', { name: AR.nav.logout }));
 
     expect(await screen.findByRole('heading', { name: AR.auth.loginTitle })).toBeInTheDocument();
     expect(localStorage.getItem('mnu_admin_token')).toBeNull();

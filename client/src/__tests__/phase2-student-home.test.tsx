@@ -324,11 +324,14 @@ describe('Phase 2 Student Home Page', () => {
     await waitFor(() => {
       expect(window.location.pathname).toBe('/home');
     });
+    // Scoped to the top navbar: since Phase 3 the mobile dock repeats these
+    // links (and the page greeting is itself a <header>, so select by class).
+    const banner = document.querySelector('header.glass-nav') as HTMLElement;
     expect(
-      await screen.findByRole('link', { name: new RegExp(AR.studentPortal.nav.home) }),
+      await within(banner).findByRole('link', { name: new RegExp(AR.studentPortal.nav.home) }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: new RegExp(AR.studentPortal.nav.dashboard) }),
+      within(banner).getByRole('link', { name: new RegExp(AR.studentPortal.nav.dashboard) }),
     ).toHaveAttribute('href', '/me');
   });
 

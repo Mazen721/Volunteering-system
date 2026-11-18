@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
@@ -307,15 +307,20 @@ describe('Phase V2-8 Security Error Display & End-to-End Walkthrough', () => {
     // carries the check-in action; the certificate notice stays on «لوحتي».
     expect(await screen.findByText(AR.studentPortal.home.liveBadge)).toBeInTheDocument();
 
+    // Navbar-scoped: since Phase 3 the mobile dock repeats the navbar links.
     await user.click(
-      screen.getByRole('link', { name: new RegExp(AR.studentPortal.nav.dashboard) })
+      within(document.querySelector('header.glass-nav') as HTMLElement).getByRole('link', {
+        name: new RegExp(AR.studentPortal.nav.dashboard),
+      })
     );
     expect(
       await screen.findByText(AR.studentPortal.dashboard.eligibleNotice)
     ).toBeInTheDocument();
 
     await user.click(
-      screen.getByRole('link', { name: new RegExp(AR.studentPortal.nav.home) })
+      within(document.querySelector('header.glass-nav') as HTMLElement).getByRole('link', {
+        name: new RegExp(AR.studentPortal.nav.home),
+      })
     );
     await user.click(
       await screen.findByRole('link', {

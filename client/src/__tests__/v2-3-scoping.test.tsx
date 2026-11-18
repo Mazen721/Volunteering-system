@@ -38,6 +38,10 @@ let lastPatchUserCalls: Array<{ id: string; body: Record<string, unknown> }> = [
 let lastCreateDeanBody: Record<string, unknown> | null = null;
 
 const mswServer = setupServer(
+  // The mobile dock asks for the pending-approvals count on staff pages.
+  http.get(`${API_BASE}/registrations`, () => {
+    return HttpResponse.json({ registrations: [] });
+  }),
   http.get(`${API_BASE}/auth/me`, () => {
     if (!activeUser) {
       return HttpResponse.json({ message: 'جلسة الدخول غير صالحة أو منتهية' }, { status: 401 });

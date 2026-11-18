@@ -35,6 +35,10 @@ function buildAuthUser(overrides: Partial<AuthUser> = {}): AuthUser {
 let activeAuthUser: AuthUser | null = null;
 
 const mswServer = setupServer(
+  // The mobile dock asks for the pending-approvals count on staff pages.
+  http.get(`${API_BASE}/registrations`, () => {
+    return HttpResponse.json({ registrations: [] });
+  }),
   http.get(`${API_BASE}/auth/me`, () => {
     if (!activeAuthUser) {
       return HttpResponse.json({ message: 'جلسة الدخول غير صالحة أو منتهية' }, { status: 401 });
