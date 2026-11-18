@@ -36,14 +36,22 @@ export interface StudentApplicationDTO extends Omit<ApplicationLean, 'opportunit
 }
 
 /**
+ * Finds the volunteer record linked to the authenticated student account, or null when
+ * none exists yet. A pending registration has no record by design: it is created and
+ * linked only when the registration is approved.
+ */
+export async function findStudentVolunteer(user: PublicUser): Promise<VolunteerLean | null> {
+  if (!user.volunteer || !mongoose.isValidObjectId(user.volunteer)) {
+    return null;
+  }
+  return Volunteer.findById(user.volunteer).lean<VolunteerLean>();
+}
+
+/**
  * Resolves the volunteer record linked to the authenticated student account.
  */
 export async function resolveStudentVolunteer(user: PublicUser): Promise<VolunteerLean> {
-  if (!user.volunteer || !mongoose.isValidObjectId(user.volunteer)) {
-    throw new AppError(409, 'حسابك غير مرتبط بسجل متطوع، يرجى التواصل مع عميد الكلية');
-  }
-
-  const volunteer = await Volunteer.findById(user.volunteer).lean<VolunteerLean>();
+  const volunteer = await findStudentVolunteer(user);
   if (!volunteer) {
     throw new AppError(409, 'حسابك غير مرتبط بسجل متطوع، يرجى التواصل مع عميد الكلية');
   }

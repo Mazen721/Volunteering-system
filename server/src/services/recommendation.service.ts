@@ -47,14 +47,17 @@ interface OpportunityFieldsRow {
  * Resolves the volunteer affiliation category that decides which opportunity slot counter applies.
  */
 async function resolveVolunteerCategory(user: PublicUser): Promise<VolunteerCategory> {
+  // Before approval links a volunteer record, the registration snapshot is the
+  // only source of the student's category.
+  const registrationCategory = user.registration?.category ?? 'student';
   if (!user.volunteer || !mongoose.isValidObjectId(user.volunteer)) {
-    return 'student';
+    return registrationCategory;
   }
 
   const volunteer = await Volunteer.findById(user.volunteer)
     .select('category')
     .lean<VolunteerLean>();
-  return volunteer?.category ?? 'student';
+  return volunteer?.category ?? registrationCategory;
 }
 
 /**

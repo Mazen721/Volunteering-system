@@ -24,7 +24,7 @@ import type {
   ApplicationWithOpportunityLean,
   StudentApplicationDTO,
 } from './application.service.js';
-import { ACTIVE_APPLICATION_STATUSES, resolveStudentVolunteer } from './application.service.js';
+import { ACTIVE_APPLICATION_STATUSES, findStudentVolunteer } from './application.service.js';
 import type { OpportunityDTO } from './opportunity.service.js';
 import { decorateOpportunity } from './opportunity.service.js';
 import type { PublicUser } from './auth.service.js';
@@ -633,7 +633,7 @@ export async function getLeaderboard(
 }
 
 export interface StudentDashboardSummary {
-  volunteer: VolunteerLean;
+  volunteer: VolunteerLean | null;
   approvedHours: number;
   pendingHours: number;
   certificateHours: number;
@@ -653,24 +653,30 @@ export interface StudentDashboardSummary {
 export async function getStudentDashboardSummary(
   user: PublicUser
 ): Promise<StudentDashboardSummary> {
-  const volunteer = await resolveStudentVolunteer(user);
+  // A pending student has no volunteer record until approval creates one; his
+  // dashboard is the same summary with zeroed activity data and volunteer: null.
+  const volunteer = await findStudentVolunteer(user);
 
   const [certificateHours, activityTotals, applications, eventsAttended, recentActivities] =
     await Promise.all([
       getCertificateHours(),
-      Activity.aggregate<{ _id: ActivityStatus; hours: number }>([
-        { $match: { volunteer: volunteer._id } },
-        { $group: { _id: '$status', hours: { $sum: '$hours' } } },
-      ]),
+      volunteer
+        ? Activity.aggregate<{ _id: ActivityStatus; hours: number }>([
+            { $match: { volunteer: volunteer._id } },
+            { $group: { _id: '$status', hours: { $sum: '$hours' } } },
+          ])
+        : Promise.resolve([] as { _id: ActivityStatus; hours: number }[]),
       Application.find({ user: user.id })
         .sort({ appliedAt: -1, createdAt: -1 })
         .populate('opportunity')
         .lean<ApplicationWithOpportunityLean[]>(),
       Application.countDocuments({ user: user.id, attended: true }),
-      Activity.find({ volunteer: volunteer._id })
-        .sort({ date: -1, createdAt: -1 })
-        .limit(5)
-        .lean<ActivityLean[]>(),
+      volunteer
+        ? Activity.find({ volunteer: volunteer._id })
+            .sort({ date: -1, createdAt: -1 })
+            .limit(5)
+            .lean<ActivityLean[]>()
+        : Promise.resolve([] as ActivityLean[]),
     ]);
 
   const approvedHours = activityTotals.find((row) => row._id === 'approved')?.hours ?? 0;
