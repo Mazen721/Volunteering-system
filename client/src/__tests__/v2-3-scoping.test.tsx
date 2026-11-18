@@ -269,14 +269,25 @@ describe('Phase V2-3 Dean Scoping, Deans Management & Certificate Role Guards', 
       password: 'DeanPass123!',
     });
 
-    // Disable existing dean
+    // Disable existing dean. The list refetches after the toggle and React
+    // replaces the row node, so the row must be re-queried while waiting —
+    // asserting on the captured row searches a detached subtree.
     const engRow = screen.getByText('د. عميد الهندسة').closest('tr');
     expect(engRow).not.toBeNull();
     await user.click(within(engRow!).getByRole('button', { name: AR.deans.disableBtn }));
-    expect(await within(engRow!).findByRole('button', { name: AR.deans.enableBtn })).toBeInTheDocument();
+    await waitFor(
+      () => {
+        const freshRow = screen.getByText('د. عميد الهندسة').closest('tr');
+        expect(
+          within(freshRow!).getByRole('button', { name: AR.deans.enableBtn })
+        ).toBeInTheDocument();
+      },
+      { timeout: 5000 }
+    );
 
     // Reset temporary password for dean
-    await user.click(within(engRow!).getByRole('button', { name: AR.deans.resetPasswordBtn }));
+    const engRowNow = screen.getByText('د. عميد الهندسة').closest('tr');
+    await user.click(within(engRowNow!).getByRole('button', { name: AR.deans.resetPasswordBtn }));
     const resetDialog = screen.getByRole('dialog');
     await user.type(
       within(resetDialog).getByLabelText(AR.resetPasswordModal.passwordLabel),
@@ -326,7 +337,15 @@ describe('Phase V2-3 Dean Scoping, Deans Management & Certificate Role Guards', 
 
     const statusSelect = screen.getByLabelText(`${AR.activityModal.statusLabel} قافلة طبية`);
     await user.selectOptions(statusSelect, 'approved');
-    expect((statusSelect as HTMLSelectElement).value).toBe('approved');
+    await waitFor(
+      () => {
+        const current = screen.getByLabelText(
+          `${AR.activityModal.statusLabel} قافلة طبية`
+        ) as HTMLSelectElement;
+        expect(current.value).toBe('approved');
+      },
+      { timeout: 5000 }
+    );
   });
 });
 

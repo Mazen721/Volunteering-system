@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
@@ -426,7 +426,12 @@ describe('Phase 4 Volunteers, Activities, Profile, and Import/Export', () => {
     );
 
     expect(deleteCallCount).toBe(1);
-    expect(screen.queryByText('قافلة طبية')).not.toBeInTheDocument();
+    await waitFor(
+      () => {
+        expect(screen.queryByText('قافلة طبية')).not.toBeInTheDocument();
+      },
+      { timeout: 5000 }
+    );
   });
 
   it('exports_and_round_trips_excel_import_preview_and_commit', async () => {
