@@ -187,9 +187,10 @@ describe('Phase V2-1 Users, Roles, Status Gate & Faculty Scope', () => {
     assert.equal(checkinRes.status, 401);
   });
 
+  // Pending students are covered by the Phase 1 pending-flow tests: they may browse
+  // student routes and are only blocked from staff routes by the role guard.
   const nonActiveCases: Array<{ status: Exclude<UserStatus, 'active'>; expectedMessage: string }> =
     [
-      { status: 'pending', expectedMessage: 'حسابك قيد المراجعة' },
       { status: 'rejected', expectedMessage: 'تم رفض طلب التسجيل' },
       { status: 'disabled', expectedMessage: 'تم تعطيل الحساب' },
     ];

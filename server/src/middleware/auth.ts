@@ -57,18 +57,50 @@ function verifyAuthSubject(token: string, jwtSecret: string): string | null {
   }
 }
 
-function isAuthMeRequest(req: Request): boolean {
-  if (req.method !== 'GET') {
-    return false;
-  }
+function isAuthMePath(req: Request): boolean {
   const normalizedOriginal = req.originalUrl.split('?')[0].replace(/\/+$/, '');
   const normalizedPath = req.path.replace(/\/+$/, '');
   return normalizedOriginal === '/api/auth/me' || normalizedPath === '/auth/me';
 }
 
+function isAuthMeRequest(req: Request): boolean {
+  return req.method === 'GET' && isAuthMePath(req);
+}
+
+const PENDING_PARTICIPATION_PATH = /^\/opportunities\/[^/]+\/(apply|checkin)$/;
+
 /**
- * Verifies the Bearer JWT, reloads the live User from MongoDB, and enforces active status
- * on every protected route except GET /api/auth/me.
+ * Apply/check-in attempts pass the status gate so the services can reject them
+ * with their specific locked messages.
+ */
+function isPendingParticipationRequest(req: Request): boolean {
+  if (req.method !== 'POST') {
+    return false;
+  }
+  const paths = [req.originalUrl.split('?')[0], req.path].map((value) =>
+    value.replace(/\/+$/, '').replace(/^\/api/, '')
+  );
+  return paths.some((path) => PENDING_PARTICIPATION_PATH.test(path));
+}
+
+/**
+ * Pending students may browse (any GET), update their own profile (PATCH /api/auth/me),
+ * and attempt apply/check-in, which the services reject with HTTP 403.
+ */
+function isPendingAllowedRequest(req: Request): boolean {
+  if (req.method === 'GET') {
+    return true;
+  }
+  if (req.method === 'PATCH' && isAuthMePath(req)) {
+    return true;
+  }
+  return isPendingParticipationRequest(req);
+}
+
+/**
+ * Verifies the Bearer JWT, reloads the live User from MongoDB, and enforces account status
+ * on protected routes: GET /api/auth/me is always allowed, pending students may browse,
+ * and every other non-active request is rejected.
  */
 export function createAuthMiddleware(jwtSecret: string): RequestHandler {
   return async (req, _res, next) => {
@@ -94,7 +126,11 @@ export function createAuthMiddleware(jwtSecret: string): RequestHandler {
     req.user = serialized;
     req.admin = buildAdminCompat(serialized);
 
-    if (serialized.status !== 'active' && !isAuthMeRequest(req)) {
+    if (
+      serialized.status !== 'active' &&
+      !isAuthMeRequest(req) &&
+      !(serialized.status === 'pending' && isPendingAllowedRequest(req))
+    ) {
       next(new AppError(403, NON_ACTIVE_STATUS_MESSAGES[serialized.status]));
       return;
     }
@@ -104,11 +140,16 @@ export function createAuthMiddleware(jwtSecret: string): RequestHandler {
 }
 
 /**
- * Restricts route access to active users holding one of the specified roles.
+ * Restricts route access to users holding one of the specified roles. Active users pass;
+ * pending students also pass so they can browse student routes, while participation
+ * writes remain guarded in the services.
  */
 export function requireRole(...roles: UserRole[]): RequestHandler {
   return (req, _res, next) => {
-    if (!req.user || req.user.status !== 'active' || !roles.includes(req.user.role)) {
+    const user = req.user;
+    const hasStatusAccess =
+      user?.status === 'active' || (user?.status === 'pending' && user.role === 'student');
+    if (!user || !hasStatusAccess || !roles.includes(user.role)) {
       next(new AppError(403, 'غير مصرح لك بالوصول إلى هذا المورد'));
       return;
     }

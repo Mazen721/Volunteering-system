@@ -215,6 +215,9 @@ export async function verifyAndCheckIn(
   user: PublicUser,
   jwtSecret: string
 ): Promise<ApplicationLean> {
+  if (user.status !== 'active') {
+    throw new AppError(403, 'تسجيل الحضور متاح بعد اعتماد حسابك');
+  }
   const opportunity = await findCheckInEligibleOpportunity(opportunityId, user);
   verifyCheckInJwt(token, opportunity._id.toString(), jwtSecret);
 

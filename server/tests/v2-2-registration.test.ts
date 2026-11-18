@@ -136,7 +136,7 @@ describe('Phase V2-2 Student Self-Registration, Linking & Approval Queue', () =>
       firstBody.token
     );
     assert.equal(blockedRes.status, 403);
-    assert.equal(blockedRes.body.message, 'حسابك قيد المراجعة');
+    assert.equal(blockedRes.body.message, 'غير مصرح لك بالوصول إلى هذا المورد');
   });
 
   it('creates_volunteer_on_dean_approval_and_blocks_cross_faculty_access_with_404', async () => {

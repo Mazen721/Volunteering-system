@@ -128,6 +128,9 @@ export async function applyToOpportunity(
   payload: ApplicationApplyInput,
   user: PublicUser
 ): Promise<ApplicationLean> {
+  if (user.status !== 'active') {
+    throw new AppError(403, 'المشاركة متاحة بعد اعتماد حسابك من إدارة النظام أو عميد كليتك');
+  }
   if (!mongoose.isValidObjectId(opportunityId)) {
     throw new AppError(404, 'الفرصة التطوعية غير موجودة');
   }

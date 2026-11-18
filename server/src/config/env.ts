@@ -18,6 +18,8 @@ export interface AppEnv {
   allowedEmailDomains: string[];
 }
 
+const DEFAULT_ALLOWED_EMAIL_DOMAINS = ['mnu.edu.eg'];
+
 export function parseAllowedEmailDomains(rawDomains?: string): string[] {
   if (!rawDomains) {
     return [];
@@ -27,6 +29,14 @@ export function parseAllowedEmailDomains(rawDomains?: string): string[] {
     .map((entry) => entry.trim().toLowerCase().replace(/^@+/, ''))
     .filter(Boolean);
   return Array.from(new Set(normalized));
+}
+
+/**
+ * Falls back to the university domain when ALLOWED_EMAIL_DOMAINS is unset or empty.
+ */
+export function resolveAllowedEmailDomains(rawDomains?: string): string[] {
+  const parsed = parseAllowedEmailDomains(rawDomains);
+  return parsed.length > 0 ? parsed : [...DEFAULT_ALLOWED_EMAIL_DOMAINS];
 }
 
 /**
@@ -51,7 +61,7 @@ export function validateEnv(rawEnv: Record<string, string | undefined>): AppEnv 
     clientUrl: rawEnv.CLIENT_URL!.trim(),
     adminEmail: rawEnv.ADMIN_EMAIL!.trim(),
     adminPassword: rawEnv.ADMIN_PASSWORD!,
-    allowedEmailDomains: parseAllowedEmailDomains(rawEnv.ALLOWED_EMAIL_DOMAINS),
+    allowedEmailDomains: resolveAllowedEmailDomains(rawEnv.ALLOWED_EMAIL_DOMAINS),
   };
 }
 

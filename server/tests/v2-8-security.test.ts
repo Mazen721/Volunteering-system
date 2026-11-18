@@ -71,7 +71,9 @@ describe('Phase V2-8 Security Hardening, Demo Seed & End-to-End Walkthrough', ()
       ADMIN_PASSWORD: env.adminPassword,
     };
 
-    assert.deepEqual(validateEnv({ ...base, ALLOWED_EMAIL_DOMAINS: '' }).allowedEmailDomains, []);
+    assert.deepEqual(validateEnv({ ...base, ALLOWED_EMAIL_DOMAINS: '' }).allowedEmailDomains, [
+      'mnu.edu.eg',
+    ]);
     assert.deepEqual(
       validateEnv({
         ...base,
