@@ -118,7 +118,9 @@ describe('Phase V2-1 AuthContext & ProtectedRoute role guards', () => {
     expect(screen.getByText(AR.roles.dean)).toBeInTheDocument();
   });
 
-  it.each(['pending', 'rejected'] as const)(
+  // Pending students are covered by the Phase 1 pending-flow tests: they are no
+  // longer redirected to /pending and land on their student home instead.
+  it.each(['rejected'] as const)(
     'redirects_%s_user_to_pending_screen',
     async (userStatus) => {
       activeAuthUser = buildAuthUser({

@@ -163,7 +163,7 @@ describe('Phase V2-2 Registration, Pending Screen & Approvals Queue UI', () => {
     mswServer.close();
   });
 
-  it('validates_and_submits_registration_then_redirects_to_pending_screen', async () => {
+  it('validates_and_submits_registration_then_redirects_to_student_home', async () => {
     const user = userEvent.setup();
     renderApp('/register');
 
@@ -181,8 +181,7 @@ describe('Phase V2-2 Registration, Pending Screen & Approvals Queue UI', () => {
 
     await user.click(screen.getByRole('button', { name: AR.register.submitButton }));
 
-    expect(await screen.findByRole('heading', { name: AR.pending.waitingTitle })).toBeInTheDocument();
-    expect(screen.getByText('20265555')).toBeInTheDocument();
+    expect(await screen.findByText('بوابة المتطوع النشطة')).toBeInTheDocument();
     expect(lastRegisterBody?.faculty).toBe(FACULTIES[1]);
     expect(lastRegisterBody?.interests).toEqual(['medical', 'technology']);
   });
