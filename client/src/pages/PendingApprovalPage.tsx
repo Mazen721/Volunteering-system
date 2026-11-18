@@ -6,7 +6,8 @@ import { AR, INTEREST_LABELS } from '../constants/ar';
 import { getHomePathForUser, useAuth } from '../context/authContext';
 
 /**
- * Dedicated screen shown to pending or rejected self-registered accounts while blocked from the portal.
+ * Dedicated screen shown to rejected self-registered accounts; pending and active
+ * users are redirected to their home because pending accounts may browse the portal.
  */
 export function PendingApprovalPage() {
   const { user, logout, retrySession } = useAuth();
@@ -17,7 +18,7 @@ export function PendingApprovalPage() {
     return <Navigate to="/login" replace />;
   }
 
-  if (user.status === 'active') {
+  if (user.status === 'active' || user.status === 'pending') {
     return <Navigate to={getHomePathForUser(user)} replace />;
   }
 

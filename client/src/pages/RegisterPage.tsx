@@ -10,6 +10,7 @@ import { CATEGORIES, FACULTIES, INTEREST_KEYS } from '../constants/enums';
 import { getHomePathForUser, useAuth } from '../context/authContext';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const UNIVERSITY_EMAIL_DOMAIN = '@mnu.edu.eg';
 
 interface RegisterFormState {
   fullName: string;
@@ -43,6 +44,8 @@ function validateRegisterForm(form: RegisterFormState): RegisterFieldErrors {
     errors.email = AR.register.emailRequired;
   } else if (!EMAIL_PATTERN.test(trimmedEmail)) {
     errors.email = AR.register.emailInvalid;
+  } else if (!trimmedEmail.toLowerCase().endsWith(UNIVERSITY_EMAIL_DOMAIN)) {
+    errors.email = AR.register.emailDomainNotAllowed;
   }
   if (form.password.length < 8) {
     errors.password = AR.register.passwordMin;
@@ -135,7 +138,7 @@ export function RegisterPage() {
 
     setSubmitting(true);
     try {
-      await register({
+      const registeredUser = await register({
         email: form.email.trim(),
         password: form.password,
         fullName: form.fullName.trim(),
@@ -144,7 +147,7 @@ export function RegisterPage() {
         faculty: form.faculty,
         interests: form.interests,
       });
-      navigate('/pending', { replace: true });
+      navigate(getHomePathForUser(registeredUser), { replace: true });
     } catch (error) {
       setSubmitError(extractApiErrorMessage(error));
     } finally {

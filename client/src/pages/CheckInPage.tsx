@@ -12,6 +12,7 @@ import {
 import { apiClient, extractApiErrorMessage } from '../api/client';
 import { Navbar } from '../components/Navbar';
 import { AR } from '../constants/ar';
+import { useAuth } from '../context/authContext';
 import { useToast } from '../context/toastContext';
 import type { CheckInSubmitResponse, Opportunity, OpportunityResponse } from '../types';
 import { formatDateTimeAr } from '../utils/format';
@@ -35,6 +36,7 @@ function extractCheckInToken(rawValue: string): string {
 export function CheckInPage() {
   const { opportunityId } = useParams<{ opportunityId: string }>();
   const [searchParams] = useSearchParams();
+  const { user } = useAuth();
   const { showToast } = useToast();
   const [opportunity, setOpportunity] = useState<Opportunity | null>(null);
   const [tokenInput, setTokenInput] = useState(() => searchParams.get('token') ?? '');
@@ -105,6 +107,7 @@ export function CheckInPage() {
   const myApplication = opportunity?.myApplication;
   const isAccepted = myApplication?.status === 'accepted';
   const isAttended = Boolean(myApplication?.attended);
+  const isPendingAccount = user?.status === 'pending';
 
   return (
     <div className="min-h-screen pb-16">
@@ -183,6 +186,13 @@ export function CheckInPage() {
                     {formatDateTimeAr(myApplication.checkedInAt)}
                   </p>
                 )}
+              </div>
+            ) : isPendingAccount ? (
+              <div
+                role="alert"
+                className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold"
+              >
+                {AR.studentPortal.checkin.pendingLockedNotice}
               </div>
             ) : !isAccepted ? (
               <div

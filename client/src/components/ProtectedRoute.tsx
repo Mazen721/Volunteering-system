@@ -111,7 +111,7 @@ export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
     );
   }
 
-  if (user.status === 'pending' || user.status === 'rejected') {
+  if (user.status === 'rejected') {
     return location.pathname === '/pending' ? <Outlet /> : <Navigate to="/pending" replace />;
   }
 

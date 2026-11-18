@@ -19,6 +19,7 @@ import {
 import { apiClient, extractApiErrorMessage } from '../api/client';
 import { Navbar } from '../components/Navbar';
 import { AR, INTEREST_LABELS } from '../constants/ar';
+import { useAuth } from '../context/authContext';
 import { useToast } from '../context/toastContext';
 import type { Application, Opportunity, OpportunityResponse } from '../types';
 import { hasActiveApplication } from '../utils/applications';
@@ -33,6 +34,7 @@ interface ApplicationResponse {
  */
 export function OpportunityDetailsPage() {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
   const { showToast } = useToast();
   const [opportunity, setOpportunity] = useState<Opportunity | null>(null);
   const [loading, setLoading] = useState(Boolean(id));
@@ -119,11 +121,13 @@ export function OpportunityDetailsPage() {
 
   const myApplication = opportunity?.myApplication;
   const activeApplication = hasActiveApplication(myApplication);
+  const isPendingAccount = user?.status === 'pending';
   const canApply =
     opportunity !== null &&
     opportunity.status === 'published' &&
     opportunity.phase === 'upcoming' &&
-    !activeApplication;
+    !activeApplication &&
+    !isPendingAccount;
   const canWithdraw = opportunity !== null && opportunity.phase === 'upcoming' && activeApplication;
   const isFull = opportunity?.isFull ?? (opportunity?.remainingSlots.student ?? 0) <= 0;
 
@@ -232,6 +236,12 @@ export function OpportunityDetailsPage() {
               {isFull && (
                 <p className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold">
                   {AR.studentPortal.details.waitlistNotice}
+                </p>
+              )}
+
+              {isPendingAccount && opportunity.phase === 'upcoming' && !activeApplication && (
+                <p className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold">
+                  {AR.studentPortal.details.applyLocked}
                 </p>
               )}
 

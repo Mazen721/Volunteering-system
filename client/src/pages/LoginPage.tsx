@@ -84,7 +84,7 @@ function LoginField({
 
 function resolvePostLoginPath(user: AuthUser, fromPath?: string): string {
   const defaultHome = getHomePathForUser(user);
-  if (user.status === 'pending' || user.status === 'rejected') {
+  if (user.status === 'rejected') {
     return '/pending';
   }
   if (!fromPath || fromPath === '/login' || fromPath === '/register' || fromPath === '/pending') {

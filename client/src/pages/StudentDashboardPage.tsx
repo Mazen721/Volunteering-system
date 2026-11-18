@@ -14,6 +14,7 @@ import { Navbar } from '../components/Navbar';
 import { StudentHoursChart } from '../components/dashboard/StudentHoursChart';
 import { OpportunityCard } from '../components/student/OpportunityCard';
 import { AR } from '../constants/ar';
+import { useAuth } from '../context/authContext';
 import { useStudentDashboard } from '../hooks/useStudentDashboard';
 import { formatDateAr, formatNumber, formatPercent } from '../utils/format';
 
@@ -21,7 +22,9 @@ import { formatDateAr, formatNumber, formatPercent } from '../utils/format';
  * Student dashboard with certificate progress, live/upcoming events, Recharts breakdown, recommendations, and activities.
  */
 export function StudentDashboardPage() {
+  const { user } = useAuth();
   const { summary, recommendations, loading, error, retry } = useStudentDashboard();
+  const isPendingAccount = user?.status === 'pending';
 
   const progressPercent =
     summary && summary.certificateHours > 0
@@ -40,6 +43,16 @@ export function StudentDashboardPage() {
             {AR.studentPortal.dashboard.pageSubtitle}
           </p>
         </header>
+
+        {isPendingAccount && (
+          <div
+            role="alert"
+            className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 space-y-1"
+          >
+            <p className="text-xs font-black">{AR.pending.waitingTitle}</p>
+            <p className="text-xs font-semibold leading-relaxed">{AR.pending.waitingSubtitle}</p>
+          </div>
+        )}
 
         {loading && !summary && (
           <div className="glass-card rounded-3xl p-6 flex items-center gap-3 text-mnu-500 text-sm font-bold">

@@ -7,7 +7,7 @@ export const AuthContext = createContext<AuthContextValue | null>(null);
  * Resolves the default landing route for a logged-in user based on status and role.
  */
 export function getHomePathForUser(user: AuthUser): string {
-  if (user.status === 'pending' || user.status === 'rejected') {
+  if (user.status === 'rejected') {
     return '/pending';
   }
   return user.role === 'student' ? '/me' : '/';
