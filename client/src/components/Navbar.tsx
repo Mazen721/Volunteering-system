@@ -24,17 +24,14 @@ export function Navbar() {
     <>
     <header className="sticky top-0 z-40 glass-nav text-white shadow-xl print:hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="min-h-20 py-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="min-h-20 py-3 flex flex-nowrap lg:flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-12 h-12 shrink-0 rounded-full bg-white p-0.5 flex items-center justify-center shadow-md ring-2 ring-mnu-gold/50 overflow-hidden">
               <UniversityLogo className="w-full h-full" />
             </div>
             <div className="min-w-0">
-              <h1 className="font-extrabold text-base sm:text-xl flex flex-wrap items-center gap-2">
+              <h1 className="font-extrabold text-base sm:text-xl flex items-center gap-2">
                 <span>{AR.brand.university}</span>
-                <span className="text-[11px] sm:text-xs font-semibold px-2.5 py-0.5 rounded-full bg-mnu-gold/20 text-yellow-300 border border-yellow-400/30">
-                  {AR.brand.badge}
-                </span>
               </h1>
               <p className="text-[11px] sm:text-xs text-blue-200 font-light truncate">
                 {AR.brand.subtitle}
