@@ -1,77 +1,10 @@
-import type { ComponentType } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import {
-  CalendarClock,
-  ClipboardList,
-  FileSpreadsheet,
-  Home,
-  LayoutDashboard,
-  LogOut,
-  Shield,
-  ShieldCheck,
-  UserCheck,
-  UserRound,
-  Users,
-} from 'lucide-react';
+import { LogOut, ShieldCheck } from 'lucide-react';
 import { AR } from '../constants/ar';
-import type { UserRole } from '../constants/enums';
 import { useAuth } from '../context/authContext';
+import { getNavLinks } from './navLinks';
+import { MobileBottomNav } from './MobileBottomNav';
 import { UniversityLogo } from './UniversityLogo';
-
-interface NavIconProps {
-  className?: string;
-}
-
-interface NavLinkItem {
-  to: string;
-  label: string;
-  Icon: ComponentType<NavIconProps>;
-  end: boolean;
-  roles: UserRole[];
-}
-
-function getNavLinks(role: UserRole | undefined): NavLinkItem[] {
-  const effectiveRole: UserRole = role ?? 'admin';
-  const allLinks: NavLinkItem[] = [
-    { to: '/home', label: AR.studentPortal.nav.home, Icon: Home, end: true, roles: ['student'] },
-    { to: '/me', label: AR.studentPortal.nav.dashboard, Icon: LayoutDashboard, end: true, roles: ['student'] },
-    {
-      to: '/opportunities',
-      label: AR.studentPortal.nav.opportunities,
-      Icon: CalendarClock,
-      end: true,
-      roles: ['student'],
-    },
-    {
-      to: '/me/applications',
-      label: AR.studentPortal.nav.applications,
-      Icon: ClipboardList,
-      end: true,
-      roles: ['student'],
-    },
-    {
-      to: '/me/profile',
-      label: AR.studentPortal.nav.profile,
-      Icon: UserRound,
-      end: true,
-      roles: ['student'],
-    },
-    { to: '/', label: AR.nav.dashboard, Icon: LayoutDashboard, end: true, roles: ['admin', 'dean'] },
-    { to: '/volunteers', label: AR.nav.volunteers, Icon: Users, end: false, roles: ['admin', 'dean'] },
-    { to: '/activities', label: AR.nav.activities, Icon: ClipboardList, end: true, roles: ['admin', 'dean'] },
-    { to: '/opportunities/manage', label: AR.nav.opportunities, Icon: CalendarClock, end: true, roles: ['admin', 'dean'] },
-    { to: '/approvals', label: AR.nav.approvals, Icon: UserCheck, end: true, roles: ['admin', 'dean'] },
-    { to: '/deans', label: AR.nav.deans, Icon: Shield, end: true, roles: ['admin'] },
-    {
-      to: '/import-export',
-      label: effectiveRole === 'dean' ? AR.nav.exportOnly : AR.nav.importExport,
-      Icon: FileSpreadsheet,
-      end: true,
-      roles: ['admin', 'dean'],
-    },
-  ];
-  return allLinks.filter((item) => item.roles.includes(effectiveRole));
-}
 
 /**
  * Sticky top navigation bar displaying MNU branding, role-aware primary navigation, and logout action.
@@ -88,6 +21,7 @@ export function Navbar() {
   }
 
   return (
+    <>
     <header className="sticky top-0 z-40 glass-nav text-white shadow-xl print:hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="min-h-20 py-3 flex flex-wrap items-center justify-between gap-3">
@@ -108,7 +42,17 @@ export function Navbar() {
             </div>
           </div>
 
-          <nav className="flex flex-wrap items-center gap-1.5 sm:gap-2.5">
+          {/* Mobile keeps logout one tap away; the links move to the bottom dock. */}
+          <button
+            type="button"
+            onClick={handleLogout}
+            aria-label={AR.nav.logout}
+            className="flex items-center justify-center bg-white/10 hover:bg-rose-500/80 text-white p-2.5 rounded-xl border border-white/20 transition active:scale-95 cursor-pointer lg:hidden"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+
+          <nav className="hidden lg:flex flex-wrap items-center gap-1.5 sm:gap-2.5">
             {navLinks.map(({ to, label, Icon, end }) => (
               <NavLink
                 key={to}
@@ -147,5 +91,7 @@ export function Navbar() {
         </div>
       </div>
     </header>
+    <MobileBottomNav />
+    </>
   );
 }

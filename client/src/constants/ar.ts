@@ -16,6 +16,8 @@ export const AR = {
     exportOnly: 'تصدير التقارير',
     logout: 'تسجيل الخروج',
     adminRole: 'مسؤول النظام',
+    more: 'المزيد',
+    bottomNav: 'التنقل السفلي',
   },
   roles: {
     admin: 'مسؤول النظام',
