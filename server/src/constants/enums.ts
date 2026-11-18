@@ -75,4 +75,31 @@ export const INTEREST_KEYS = [
 
 export type InterestKey = (typeof INTEREST_KEYS)[number];
 
+export const OPPORTUNITY_STATUSES = ['draft', 'published', 'cancelled', 'completed'] as const;
+
+export type OpportunityStatus = (typeof OPPORTUNITY_STATUSES)[number];
+
+export const OPPORTUNITY_PHASES = [
+  'upcoming',
+  'registration_closed',
+  'in_progress',
+  'ended',
+] as const;
+
+export type OpportunityPhase = (typeof OPPORTUNITY_PHASES)[number];
+
+export const APPROVAL_MODES = ['auto', 'manual'] as const;
+
+export type ApprovalMode = (typeof APPROVAL_MODES)[number];
+
+export const APPLICATION_STATUSES = [
+  'pending',
+  'accepted',
+  'waitlisted',
+  'rejected',
+  'cancelled',
+] as const;
+
+export type ApplicationStatus = (typeof APPLICATION_STATUSES)[number];
+
 export const DEFAULT_CERTIFICATE_HOURS = 30;

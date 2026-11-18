@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
+  CalendarClock,
   ClipboardList,
   FileSpreadsheet,
   LayoutDashboard,
@@ -8,6 +9,7 @@ import {
   Shield,
   ShieldCheck,
   UserCheck,
+  UserRound,
   Users,
 } from 'lucide-react';
 import { AR } from '../constants/ar';
@@ -30,9 +32,32 @@ interface NavLinkItem {
 function getNavLinks(role: UserRole | undefined): NavLinkItem[] {
   const effectiveRole: UserRole = role ?? 'admin';
   const allLinks: NavLinkItem[] = [
+    { to: '/me', label: AR.studentPortal.nav.dashboard, Icon: LayoutDashboard, end: true, roles: ['student'] },
+    {
+      to: '/opportunities',
+      label: AR.studentPortal.nav.opportunities,
+      Icon: CalendarClock,
+      end: true,
+      roles: ['student'],
+    },
+    {
+      to: '/me/applications',
+      label: AR.studentPortal.nav.applications,
+      Icon: ClipboardList,
+      end: true,
+      roles: ['student'],
+    },
+    {
+      to: '/me/profile',
+      label: AR.studentPortal.nav.profile,
+      Icon: UserRound,
+      end: true,
+      roles: ['student'],
+    },
     { to: '/', label: AR.nav.dashboard, Icon: LayoutDashboard, end: true, roles: ['admin', 'dean'] },
     { to: '/volunteers', label: AR.nav.volunteers, Icon: Users, end: false, roles: ['admin', 'dean'] },
     { to: '/activities', label: AR.nav.activities, Icon: ClipboardList, end: true, roles: ['admin', 'dean'] },
+    { to: '/opportunities/manage', label: AR.nav.opportunities, Icon: CalendarClock, end: true, roles: ['admin', 'dean'] },
     { to: '/approvals', label: AR.nav.approvals, Icon: UserCheck, end: true, roles: ['admin', 'dean'] },
     { to: '/deans', label: AR.nav.deans, Icon: Shield, end: true, roles: ['admin'] },
     {

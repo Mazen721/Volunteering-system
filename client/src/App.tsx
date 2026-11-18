@@ -1,17 +1,25 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { ProtectedRoute } from './components/ProtectedRoute';
-import { AR } from './constants/ar';
 import { AuthProvider } from './context/AuthContext.tsx';
 import { ToastProvider } from './context/ToastContext.tsx';
 import { ActivitiesPage } from './pages/ActivitiesPage';
 import { ApprovalsPage } from './pages/ApprovalsPage';
 import { CertificatePage } from './pages/CertificatePage';
+import { CheckInPage } from './pages/CheckInPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { DeansPage } from './pages/DeansPage';
 import { ImportExportPage } from './pages/ImportExportPage';
 import { LoginPage } from './pages/LoginPage';
+import { MyApplicationsPage } from './pages/MyApplicationsPage';
+import { OpportunitiesBoardPage } from './pages/OpportunitiesBoardPage';
+import { OpportunitiesManagePage } from './pages/OpportunitiesManagePage';
+import { OpportunityDetailsPage } from './pages/OpportunityDetailsPage';
+import { OpportunityFormPage } from './pages/OpportunityFormPage';
+import { OpportunityLivePage } from './pages/OpportunityLivePage';
 import { PendingApprovalPage } from './pages/PendingApprovalPage';
 import { RegisterPage } from './pages/RegisterPage';
+import { StudentDashboardPage } from './pages/StudentDashboardPage';
+import { StudentProfilePage } from './pages/StudentProfilePage';
 import { VolunteerProfilePage } from './pages/VolunteerProfilePage';
 import { VolunteersPage } from './pages/VolunteersPage';
 
@@ -31,6 +39,10 @@ export default function App() {
               <Route path="/volunteers" element={<VolunteersPage />} />
               <Route path="/volunteers/:volunteerId" element={<VolunteerProfilePage />} />
               <Route path="/activities" element={<ActivitiesPage />} />
+              <Route path="/opportunities/manage" element={<OpportunitiesManagePage />} />
+              <Route path="/opportunities/new" element={<OpportunityFormPage />} />
+              <Route path="/opportunities/:id/edit" element={<OpportunityFormPage />} />
+              <Route path="/opportunities/:id/live" element={<OpportunityLivePage />} />
               <Route path="/approvals" element={<ApprovalsPage />} />
               <Route path="/certificate/:volunteerId" element={<CertificatePage />} />
               <Route path="/excel" element={<ImportExportPage />} />
@@ -40,16 +52,12 @@ export default function App() {
               <Route path="/deans" element={<DeansPage />} />
             </Route>
             <Route element={<ProtectedRoute allowedRoles={['student']} />}>
-              <Route
-                path="/me"
-                element={
-                  <div className="min-h-screen flex items-center justify-center p-4">
-                    <div className="glass-card rounded-3xl p-8 max-w-md w-full text-center space-y-2">
-                      <h2 className="text-lg font-black text-slate-800">{AR.roles.student}</h2>
-                    </div>
-                  </div>
-                }
-              />
+              <Route path="/me" element={<StudentDashboardPage />} />
+              <Route path="/me/applications" element={<MyApplicationsPage />} />
+              <Route path="/me/profile" element={<StudentProfilePage />} />
+              <Route path="/opportunities" element={<OpportunitiesBoardPage />} />
+              <Route path="/opportunities/:id" element={<OpportunityDetailsPage />} />
+              <Route path="/checkin/:opportunityId" element={<CheckInPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

@@ -23,6 +23,8 @@ function mapMongooseError(err: unknown): AppError | null {
       duplicateMessage = 'الرقم التعريفي للمتطوع مسجل أو قيد المراجعة مسبقاً';
     } else if (candidate.keyPattern?.email) {
       duplicateMessage = 'البريد الإلكتروني مسجل مسبقاً';
+    } else if (candidate.keyPattern?.opportunity && candidate.keyPattern?.volunteer) {
+      duplicateMessage = 'لديك طلب قائم بالفعل على هذه الفرصة';
     } else if (candidate.keyPattern?.volunteer) {
       duplicateMessage = 'سجل المتطوع مرتبط بحساب مستخدم آخر بالفعل';
     }

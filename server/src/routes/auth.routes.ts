@@ -1,9 +1,21 @@
 import express from 'express';
 import { validateBody } from '../middleware/validate.js';
-import { buildAdminCompat, loginWithCredentials } from '../services/auth.service.js';
+import {
+  buildAdminCompat,
+  loginWithCredentials,
+  updateOwnProfile,
+} from '../services/auth.service.js';
 import { registerStudent } from '../services/registration.service.js';
-import type { LoginInput, RegisterInput } from '../validators/auth.schema.js';
-import { loginSchema, registerSchema } from '../validators/auth.schema.js';
+import type {
+  LoginInput,
+  RegisterInput,
+  UpdateProfileInput,
+} from '../validators/auth.schema.js';
+import {
+  loginSchema,
+  registerSchema,
+  updateProfileSchema,
+} from '../validators/auth.schema.js';
 
 export function createPublicAuthRouter(jwtSecret: string): express.Router {
   const router = express.Router();
@@ -27,6 +39,11 @@ export function createProtectedAuthRouter(): express.Router {
   router.get('/me', (req, res) => {
     const admin = req.user ? buildAdminCompat(req.user) : req.admin;
     res.json(admin ? { user: req.user, admin } : { user: req.user });
+  });
+
+  router.patch('/me', validateBody(updateProfileSchema), async (req, res) => {
+    const user = await updateOwnProfile(req.user!.id, req.body as UpdateProfileInput);
+    res.json({ user });
   });
 
   return router;

@@ -9,7 +9,7 @@ import type {
 import type { RegistrationSnapshot, UserLean } from '../models/User.js';
 import { User } from '../models/User.js';
 import { AppError } from '../utils/errors.js';
-import type { LoginInput } from '../validators/auth.schema.js';
+import type { LoginInput, UpdateProfileInput } from '../validators/auth.schema.js';
 
 export interface PublicUser {
   id: string;
@@ -101,4 +101,49 @@ export async function loginWithCredentials(
   const admin = buildAdminCompat(serialized);
 
   return admin ? { token, user: serialized, admin } : { token, user: serialized };
+}
+
+/**
+ * Updates the authenticated user's interests and/or password after verifying the current password.
+ */
+export async function updateOwnProfile(
+  userId: string,
+  input: UpdateProfileInput
+): Promise<PublicUser> {
+  const updates: Record<string, unknown> = {};
+
+  if (input.interests !== undefined) {
+    updates.interests = input.interests;
+  }
+
+  if (input.newPassword) {
+    const current = await User.findById(userId).select('passwordHash').lean<UserLean>();
+    if (!current) {
+      throw new AppError(401, 'جلسة الدخول غير صالحة أو منتهية');
+    }
+
+    const passwordMatches = await bcrypt.compare(
+      input.currentPassword ?? '',
+      current.passwordHash
+    );
+    if (!passwordMatches) {
+      throw new AppError(400, 'كلمة المرور الحالية غير صحيحة');
+    }
+
+    updates.passwordHash = await bcrypt.hash(input.newPassword, 10);
+  }
+
+  const updated = await User.findByIdAndUpdate(
+    userId,
+    { $set: updates },
+    { returnDocument: 'after', runValidators: true }
+  )
+    .select('-passwordHash')
+    .lean<UserLean>();
+
+  if (!updated) {
+    throw new AppError(401, 'جلسة الدخول غير صالحة أو منتهية');
+  }
+
+  return serializeUser(updated);
 }

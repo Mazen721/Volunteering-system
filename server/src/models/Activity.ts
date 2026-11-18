@@ -11,6 +11,8 @@ export interface ActivityDoc {
   date: Date;
   status: ActivityStatus;
   supervisor: string;
+  opportunity?: mongoose.Types.ObjectId | null;
+  application?: mongoose.Types.ObjectId | null;
 }
 
 export interface ActivityLean extends ActivityDoc {
@@ -70,10 +72,25 @@ const activitySchema = new mongoose.Schema<ActivityDoc>(
       required: [true, 'اسم مشرف النشاط مطلوب'],
       trim: true,
     },
+    opportunity: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Opportunity',
+      default: null,
+    },
+    application: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Application',
+      default: null,
+    },
   },
   { timestamps: true }
 );
 
 activitySchema.index({ volunteer: 1, title: 1, date: 1 });
+// Partial unique index guarantees idempotent hour crediting per application while allowing manual activities with null.
+activitySchema.index(
+  { application: 1 },
+  { unique: true, partialFilterExpression: { application: { $type: 'objectId' } } }
+);
 
 export const Activity = mongoose.model<ActivityDoc>('Activity', activitySchema);

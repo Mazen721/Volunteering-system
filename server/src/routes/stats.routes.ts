@@ -6,9 +6,13 @@ import type { ScopeFilter } from '../middleware/auth.js';
 import { buildScope, requireRole } from '../middleware/auth.js';
 import {
   getCategoryStats,
+  getEventStats,
   getFacultyStats,
   getLeaderboard,
+  getMonthlyHoursStats,
   getOverviewStats,
+  getParticipationStats,
+  getStudentDashboardSummary,
 } from '../services/stats.service.js';
 import { AppError } from '../utils/errors.js';
 
@@ -30,6 +34,12 @@ function resolveStatsScope(req: Request): ScopeFilter {
 
 export function createStatsRouter(): express.Router {
   const router = express.Router();
+
+  router.get('/me', requireRole('student'), async (req, res) => {
+    const summary = await getStudentDashboardSummary(req.user!);
+    res.json(summary);
+  });
+
   router.use(requireRole('admin', 'dean'));
 
   router.get('/overview', async (req, res) => {
@@ -56,6 +66,21 @@ export function createStatsRouter(): express.Router {
       resolveStatsScope(req)
     );
     res.json(leaderboard);
+  });
+
+  router.get('/participation', async (req, res) => {
+    const participation = await getParticipationStats(resolveStatsScope(req));
+    res.json(participation);
+  });
+
+  router.get('/events', async (req, res) => {
+    const events = await getEventStats(resolveStatsScope(req));
+    res.json(events);
+  });
+
+  router.get('/monthly-hours', async (req, res) => {
+    const monthly = await getMonthlyHoursStats(resolveStatsScope(req));
+    res.json(monthly);
   });
 
   return router;

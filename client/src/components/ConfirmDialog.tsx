@@ -9,10 +9,12 @@ interface ConfirmDialogProps {
   loading: boolean;
   onConfirm: () => void;
   onCancel: () => void;
+  confirmLabel?: string;
+  loadingLabel?: string;
 }
 
 /**
- * Arabic confirmation modal required before any delete operation executes.
+ * Arabic confirmation modal required before destructive operations execute.
  */
 export function ConfirmDialog({
   isOpen,
@@ -21,6 +23,8 @@ export function ConfirmDialog({
   loading,
   onConfirm,
   onCancel,
+  confirmLabel = AR.common.delete,
+  loadingLabel = AR.common.deleting,
 }: ConfirmDialogProps) {
   return (
     <ModalFrame
@@ -51,7 +55,7 @@ export function ConfirmDialog({
           disabled={loading}
           className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-60 text-white text-xs font-bold transition shadow-md cursor-pointer"
         >
-          {loading ? AR.common.deleting : AR.common.delete}
+          {loading ? loadingLabel : confirmLabel}
         </button>
       </div>
     </ModalFrame>

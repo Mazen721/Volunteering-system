@@ -65,6 +65,7 @@ describe('Phase 2 API features integration', () => {
     await connectDatabase(buildTestDbUri(env.mongoUri, TEST_DB_NAME));
     assert.equal(mongoose.connection.name, TEST_DB_NAME);
     await mongoose.connection.dropDatabase();
+    await mongoose.syncIndexes();
 
     const workbookData = await parseSeedWorkbook(SEED_FILE);
     await seedDatabase({

@@ -4,6 +4,7 @@ import { ACTIVITY_STATUSES, CATEGORY_LABELS } from '../constants/enums.js';
 import type { ScopeFilter } from '../middleware/auth.js';
 import { Activity } from '../models/Activity.js';
 import type { ActivityLean } from '../models/Activity.js';
+import { Application } from '../models/Application.js';
 import { User } from '../models/User.js';
 import type { VolunteerFilter, VolunteerLean } from '../models/Volunteer.js';
 import { Volunteer } from '../models/Volunteer.js';
@@ -236,6 +237,11 @@ export async function deleteVolunteer(
   const hasActivities = await Activity.exists({ volunteer: volunteer._id });
   if (hasActivities) {
     throw new AppError(409, 'لا يمكن حذف متطوع لديه أنشطة مسجلة، يرجى حذف أنشطته أولاً');
+  }
+
+  const hasApplications = await Application.exists({ volunteer: volunteer._id });
+  if (hasApplications) {
+    throw new AppError(409, 'لا يمكن حذف متطوع لديه طلبات تطوع مسجلة، يرجى مراجعة طلباته أولاً');
   }
 
   const hasLinkedUser = await User.exists({ volunteer: volunteer._id });

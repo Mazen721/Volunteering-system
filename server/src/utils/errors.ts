@@ -12,3 +12,15 @@ export class AppError extends Error {
     this.details = details;
   }
 }
+
+/**
+ * Checks whether an error thrown by MongoDB/Mongoose is a duplicate key error (E11000).
+ */
+export function isDuplicateKeyError(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    (error as { code?: unknown }).code === 11000
+  );
+}

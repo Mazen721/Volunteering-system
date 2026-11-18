@@ -156,6 +156,8 @@ const EXPECTED_FACULTIES: FacultyStatsRow[] = [
     approvedHours: 37,
     avgHours: 37,
     percentage: 28.7,
+    activeVolunteers: 1,
+    participationRate: 100,
   },
   {
     faculty: 'كلية الطب البشري',
@@ -165,6 +167,8 @@ const EXPECTED_FACULTIES: FacultyStatsRow[] = [
     approvedHours: 31,
     avgHours: 31,
     percentage: 24,
+    activeVolunteers: 1,
+    participationRate: 100,
   },
   {
     faculty: 'كلية تكنولوجيا العلوم الصحية',
@@ -174,6 +178,8 @@ const EXPECTED_FACULTIES: FacultyStatsRow[] = [
     approvedHours: 18,
     avgHours: 18,
     percentage: 14,
+    activeVolunteers: 1,
+    participationRate: 100,
   },
   {
     faculty: 'كلية طب الأسنان',
@@ -183,6 +189,8 @@ const EXPECTED_FACULTIES: FacultyStatsRow[] = [
     approvedHours: 15,
     avgHours: 15,
     percentage: 11.6,
+    activeVolunteers: 1,
+    participationRate: 100,
   },
   {
     faculty: 'كلية التمريض',
@@ -192,6 +200,8 @@ const EXPECTED_FACULTIES: FacultyStatsRow[] = [
     approvedHours: 14,
     avgHours: 7,
     percentage: 10.9,
+    activeVolunteers: 1,
+    participationRate: 50,
   },
   {
     faculty: 'كلية الاقتصاد والعلوم الإدارية',
@@ -201,6 +211,8 @@ const EXPECTED_FACULTIES: FacultyStatsRow[] = [
     approvedHours: 8,
     avgHours: 8,
     percentage: 6.2,
+    activeVolunteers: 1,
+    participationRate: 100,
   },
   {
     faculty: 'كلية الهندسة',
@@ -210,6 +222,8 @@ const EXPECTED_FACULTIES: FacultyStatsRow[] = [
     approvedHours: 6,
     avgHours: 6,
     percentage: 4.7,
+    activeVolunteers: 1,
+    participationRate: 100,
   },
 ];
 
@@ -446,6 +460,16 @@ describe('Phase 6 Excel reconciliation and edge cases', () => {
       avgHoursPerRegistered: 0,
       avgHoursPerActive: 0,
       certificateHours: 30,
+      eventsThisMonth: 0,
+      pendingRegistrations: 0,
+      pendingApplications: 0,
+      certificateBuckets: {
+        eligible: 0,
+        nearEligible: 0,
+        inProgress: 0,
+        zeroHours: 0,
+      },
+      zeroHourVolunteers: [],
     });
     assert.equal(emptyFaculties.body.totals.avgHours, 0);
     assert.equal(emptyCategories.body.totals.avgHours, 0);

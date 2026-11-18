@@ -15,6 +15,7 @@ import type {
   AuthUser,
   LoginCredentials,
   RegisterPayload,
+  UpdateProfilePayload,
 } from '../types';
 import { AuthContext } from './authContext';
 
@@ -25,6 +26,10 @@ interface AuthPayload {
 
 interface LoginPayload extends AuthPayload {
   token: string;
+}
+
+interface ProfilePayload {
+  user: AuthUser;
 }
 
 interface SessionResult {
@@ -160,6 +165,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
     applySessionResult({ status: 'unauthenticated', user: null, error: '' });
   }, [applySessionResult]);
 
+  const updateProfile = useCallback(
+    async (payload: UpdateProfilePayload) => {
+      const response = await apiClient.patch<ProfilePayload>('/auth/me', payload);
+      setUser(response.data.user);
+      return response.data.user;
+    },
+    []
+  );
+
   const value = useMemo(() => {
     const admin = user?.role === 'admin' ? { id: user.id, email: user.email } : null;
     return {
@@ -169,10 +183,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
       sessionError,
       login,
       register,
+      updateProfile,
       logout,
       retrySession,
     };
-  }, [user, status, sessionError, login, register, logout, retrySession]);
+  }, [user, status, sessionError, login, register, updateProfile, logout, retrySession]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

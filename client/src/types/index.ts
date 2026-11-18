@@ -1,8 +1,12 @@
 import type {
   ActivityStatus,
   ActivityType,
+  ApplicationStatus,
+  ApprovalMode,
   Faculty,
   InterestKey,
+  OpportunityPhase,
+  OpportunityStatus,
   UserRole,
   UserStatus,
   VolunteerCategory,
@@ -51,6 +55,12 @@ export interface RegisterPayload {
   interests: InterestKey[];
 }
 
+export interface UpdateProfilePayload {
+  interests?: InterestKey[];
+  currentPassword?: string;
+  newPassword?: string;
+}
+
 export interface ExistingVolunteerPreview {
   _id: string;
   volunteerId: string;
@@ -89,6 +99,7 @@ export interface AuthContextValue {
   sessionError: string;
   login: (credentials: LoginCredentials) => Promise<AuthUser>;
   register: (payload: RegisterPayload) => Promise<AuthUser>;
+  updateProfile: (payload: UpdateProfilePayload) => Promise<AuthUser>;
   logout: () => void;
   retrySession: () => Promise<void>;
 }
@@ -110,6 +121,21 @@ export interface ToastContextValue {
   showToast: (toast: ToastInput) => void;
 }
 
+export interface CertificateBuckets {
+  eligible: number;
+  nearEligible: number;
+  inProgress: number;
+  zeroHours: number;
+}
+
+export interface ZeroHourVolunteerRow {
+  _id: string;
+  volunteerId: string;
+  fullName: string;
+  category: VolunteerCategory;
+  faculty: Faculty;
+}
+
 export interface OverviewStats {
   totalApprovedHours: number;
   totalActivities: number;
@@ -121,6 +147,11 @@ export interface OverviewStats {
   avgHoursPerRegistered: number;
   avgHoursPerActive: number;
   certificateHours: number;
+  eventsThisMonth?: number;
+  pendingRegistrations?: number;
+  pendingApplications?: number;
+  certificateBuckets?: CertificateBuckets;
+  zeroHourVolunteers?: ZeroHourVolunteerRow[];
 }
 
 export interface GroupMetrics {
@@ -138,6 +169,65 @@ export interface FacultyStatsRow extends GroupMetrics {
   faculty: string;
   avgHours: number;
   percentage: number;
+  activeVolunteers?: number;
+  participationRate?: number;
+}
+
+export interface ParticipationFunnel {
+  applied: number;
+  accepted: number;
+  attended: number;
+  rejected: number;
+  noShow: number;
+}
+
+export interface EngagementBreakdown {
+  joined: number;
+  zeroHours: number;
+}
+
+export interface ParticipationStatsResponse {
+  funnel: ParticipationFunnel;
+  engagement: EngagementBreakdown;
+}
+
+export interface EventEfficiencyRow {
+  _id: string;
+  title: string;
+  faculty: Faculty | null;
+  status: OpportunityStatus;
+  startAt: string;
+  hours: number;
+  totalSlots: number;
+  acceptedCount: number;
+  attendedCount: number;
+  noShowCount: number;
+  fillRate: number;
+  noShowRate: number;
+}
+
+export interface EventStatsSummary {
+  totalEvents: number;
+  completedCount: number;
+  avgFillRate: number;
+  avgNoShowRate: number;
+}
+
+export interface EventStatsResponse {
+  topEvents: EventEfficiencyRow[];
+  completedEvents: EventEfficiencyRow[];
+  summary: EventStatsSummary;
+}
+
+export interface MonthlyHoursPoint {
+  month: string;
+  label: string;
+  approvedHours: number;
+  approvedActivities: number;
+}
+
+export interface MonthlyHoursResponse {
+  months: MonthlyHoursPoint[];
 }
 
 export interface FacultyStatsResponse {
@@ -207,6 +297,8 @@ export interface Activity {
   date: string;
   status: ActivityStatus;
   supervisor: string;
+  opportunity?: string | null;
+  application?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -287,6 +379,10 @@ export interface DashboardStatsBundle {
   faculties: FacultyStatsRow[];
   leaderboard: LeaderboardVolunteer[];
   certificateHours: number;
+  participation: ParticipationStatsResponse | null;
+  events: EventStatsResponse | null;
+  monthlyHours: MonthlyHoursPoint[];
+  analyticsError: string;
 }
 
 export interface VolunteerFilters {
@@ -343,10 +439,169 @@ export interface ActivityListResponse {
   pages: number;
 }
 
+export interface CategoryCounts {
+  student: number;
+  academic: number;
+  admin: number;
+}
+
+export interface OpportunityLocation {
+  name: string;
+  address: string;
+  mapUrl?: string;
+}
+
+export interface Opportunity {
+  _id: string;
+  title: string;
+  description: string;
+  requirements: string;
+  fields: InterestKey[];
+  activityType: ActivityType;
+  location: OpportunityLocation;
+  startAt: string;
+  endAt: string;
+  registrationDeadline: string;
+  hours: number;
+  contactName: string;
+  contactPhone: string;
+  contactEmail: string;
+  faculty: Faculty | null;
+  slots: CategoryCounts;
+  acceptedCounts: CategoryCounts;
+  approvalMode: ApprovalMode;
+  status: OpportunityStatus;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  phase: OpportunityPhase;
+  checkInOpen: boolean;
+  remainingSlots: CategoryCounts;
+  recommendationScore?: number;
+  matchedFields?: InterestKey[];
+  isFull?: boolean;
+  waitlistAvailable?: boolean;
+  myApplication?: Application;
+}
+
+export interface Application {
+  _id: string;
+  opportunity: string;
+  volunteer: string | VolunteerBase;
+  user: string;
+  faculty: Faculty;
+  category: VolunteerCategory;
+  status: ApplicationStatus;
+  note: string;
+  decidedBy: string | null;
+  decidedAt: string | null;
+  attended: boolean;
+  checkedInAt: string | null;
+  hoursGranted: number;
+  appliedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OpportunityListResponse {
+  opportunities: Opportunity[];
+}
+
+export interface OpportunityResponse {
+  opportunity: Opportunity;
+}
+
+export interface OpportunityApplicantsResponse {
+  applications: Application[];
+  readOnly: boolean;
+}
+
+export interface StudentVolunteer extends VolunteerBase {
+  _id: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StudentApplication extends Omit<Application, 'opportunity'> {
+  opportunity: Opportunity;
+}
+
+export interface StudentApplicationsResponse {
+  applications: StudentApplication[];
+}
+
+export interface StudentDashboardSummary {
+  volunteer: StudentVolunteer;
+  approvedHours: number;
+  pendingHours: number;
+  certificateHours: number;
+  remainingHours: number;
+  eligible: boolean;
+  eventsAttended: number;
+  happeningNow: Opportunity[];
+  upcomingAccepted: Opportunity[];
+  activeApplications: StudentApplication[];
+  recentActivities: Activity[];
+}
+
+export interface OpportunityFormState {
+  title: string;
+  description: string;
+  requirements: string;
+  fields: InterestKey[];
+  activityType: ActivityType;
+  locationName: string;
+  locationAddress: string;
+  locationMapUrl: string;
+  startAt: string;
+  endAt: string;
+  registrationDeadline: string;
+  hours: string;
+  contactName: string;
+  contactPhone: string;
+  contactEmail: string;
+  faculty: Faculty | '';
+  studentSlots: string;
+  academicSlots: string;
+  adminSlots: string;
+  approvalMode: ApprovalMode;
+}
+
+export type OpportunityFieldErrors = Partial<
+  Record<keyof OpportunityFormState | 'slots' | 'fields', string>
+>;
+
 export interface SettingsResponse {
   settings: {
     key: string;
     certificateHours: number;
   };
   certificateHours: number;
+}
+
+export interface CheckInTokenResponse {
+  token: string;
+  expiresAt: string;
+}
+
+export interface LiveCounters {
+  accepted: number;
+  checkedIn: number;
+  notArrived: number;
+}
+
+export interface LiveOpportunityResponse {
+  opportunity: Opportunity;
+  counters: LiveCounters;
+  attendees: Application[];
+}
+
+export interface CompleteOpportunityResponse {
+  opportunity: Opportunity;
+  creditedCount: number;
+  noShowCount: number;
+}
+
+export interface CheckInSubmitResponse {
+  application: Application;
 }

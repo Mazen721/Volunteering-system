@@ -38,5 +38,44 @@ export const registerSchema = z.object({
     .transform((interests) => Array.from(new Set(interests))),
 });
 
+export const updateProfileSchema = z
+  .object({
+    interests: z
+      .array(z.enum(INTEREST_KEYS, { error: 'مجال الاهتمام غير صالح' }), {
+        error: 'يرجى اختيار مجال اهتمام واحد على الأقل',
+      })
+      .min(1, 'يرجى اختيار مجال اهتمام واحد على الأقل')
+      .transform((interests) => Array.from(new Set(interests)))
+      .optional(),
+    currentPassword: z.string({ error: 'كلمة المرور الحالية مطلوبة' }).optional(),
+    newPassword: z
+      .string({ error: 'كلمة المرور الجديدة مطلوبة' })
+      .min(8, 'كلمة المرور يجب أن لا تقل عن 8 أحرف')
+      .optional(),
+  })
+  .superRefine((values, context) => {
+    if (values.newPassword && !values.currentPassword) {
+      context.addIssue({
+        code: 'custom',
+        path: ['currentPassword'],
+        message: 'كلمة المرور الحالية مطلوبة',
+      });
+    }
+    if (values.currentPassword && !values.newPassword) {
+      context.addIssue({
+        code: 'custom',
+        path: ['newPassword'],
+        message: 'كلمة المرور الجديدة مطلوبة',
+      });
+    }
+    if (values.interests === undefined && !values.newPassword) {
+      context.addIssue({
+        code: 'custom',
+        message: 'لا توجد بيانات للتحديث',
+      });
+    }
+  });
+
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
+export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
