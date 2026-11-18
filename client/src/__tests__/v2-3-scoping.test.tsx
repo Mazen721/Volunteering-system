@@ -227,7 +227,7 @@ describe('Phase V2-3 Dean Scoping, Deans Management & Certificate Role Guards', 
     renderAppAt('/certificate/20260001', studentUser);
 
     await waitFor(() => {
-      expect(window.location.pathname).toBe('/me');
+      expect(window.location.pathname).toBe('/home');
     });
     expect(await screen.findByText(AR.roles.student)).toBeInTheDocument();
     expect(screen.queryByText(AR.certificate.heading)).not.toBeInTheDocument();

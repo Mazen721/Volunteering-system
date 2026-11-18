@@ -303,15 +303,22 @@ describe('Phase V2-8 Security Error Display & End-to-End Walkthrough', () => {
     await user.type(screen.getByLabelText(AR.auth.passwordLabel), 'Admin@12345');
     await user.click(screen.getByRole('button', { name: AR.auth.submitLogin }));
 
+    // Since Phase 2 the student lands on the new home page, whose live hero
+    // carries the check-in action; the certificate notice stays on «لوحتي».
+    expect(await screen.findByText(AR.studentPortal.home.liveBadge)).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('link', { name: new RegExp(AR.studentPortal.nav.dashboard) })
+    );
     expect(
-      await screen.findByText(AR.studentPortal.dashboard.happeningNowTitle)
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(AR.studentPortal.dashboard.eligibleNotice)
+      await screen.findByText(AR.studentPortal.dashboard.eligibleNotice)
     ).toBeInTheDocument();
 
     await user.click(
-      screen.getByRole('link', {
+      screen.getByRole('link', { name: new RegExp(AR.studentPortal.nav.home) })
+    );
+    await user.click(
+      await screen.findByRole('link', {
         name: new RegExp(AR.studentPortal.dashboard.happeningNowCta),
       })
     );
@@ -326,11 +333,11 @@ describe('Phase V2-8 Security Error Display & End-to-End Walkthrough', () => {
     ).toBeInTheDocument();
     studentView.unmount();
 
-    // Student cannot open /certificate/20260001 (redirected back to /me)
+    // Student cannot open /certificate/20260001 (redirected back to /home)
     window.history.pushState({}, '', '/certificate/20260001');
     const blockedCertView = render(<App />);
     await waitFor(() => {
-      expect(window.location.pathname).toBe('/me');
+      expect(window.location.pathname).toBe('/home');
     });
     blockedCertView.unmount();
 

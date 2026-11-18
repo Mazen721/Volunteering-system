@@ -79,6 +79,7 @@ function renderAppRoutes(initialEntry: string) {
             <Route path="/deans" element={<div>إدارة العمداء</div>} />
           </Route>
           <Route element={<ProtectedRoute allowedRoles={['student']} />}>
+            <Route path="/home" element={<div>بوابة الطالب</div>} />
             <Route path="/me" element={<div>بوابة الطالب</div>} />
           </Route>
           <Route element={<ProtectedRoute />}>
@@ -148,7 +149,7 @@ describe('Phase V2-1 AuthContext & ProtectedRoute role guards', () => {
     expect(await screen.findByText(AR.auth.loginTitle)).toBeInTheDocument();
   });
 
-  it('redirects_active_student_from_admin_route_to_me', async () => {
+  it('redirects_active_student_from_admin_route_to_home', async () => {
     activeAuthUser = buildAuthUser({
       role: 'student',
       status: 'active',
@@ -174,7 +175,7 @@ describe('Phase V2-1 AuthContext & ProtectedRoute role guards', () => {
     expect(await screen.findByText('صفحة الإدارة والعميد')).toBeInTheDocument();
   });
 
-  it('redirects_student_to_me_immediately_after_login', async () => {
+  it('redirects_student_to_home_immediately_after_login', async () => {
     renderAppRoutes('/login');
 
     await userEvent.type(screen.getByLabelText(AR.auth.emailLabel), 'student@mnu.edu.eg');

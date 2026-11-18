@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
@@ -175,9 +175,11 @@ describe('Phase 1 Pending Student Flow & University Email Rule (Client)', () => 
   it('pending_student_visiting_pending_screen_is_redirected_home', async () => {
     renderAppAt('/pending', buildStudentUser());
 
-    expect(
-      await screen.findByRole('heading', { name: AR.studentPortal.dashboard.pageTitle })
-    ).toBeInTheDocument();
+    // Since Phase 2 the student home is the new main page at /home.
+    await waitFor(() => {
+      expect(window.location.pathname).toBe('/home');
+    });
+    expect(await screen.findByText(AR.pending.waitingTitle)).toBeInTheDocument();
   });
 
   it('apply_action_is_locked_for_pending_student_on_opportunity_details', async () => {

@@ -137,6 +137,7 @@ function renderApp(initialEntry: string) {
               <Route path="/approvals" element={<ApprovalsPage />} />
             </Route>
             <Route element={<ProtectedRoute allowedRoles={['student']} />}>
+              <Route path="/home" element={<div>بوابة المتطوع النشطة</div>} />
               <Route path="/me" element={<div>بوابة المتطوع النشطة</div>} />
             </Route>
           </Routes>
