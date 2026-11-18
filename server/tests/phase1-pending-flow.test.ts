@@ -8,7 +8,7 @@ import { connectDatabase } from '../src/config/db.js';
 import type { AppEnv } from '../src/config/env.js';
 import { loadEnv, resolveAllowedEmailDomains } from '../src/config/env.js';
 import { FACULTIES } from '../src/constants/enums.js';
-import type { Faculty, UserStatus } from '../src/constants/enums.js';
+import type { UserStatus } from '../src/constants/enums.js';
 import { Application } from '../src/models/Application.js';
 import { Opportunity } from '../src/models/Opportunity.js';
 import type { OpportunityLean } from '../src/models/Opportunity.js';
