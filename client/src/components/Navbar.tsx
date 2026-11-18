@@ -4,6 +4,7 @@ import {
   CalendarClock,
   ClipboardList,
   FileSpreadsheet,
+  Home,
   LayoutDashboard,
   LogOut,
   Shield,
@@ -32,6 +33,7 @@ interface NavLinkItem {
 function getNavLinks(role: UserRole | undefined): NavLinkItem[] {
   const effectiveRole: UserRole = role ?? 'admin';
   const allLinks: NavLinkItem[] = [
+    { to: '/home', label: AR.studentPortal.nav.home, Icon: Home, end: true, roles: ['student'] },
     { to: '/me', label: AR.studentPortal.nav.dashboard, Icon: LayoutDashboard, end: true, roles: ['student'] },
     {
       to: '/opportunities',

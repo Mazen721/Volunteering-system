@@ -10,7 +10,7 @@ export function getHomePathForUser(user: AuthUser): string {
   if (user.status === 'rejected') {
     return '/pending';
   }
-  return user.role === 'student' ? '/me' : '/';
+  return user.role === 'student' ? '/home' : '/';
 }
 
 /**

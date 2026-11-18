@@ -19,6 +19,7 @@ import { OpportunityLivePage } from './pages/OpportunityLivePage';
 import { PendingApprovalPage } from './pages/PendingApprovalPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { StudentDashboardPage } from './pages/StudentDashboardPage';
+import { StudentHomePage } from './pages/StudentHomePage';
 import { StudentProfilePage } from './pages/StudentProfilePage';
 import { VolunteerProfilePage } from './pages/VolunteerProfilePage';
 import { VolunteersPage } from './pages/VolunteersPage';
@@ -52,6 +53,7 @@ export default function App() {
               <Route path="/deans" element={<DeansPage />} />
             </Route>
             <Route element={<ProtectedRoute allowedRoles={['student']} />}>
+              <Route path="/home" element={<StudentHomePage />} />
               <Route path="/me" element={<StudentDashboardPage />} />
               <Route path="/me/applications" element={<MyApplicationsPage />} />
               <Route path="/me/profile" element={<StudentProfilePage />} />

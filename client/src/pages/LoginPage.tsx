@@ -90,8 +90,8 @@ function resolvePostLoginPath(user: AuthUser, fromPath?: string): string {
   if (!fromPath || fromPath === '/login' || fromPath === '/register' || fromPath === '/pending') {
     return defaultHome;
   }
-  if (user.role === 'student' && !fromPath.startsWith('/me') && !fromPath.startsWith('/opportunities') && !fromPath.startsWith('/checkin')) {
-    return '/me';
+  if (user.role === 'student' && !fromPath.startsWith('/home') && !fromPath.startsWith('/me') && !fromPath.startsWith('/opportunities') && !fromPath.startsWith('/checkin')) {
+    return '/home';
   }
   return fromPath;
 }
