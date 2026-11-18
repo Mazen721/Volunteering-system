@@ -147,6 +147,14 @@ describe('Phase V2-8 Security Error Display & End-to-End Walkthrough', () => {
     await user.click(screen.getByText(AR.interests.medical));
     await user.click(screen.getByRole('button', { name: AR.register.submitButton }));
 
+    // Client-side validation rejects the non-university domain before any request.
+    expect(await screen.findByText(AR.register.emailDomainNotAllowed)).toBeInTheDocument();
+    expect(attemptCount).toBe(0);
+
+    await user.clear(screen.getByLabelText(AR.register.emailLabel));
+    await user.type(screen.getByLabelText(AR.register.emailLabel), 'user@mnu.edu.eg');
+    await user.click(screen.getByRole('button', { name: AR.register.submitButton }));
+
     expect(await screen.findByRole('alert')).toHaveTextContent(AR.register.emailDomainNotAllowed);
 
     await user.click(screen.getByRole('button', { name: AR.register.submitButton }));
