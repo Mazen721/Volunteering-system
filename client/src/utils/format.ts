@@ -53,6 +53,17 @@ export function toCairoInputDateTime(dateInput: string | Date): string {
 }
 
 /**
+ * Formats a Date or ISO string as an Arabic wall-clock time in Africa/Cairo.
+ */
+export function formatTimeAr(dateInput: string | Date): string {
+  return new Date(dateInput).toLocaleTimeString('ar-EG', {
+    timeZone: 'Africa/Cairo',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+/**
  * Formats a Date or ISO string as an Arabic date and time in Africa/Cairo.
  */
 export function formatDateTimeAr(dateInput: string | Date): string {

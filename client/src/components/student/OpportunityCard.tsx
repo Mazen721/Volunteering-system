@@ -7,19 +7,31 @@ import { formatDateTimeAr, formatNumber } from '../../utils/format';
 
 interface OpportunityCardProps {
   opportunity: Opportunity;
+  suggested?: boolean;
 }
 
 /**
  * Student-facing opportunity summary card with recommendation, waitlist, and application badges.
+ * The suggested variant carries the gold «مقترحة ليك» ribbon so recommended work stands apart.
  */
-export function OpportunityCard({ opportunity }: OpportunityCardProps) {
+export function OpportunityCard({ opportunity, suggested = false }: OpportunityCardProps) {
   const matchedFields = opportunity.matchedFields ?? [];
   const isApplied = hasActiveApplication(opportunity.myApplication);
   const isFull = opportunity.isFull ?? opportunity.remainingSlots.student <= 0;
   const isWaitlistAvailable = opportunity.waitlistAvailable ?? isFull;
 
   return (
-    <article className="glass-card rounded-3xl p-5 sm:p-6 flex flex-col gap-4">
+    <article
+      className={`glass-card rounded-3xl p-5 sm:p-6 flex flex-col gap-4 ${
+        suggested ? 'border-2 border-mnu-gold/70 bg-gradient-to-b from-amber-50/80 to-white shadow-[0_10px_26px_-12px_rgba(212,175,55,0.45)]' : ''
+      }`}
+    >
+      {suggested && (
+        <span className="self-start inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-mnu-gold text-[#231a00] text-[11px] font-black">
+          <Sparkles className="w-3.5 h-3.5" />
+          {AR.studentPortal.home.suggestedRibbon}
+        </span>
+      )}
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="space-y-1">
           <Link
