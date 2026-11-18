@@ -120,21 +120,18 @@ describe('Phase V2-1 AuthContext & ProtectedRoute role guards', () => {
 
   // Pending students are covered by the Phase 1 pending-flow tests: they are no
   // longer redirected to /pending and land on their student home instead.
-  it.each(['rejected'] as const)(
-    'redirects_%s_user_to_pending_screen',
-    async (userStatus) => {
-      activeAuthUser = buildAuthUser({
-        role: 'student',
-        status: userStatus,
-        faculty: FACULTIES[0],
-      });
-      setStoredToken('non-active-token');
+  it.each(['rejected'] as const)('redirects_%s_user_to_pending_screen', async (userStatus) => {
+    activeAuthUser = buildAuthUser({
+      role: 'student',
+      status: userStatus,
+      faculty: FACULTIES[0],
+    });
+    setStoredToken('non-active-token');
 
-      renderAppRoutes('/');
+    renderAppRoutes('/');
 
-      expect(await screen.findByText('حسابك قيد المراجعة في البوابة')).toBeInTheDocument();
-    }
-  );
+    expect(await screen.findByText('حسابك قيد المراجعة في البوابة')).toBeInTheDocument();
+  });
 
   it('shows_disabled_arabic_notice_with_logout_for_disabled_account', async () => {
     activeAuthUser = buildAuthUser({
