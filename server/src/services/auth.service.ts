@@ -1,11 +1,6 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import type {
-  Faculty,
-  InterestKey,
-  UserRole,
-  UserStatus,
-} from '../constants/enums.js';
+import type { Faculty, InterestKey, UserRole, UserStatus } from '../constants/enums.js';
 import type { RegistrationSnapshot, UserLean } from '../models/User.js';
 import { User } from '../models/User.js';
 import { AppError } from '../utils/errors.js';
@@ -122,10 +117,7 @@ export async function updateOwnProfile(
       throw new AppError(401, 'جلسة الدخول غير صالحة أو منتهية');
     }
 
-    const passwordMatches = await bcrypt.compare(
-      input.currentPassword ?? '',
-      current.passwordHash
-    );
+    const passwordMatches = await bcrypt.compare(input.currentPassword ?? '', current.passwordHash);
     if (!passwordMatches) {
       throw new AppError(400, 'كلمة المرور الحالية غير صحيحة');
     }

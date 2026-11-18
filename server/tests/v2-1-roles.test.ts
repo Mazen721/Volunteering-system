@@ -176,20 +176,23 @@ describe('Phase V2-1 Users, Roles, Status Gate & Faculty Scope', () => {
       status: 'active',
       faculty: FACULTIES[0],
     });
-    const checkinToken = jwt.sign(
-      { sub: user._id.toString(), type: 'checkin' },
-      env.jwtSecret,
-      { expiresIn: '45s' }
+    const checkinToken = jwt.sign({ sub: user._id.toString(), type: 'checkin' }, env.jwtSecret, {
+      expiresIn: '45s',
+    });
+    const checkinRes = await apiJson<ErrorResponse>(
+      apiServer.baseUrl,
+      '/api/auth/me',
+      checkinToken
     );
-    const checkinRes = await apiJson<ErrorResponse>(apiServer.baseUrl, '/api/auth/me', checkinToken);
     assert.equal(checkinRes.status, 401);
   });
 
-  const nonActiveCases: Array<{ status: Exclude<UserStatus, 'active'>; expectedMessage: string }> = [
-    { status: 'pending', expectedMessage: 'حسابك قيد المراجعة' },
-    { status: 'rejected', expectedMessage: 'تم رفض طلب التسجيل' },
-    { status: 'disabled', expectedMessage: 'تم تعطيل الحساب' },
-  ];
+  const nonActiveCases: Array<{ status: Exclude<UserStatus, 'active'>; expectedMessage: string }> =
+    [
+      { status: 'pending', expectedMessage: 'حسابك قيد المراجعة' },
+      { status: 'rejected', expectedMessage: 'تم رفض طلب التسجيل' },
+      { status: 'disabled', expectedMessage: 'تم تعطيل الحساب' },
+    ];
 
   for (const testCase of nonActiveCases) {
     it(`allows_auth_me_200_and_blocks_protected_routes_403_for_${testCase.status}_user`, async () => {
@@ -235,11 +238,7 @@ describe('Phase V2-1 Users, Roles, Status Gate & Faculty Scope', () => {
 
     await User.updateOne({ _id: dean._id }, { $set: { status: 'disabled' } });
 
-    const afterDisable = await apiJson<ErrorResponse>(
-      apiServer.baseUrl,
-      '/api/volunteers',
-      token
-    );
+    const afterDisable = await apiJson<ErrorResponse>(apiServer.baseUrl, '/api/volunteers', token);
     assert.equal(afterDisable.status, 403);
     assert.equal(afterDisable.body.message, 'تم تعطيل الحساب');
   });
@@ -251,13 +250,55 @@ describe('Phase V2-1 Users, Roles, Status Gate & Faculty Scope', () => {
     method: 'GET' | 'POST';
     expectedStatus: number;
   }> = [
-    { role: 'admin', faculty: null, route: '/api/excel/import', method: 'POST', expectedStatus: 400 },
-    { role: 'dean', faculty: FACULTIES[0], route: '/api/excel/import', method: 'POST', expectedStatus: 403 },
-    { role: 'student', faculty: FACULTIES[0], route: '/api/excel/import', method: 'POST', expectedStatus: 403 },
-    { role: 'dean', faculty: FACULTIES[0], route: '/api/volunteers', method: 'GET', expectedStatus: 200 },
-    { role: 'student', faculty: FACULTIES[0], route: '/api/volunteers', method: 'GET', expectedStatus: 403 },
-    { role: 'student', faculty: FACULTIES[0], route: '/api/activities', method: 'GET', expectedStatus: 403 },
-    { role: 'student', faculty: FACULTIES[0], route: '/api/stats/overview', method: 'GET', expectedStatus: 403 },
+    {
+      role: 'admin',
+      faculty: null,
+      route: '/api/excel/import',
+      method: 'POST',
+      expectedStatus: 400,
+    },
+    {
+      role: 'dean',
+      faculty: FACULTIES[0],
+      route: '/api/excel/import',
+      method: 'POST',
+      expectedStatus: 403,
+    },
+    {
+      role: 'student',
+      faculty: FACULTIES[0],
+      route: '/api/excel/import',
+      method: 'POST',
+      expectedStatus: 403,
+    },
+    {
+      role: 'dean',
+      faculty: FACULTIES[0],
+      route: '/api/volunteers',
+      method: 'GET',
+      expectedStatus: 200,
+    },
+    {
+      role: 'student',
+      faculty: FACULTIES[0],
+      route: '/api/volunteers',
+      method: 'GET',
+      expectedStatus: 403,
+    },
+    {
+      role: 'student',
+      faculty: FACULTIES[0],
+      route: '/api/activities',
+      method: 'GET',
+      expectedStatus: 403,
+    },
+    {
+      role: 'student',
+      faculty: FACULTIES[0],
+      route: '/api/stats/overview',
+      method: 'GET',
+      expectedStatus: 403,
+    },
   ];
 
   for (const scenario of roleRouteMatrix) {

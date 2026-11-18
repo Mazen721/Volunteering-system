@@ -42,6 +42,9 @@ export function extractApiErrorMessage(error: unknown): string {
     if (!error.response) {
       return AR.errors.networkUnavailable;
     }
+    if (error.response.status === 429) {
+      return AR.errors.rateLimited;
+    }
   }
   return AR.errors.unexpected;
 }

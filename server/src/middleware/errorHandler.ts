@@ -31,8 +31,7 @@ function mapMongooseError(err: unknown): AppError | null {
     return new AppError(409, duplicateMessage);
   }
   if (candidate.name === 'ValidationError') {
-    const firstMessage =
-      Object.values(candidate.errors || {})[0]?.message || 'بيانات غير صالحة';
+    const firstMessage = Object.values(candidate.errors || {})[0]?.message || 'بيانات غير صالحة';
     return new AppError(400, firstMessage);
   }
   if (candidate.name === 'CastError') {
@@ -75,7 +74,12 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
     return;
   }
 
-  if (typeof err === 'object' && err !== null && 'type' in err && err.type === 'entity.parse.failed') {
+  if (
+    typeof err === 'object' &&
+    err !== null &&
+    'type' in err &&
+    err.type === 'entity.parse.failed'
+  ) {
     res.status(400).json({ message: 'تنسيق البيانات المرسلة غير صالح' });
     return;
   }

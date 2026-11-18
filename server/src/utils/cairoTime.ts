@@ -98,8 +98,7 @@ export function cairoLocalToUtc(parts: CairoDateTimeParts): Date {
   return new Date(utcMillis);
 }
 
-const CAIRO_LOCAL_PATTERN =
-  /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2}))?)?$/;
+const CAIRO_LOCAL_PATTERN = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2}))?)?$/;
 
 /**
  * Parses a date value, treating timezone-less strings as Africa/Cairo wall-clock time.
@@ -152,7 +151,9 @@ export function evaluateOpportunityPhase(
 /**
  * Returns the check-in window bounds for an opportunity (30 minutes before start until the end).
  */
-export function getCheckInWindow(opportunity: Pick<OpportunitySchedule, 'startAt' | 'endAt'>): CheckInWindow {
+export function getCheckInWindow(
+  opportunity: Pick<OpportunitySchedule, 'startAt' | 'endAt'>
+): CheckInWindow {
   return {
     opensAt: new Date(
       opportunity.startAt.getTime() - CHECK_IN_WINDOW_MINUTES_BEFORE_START * 60_000

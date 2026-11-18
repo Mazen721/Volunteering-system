@@ -257,10 +257,7 @@ describe('Phase V2-4 Opportunities, Capacity & Waitlist Engine', () => {
       evaluateOpportunityPhase(schedule, new Date('2026-11-20T10:00:00.000Z')),
       'in_progress'
     );
-    assert.equal(
-      evaluateOpportunityPhase(schedule, new Date('2026-11-20T10:00:01.000Z')),
-      'ended'
-    );
+    assert.equal(evaluateOpportunityPhase(schedule, new Date('2026-11-20T10:00:01.000Z')), 'ended');
 
     assert.equal(isCheckInWindowOpen(schedule, new Date('2026-11-20T07:29:59.000Z')), false);
     assert.equal(isCheckInWindowOpen(schedule, new Date('2026-11-20T07:30:00.000Z')), true);
@@ -269,7 +266,11 @@ describe('Phase V2-4 Opportunities, Capacity & Waitlist Engine', () => {
 
   it('creates_publishes_and_forces_dean_faculty_ignoring_spoofed_payload', async () => {
     const admin = await createAccount({ email: 'admin@mnu.edu.eg', role: 'admin', faculty: null });
-    const deanA = await createAccount({ email: 'dean.a@mnu.edu.eg', role: 'dean', faculty: FACULTY_A });
+    const deanA = await createAccount({
+      email: 'dean.a@mnu.edu.eg',
+      role: 'dean',
+      faculty: FACULTY_A,
+    });
     const student = await createStudent({
       email: 'student.a@mnu.edu.eg',
       volunteerId: 'A-100',
@@ -394,8 +395,12 @@ describe('Phase V2-4 Opportunities, Capacity & Waitlist Engine', () => {
     assert.equal(withdrawal.status, 200);
     assert.equal(withdrawal.body.application.status, 'cancelled');
 
-    const secondAfterWithdrawal = await Application.findById(secondApply.body.application._id).lean<ApplicationLean>();
-    const thirdAfterWithdrawal = await Application.findById(thirdApply.body.application._id).lean<ApplicationLean>();
+    const secondAfterWithdrawal = await Application.findById(
+      secondApply.body.application._id
+    ).lean<ApplicationLean>();
+    const thirdAfterWithdrawal = await Application.findById(
+      thirdApply.body.application._id
+    ).lean<ApplicationLean>();
     assert.equal(secondAfterWithdrawal?.status, 'accepted');
     assert.equal(thirdAfterWithdrawal?.status, 'waitlisted');
 
@@ -413,7 +418,9 @@ describe('Phase V2-4 Opportunities, Capacity & Waitlist Engine', () => {
 
     const afterRejection = await Opportunity.findById(opportunity._id).lean<OpportunityLean>();
     assert.equal(afterRejection?.acceptedCounts.student, 0);
-    const thirdStillWaitlisted = await Application.findById(thirdApply.body.application._id).lean<ApplicationLean>();
+    const thirdStillWaitlisted = await Application.findById(
+      thirdApply.body.application._id
+    ).lean<ApplicationLean>();
     assert.equal(thirdStillWaitlisted?.status, 'waitlisted');
   });
 
@@ -427,7 +434,11 @@ describe('Phase V2-4 Opportunities, Capacity & Waitlist Engine', () => {
 
     const [first, second] = await Promise.all([
       createStudent({ email: 'first.manual@mnu.edu.eg', volunteerId: 'A-401', faculty: FACULTY_A }),
-      createStudent({ email: 'second.manual@mnu.edu.eg', volunteerId: 'A-402', faculty: FACULTY_A }),
+      createStudent({
+        email: 'second.manual@mnu.edu.eg',
+        volunteerId: 'A-402',
+        faculty: FACULTY_A,
+      }),
     ]);
 
     const firstApply = await applyFor(first.token, opportunity._id.toString(), apiServer.baseUrl);
@@ -435,7 +446,9 @@ describe('Phase V2-4 Opportunities, Capacity & Waitlist Engine', () => {
     assert.equal(firstApply.body.application.status, 'pending');
     assert.equal(secondApply.body.application.status, 'pending');
 
-    const opportunityBeforeDecision = await Opportunity.findById(opportunity._id).lean<OpportunityLean>();
+    const opportunityBeforeDecision = await Opportunity.findById(
+      opportunity._id
+    ).lean<OpportunityLean>();
     assert.equal(opportunityBeforeDecision?.acceptedCounts.student, 0);
 
     const acceptFirst = await apiJson<ApplicationResponse>(
@@ -488,7 +501,11 @@ describe('Phase V2-4 Opportunities, Capacity & Waitlist Engine', () => {
       volunteerId: 'A-501',
       faculty: FACULTY_A,
     });
-    const applyResult = await applyFor(student.token, opportunity._id.toString(), apiServer.baseUrl);
+    const applyResult = await applyFor(
+      student.token,
+      opportunity._id.toString(),
+      apiServer.baseUrl
+    );
     assert.equal(applyResult.body.application.status, 'accepted');
 
     const lockedPatches: Array<Record<string, unknown>> = [
@@ -560,9 +577,21 @@ describe('Phase V2-4 Opportunities, Capacity & Waitlist Engine', () => {
     });
 
     const [first, second, third] = await Promise.all([
-      createStudent({ email: 'reapply.first@mnu.edu.eg', volunteerId: 'A-601', faculty: FACULTY_A }),
-      createStudent({ email: 'reapply.second@mnu.edu.eg', volunteerId: 'A-602', faculty: FACULTY_A }),
-      createStudent({ email: 'reapply.third@mnu.edu.eg', volunteerId: 'A-603', faculty: FACULTY_A }),
+      createStudent({
+        email: 'reapply.first@mnu.edu.eg',
+        volunteerId: 'A-601',
+        faculty: FACULTY_A,
+      }),
+      createStudent({
+        email: 'reapply.second@mnu.edu.eg',
+        volunteerId: 'A-602',
+        faculty: FACULTY_A,
+      }),
+      createStudent({
+        email: 'reapply.third@mnu.edu.eg',
+        volunteerId: 'A-603',
+        faculty: FACULTY_A,
+      }),
     ]);
 
     const firstApply = await applyFor(first.token, opportunity._id.toString(), apiServer.baseUrl);
@@ -594,15 +623,25 @@ describe('Phase V2-4 Opportunities, Capacity & Waitlist Engine', () => {
     );
     assert.equal(withdrawPromoted.status, 200);
 
-    const firstAfterPromotion = await Application.findById(reapply.body.application._id).lean<ApplicationLean>();
+    const firstAfterPromotion = await Application.findById(
+      reapply.body.application._id
+    ).lean<ApplicationLean>();
     assert.equal(firstAfterPromotion?.status, 'waitlisted');
   });
 
   it('blocks_rejected_reapplications_zero_slot_categories_deadline_and_faculty_mismatch', async () => {
     const admin = await createAccount({ email: 'admin@mnu.edu.eg', role: 'admin', faculty: null });
     const [studentA, studentB] = await Promise.all([
-      createStudent({ email: 'eligibility.a@mnu.edu.eg', volunteerId: 'A-701', faculty: FACULTY_A }),
-      createStudent({ email: 'eligibility.b@mnu.edu.eg', volunteerId: 'B-701', faculty: FACULTY_B }),
+      createStudent({
+        email: 'eligibility.a@mnu.edu.eg',
+        volunteerId: 'A-701',
+        faculty: FACULTY_A,
+      }),
+      createStudent({
+        email: 'eligibility.b@mnu.edu.eg',
+        volunteerId: 'B-701',
+        faculty: FACULTY_B,
+      }),
     ]);
 
     const manualOpportunity = await seedOpportunity({
@@ -680,8 +719,16 @@ describe('Phase V2-4 Opportunities, Capacity & Waitlist Engine', () => {
 
   it('provides_read_only_dean_applicant_view_on_admin_opportunities', async () => {
     const admin = await createAccount({ email: 'admin@mnu.edu.eg', role: 'admin', faculty: null });
-    const deanA = await createAccount({ email: 'dean.a@mnu.edu.eg', role: 'dean', faculty: FACULTY_A });
-    const deanB = await createAccount({ email: 'dean.b@mnu.edu.eg', role: 'dean', faculty: FACULTY_B });
+    const deanA = await createAccount({
+      email: 'dean.a@mnu.edu.eg',
+      role: 'dean',
+      faculty: FACULTY_A,
+    });
+    const deanB = await createAccount({
+      email: 'dean.b@mnu.edu.eg',
+      role: 'dean',
+      faculty: FACULTY_B,
+    });
 
     const [studentA, studentB] = await Promise.all([
       createStudent({ email: 'applicant.a@mnu.edu.eg', volunteerId: 'A-801', faculty: FACULTY_A }),
@@ -694,8 +741,16 @@ describe('Phase V2-4 Opportunities, Capacity & Waitlist Engine', () => {
       slots: { student: 2, academic: 0, admin: 0 },
       approvalMode: 'manual',
     });
-    const applyA = await applyFor(studentA.token, adminOpportunity._id.toString(), apiServer.baseUrl);
-    const applyB = await applyFor(studentB.token, adminOpportunity._id.toString(), apiServer.baseUrl);
+    const applyA = await applyFor(
+      studentA.token,
+      adminOpportunity._id.toString(),
+      apiServer.baseUrl
+    );
+    const applyB = await applyFor(
+      studentB.token,
+      adminOpportunity._id.toString(),
+      apiServer.baseUrl
+    );
     assert.equal(applyA.status, 201);
     assert.equal(applyB.status, 201);
 
@@ -758,8 +813,16 @@ describe('Phase V2-4 Opportunities, Capacity & Waitlist Engine', () => {
     });
 
     const [first, second] = await Promise.all([
-      createStudent({ email: 'race.withdraw.a@mnu.edu.eg', volunteerId: 'A-950', faculty: FACULTY_A }),
-      createStudent({ email: 'race.withdraw.b@mnu.edu.eg', volunteerId: 'A-951', faculty: FACULTY_A }),
+      createStudent({
+        email: 'race.withdraw.a@mnu.edu.eg',
+        volunteerId: 'A-950',
+        faculty: FACULTY_A,
+      }),
+      createStudent({
+        email: 'race.withdraw.b@mnu.edu.eg',
+        volunteerId: 'A-951',
+        faculty: FACULTY_A,
+      }),
     ]);
 
     const firstApply = await applyFor(first.token, opportunity._id.toString(), apiServer.baseUrl);
@@ -782,10 +845,7 @@ describe('Phase V2-4 Opportunities, Capacity & Waitlist Engine', () => {
       ),
     ]);
 
-    assert.deepEqual(
-      withdrawals.map((result) => result.status).sort(),
-      [200, 409]
-    );
+    assert.deepEqual(withdrawals.map((result) => result.status).sort(), [200, 409]);
 
     const [firstAfter, secondAfter, opportunityAfter] = await Promise.all([
       Application.findById(firstApply.body.application._id).lean<ApplicationLean>(),
@@ -810,7 +870,11 @@ describe('Phase V2-4 Opportunities, Capacity & Waitlist Engine', () => {
       approvalMode: 'auto',
     });
 
-    const applyResult = await applyFor(student.token, opportunity._id.toString(), apiServer.baseUrl);
+    const applyResult = await applyFor(
+      student.token,
+      opportunity._id.toString(),
+      apiServer.baseUrl
+    );
     assert.equal(applyResult.body.application.status, 'accepted');
 
     const cancelResult = await apiJson<OpportunityResponse>(
@@ -827,7 +891,9 @@ describe('Phase V2-4 Opportunities, Capacity & Waitlist Engine', () => {
       admin: 0,
     });
 
-    const application = await Application.findById(applyResult.body.application._id).lean<ApplicationLean>();
+    const application = await Application.findById(
+      applyResult.body.application._id
+    ).lean<ApplicationLean>();
     assert.equal(application?.status, 'cancelled');
 
     const publishCancelled = await apiJson<ErrorResponse>(

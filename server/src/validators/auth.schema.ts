@@ -17,9 +17,7 @@ export const registerSchema = z.object({
     .min(1, 'البريد الإلكتروني مطلوب')
     .email('البريد الإلكتروني غير صالح')
     .transform((email) => email.toLowerCase()),
-  password: z
-    .string({ error: 'كلمة المرور مطلوبة' })
-    .min(8, 'كلمة المرور يجب أن لا تقل عن 8 أحرف'),
+  password: z.string({ error: 'كلمة المرور مطلوبة' }).min(8, 'كلمة المرور يجب أن لا تقل عن 8 أحرف'),
   fullName: z
     .string({ error: 'الاسم الكامل مطلوب' })
     .trim()

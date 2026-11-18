@@ -44,10 +44,7 @@ export function createVolunteersRouter(): express.Router {
     createDeanFacultyBodyEnforcer(),
     validateBody(volunteerSchema),
     async (req, res) => {
-      const volunteer = await createVolunteer(
-        req.body as VolunteerInput,
-        buildScope(req.user!)
-      );
+      const volunteer = await createVolunteer(req.body as VolunteerInput, buildScope(req.user!));
       res.status(201).json({ volunteer });
     }
   );

@@ -13,9 +13,7 @@ export const createDeanSchema = z.object({
     .trim()
     .min(2, 'الاسم الكامل يجب أن لا يقل عن حرفين'),
   faculty: z.enum(FACULTIES, { error: 'الكلية المختارة غير صالحة' }),
-  password: z
-    .string({ error: 'كلمة المرور مطلوبة' })
-    .min(8, 'كلمة المرور يجب أن لا تقل عن 8 أحرف'),
+  password: z.string({ error: 'كلمة المرور مطلوبة' }).min(8, 'كلمة المرور يجب أن لا تقل عن 8 أحرف'),
 });
 
 export const updateUserSchema = z

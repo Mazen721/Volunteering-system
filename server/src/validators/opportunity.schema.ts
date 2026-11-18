@@ -14,9 +14,7 @@ import { parseCairoDateTime } from '../utils/cairoTime.js';
 function cairoDateSchema(message: string) {
   return z.preprocess(
     (value) => (typeof value === 'string' ? parseCairoDateTime(value) : value),
-    z
-      .date({ error: message })
-      .refine((date) => !Number.isNaN(date.getTime()), { message })
+    z.date({ error: message }).refine((date) => !Number.isNaN(date.getTime()), { message })
   );
 }
 
@@ -99,10 +97,7 @@ const opportunityFieldsSchema = z.object({
     .string({ error: 'اسم مسؤول التواصل مطلوب' })
     .trim()
     .min(2, 'اسم مسؤول التواصل يجب أن لا يقل عن حرفين'),
-  contactPhone: z
-    .string({ error: 'رقم التواصل مطلوب' })
-    .trim()
-    .min(5, 'رقم التواصل غير صالح'),
+  contactPhone: z.string({ error: 'رقم التواصل مطلوب' }).trim().min(5, 'رقم التواصل غير صالح'),
   contactEmail: z
     .string({ error: 'البريد الإلكتروني للتواصل مطلوب' })
     .trim()
@@ -143,10 +138,7 @@ function validateSchedule(payload: OpportunitySchedulePayload, context: z.Refine
 export const opportunitySchema = opportunityFieldsSchema
   .extend({
     requirements: z.string().trim().default(''),
-    faculty: z
-      .enum(FACULTIES, { error: 'الكلية المستهدفة غير صالحة' })
-      .nullable()
-      .default(null),
+    faculty: z.enum(FACULTIES, { error: 'الكلية المستهدفة غير صالحة' }).nullable().default(null),
     slots: slotCountsCreateSchema,
   })
   .superRefine((payload, context) => {
@@ -174,7 +166,11 @@ export const opportunityUpdateSchema = opportunityFieldsSchema
         message: 'وقت الانتهاء يجب أن يكون بعد وقت البدء',
       });
     }
-    if (payload.startAt && payload.registrationDeadline && payload.registrationDeadline > payload.startAt) {
+    if (
+      payload.startAt &&
+      payload.registrationDeadline &&
+      payload.registrationDeadline > payload.startAt
+    ) {
       context.addIssue({
         code: 'custom',
         path: ['registrationDeadline'],

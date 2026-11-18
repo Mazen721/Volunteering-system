@@ -16,15 +16,14 @@ import type { OpportunityLean } from '../models/Opportunity.js';
 import { User } from '../models/User.js';
 import type { VolunteerFilter, VolunteerLean } from '../models/Volunteer.js';
 import { Volunteer } from '../models/Volunteer.js';
-import {
-  CAIRO_TIME_ZONE,
-  cairoLocalToUtc,
-  getCairoDateTimeParts,
-} from '../utils/cairoTime.js';
+import { CAIRO_TIME_ZONE, cairoLocalToUtc, getCairoDateTimeParts } from '../utils/cairoTime.js';
 import { AppError } from '../utils/errors.js';
 import { getCertificateHours } from '../utils/volunteerLookup.js';
 import { scopeActivities } from './activity.service.js';
-import type { ApplicationWithOpportunityLean, StudentApplicationDTO } from './application.service.js';
+import type {
+  ApplicationWithOpportunityLean,
+  StudentApplicationDTO,
+} from './application.service.js';
 import { ACTIVE_APPLICATION_STATUSES, resolveStudentVolunteer } from './application.service.js';
 import type { OpportunityDTO } from './opportunity.service.js';
 import { decorateOpportunity } from './opportunity.service.js';
@@ -674,21 +673,14 @@ export async function getStudentDashboardSummary(
         .lean<ActivityLean[]>(),
     ]);
 
-  const approvedHours =
-    activityTotals.find((row) => row._id === 'approved')?.hours ?? 0;
-  const pendingHours =
-    activityTotals.find((row) => row._id === 'pending')?.hours ?? 0;
-  const { remainingHours, eligible } = computeEligibility(
-    approvedHours,
-    certificateHours
-  );
+  const approvedHours = activityTotals.find((row) => row._id === 'approved')?.hours ?? 0;
+  const pendingHours = activityTotals.find((row) => row._id === 'pending')?.hours ?? 0;
+  const { remainingHours, eligible } = computeEligibility(approvedHours, certificateHours);
 
-  const decoratedApplications: StudentApplicationDTO[] = applications.map(
-    (application) => ({
-      ...application,
-      opportunity: decorateOpportunity(application.opportunity),
-    })
-  );
+  const decoratedApplications: StudentApplicationDTO[] = applications.map((application) => ({
+    ...application,
+    opportunity: decorateOpportunity(application.opportunity),
+  }));
   const acceptedApplications = decoratedApplications.filter(
     (application) => application.status === 'accepted'
   );
@@ -944,9 +936,7 @@ export async function getEventStats(scope: ScopeFilter = {}): Promise<EventStats
     },
   ]);
 
-  const countsByOpportunity = new Map(
-    applicationRows.map((row) => [row._id.toString(), row])
-  );
+  const countsByOpportunity = new Map(applicationRows.map((row) => [row._id.toString(), row]));
   const rows = opportunities.map((opportunity) =>
     buildEventEfficiencyRow(opportunity, countsByOpportunity.get(opportunity._id.toString()))
   );
@@ -971,8 +961,7 @@ export async function getEventStats(scope: ScopeFilter = {}): Promise<EventStats
   const avgNoShowRate =
     completedEvents.length > 0
       ? roundMetric(
-          completedEvents.reduce((sum, row) => sum + row.noShowRate, 0) /
-            completedEvents.length,
+          completedEvents.reduce((sum, row) => sum + row.noShowRate, 0) / completedEvents.length,
           1
         )
       : 0;
@@ -1018,9 +1007,7 @@ function formatCairoMonthLabel(yearMonth: string): string {
 /**
  * Returns monthly approved volunteer hours grouped in Africa/Cairo time.
  */
-export async function getMonthlyHoursStats(
-  scope: ScopeFilter = {}
-): Promise<MonthlyHoursResponse> {
+export async function getMonthlyHoursStats(scope: ScopeFilter = {}): Promise<MonthlyHoursResponse> {
   const activityScopeFilter = await scopeActivities(scope);
   const rows = await Activity.aggregate<{
     _id: string;

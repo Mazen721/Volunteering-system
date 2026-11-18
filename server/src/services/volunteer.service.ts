@@ -246,7 +246,10 @@ export async function deleteVolunteer(
 
   const hasLinkedUser = await User.exists({ volunteer: volunteer._id });
   if (hasLinkedUser) {
-    throw new AppError(409, 'لا يمكن حذف متطوع مرتبط بحساب مستخدم، يرجى مراجعة الحساب المرتبط أولاً');
+    throw new AppError(
+      409,
+      'لا يمكن حذف متطوع مرتبط بحساب مستخدم، يرجى مراجعة الحساب المرتبط أولاً'
+    );
   }
 
   await Volunteer.deleteOne({ _id: volunteer._id });

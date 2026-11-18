@@ -20,7 +20,10 @@ import type {
   OverviewStats,
 } from '../src/services/stats.service.js';
 import { computeEligibility, roundMetric } from '../src/services/stats.service.js';
-import type { VolunteerListResult, VolunteerProfileResult } from '../src/services/volunteer.service.js';
+import type {
+  VolunteerListResult,
+  VolunteerProfileResult,
+} from '../src/services/volunteer.service.js';
 import type {
   ImportCommitResult,
   ImportPreviewResult,
@@ -97,11 +100,7 @@ describe('Phase 2 API features integration', () => {
   });
 
   it('returns_accurate_seeded_overview_faculties_categories_and_leaderboard', async () => {
-    const overview = await apiJson<OverviewStats>(
-      apiServer.baseUrl,
-      '/api/stats/overview',
-      token
-    );
+    const overview = await apiJson<OverviewStats>(apiServer.baseUrl, '/api/stats/overview', token);
     assert.equal(overview.status, 200);
     assert.equal(overview.body.totalApprovedHours, 129);
     assert.equal(overview.body.registeredVolunteers, 8);
@@ -311,7 +310,10 @@ describe('Phase 2 API features integration', () => {
     assert.equal(previewRes.status, 200);
     assert.equal(previewBody.committed, false);
     assert.equal(previewBody.preview.conflicts.length, 8);
-    assert.equal(new Set(previewBody.preview.conflicts.map((conflict) => conflict.volunteerId)).size, 6);
+    assert.equal(
+      new Set(previewBody.preview.conflicts.map((conflict) => conflict.volunteerId)).size,
+      6
+    );
     assert.equal(
       previewBody.preview.duplicates.some(
         (duplicate) => duplicate.type === 'possible' && duplicate.volunteerId === '20260003'

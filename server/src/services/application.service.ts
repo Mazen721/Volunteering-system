@@ -6,7 +6,10 @@ import { Opportunity } from '../models/Opportunity.js';
 import type { OpportunityLean } from '../models/Opportunity.js';
 import { Volunteer } from '../models/Volunteer.js';
 import type { VolunteerLean } from '../models/Volunteer.js';
-import type { ApplicationApplyInput, ApplicationDecisionStatus } from '../validators/application.schema.js';
+import type {
+  ApplicationApplyInput,
+  ApplicationDecisionStatus,
+} from '../validators/application.schema.js';
 import { AppError, isDuplicateKeyError } from '../utils/errors.js';
 import type { PublicUser } from './auth.service.js';
 import type { OpportunityDTO } from './opportunity.service.js';
@@ -250,10 +253,7 @@ export async function withdrawApplication(
   const wasAccepted = application.status === 'accepted';
   if (wasAccepted) {
     await releaseSlot(opportunity._id, application.category);
-    if (
-      opportunity.approvalMode === 'auto' &&
-      now.getTime() < opportunity.startAt.getTime()
-    ) {
+    if (opportunity.approvalMode === 'auto' && now.getTime() < opportunity.startAt.getTime()) {
       await promoteNextWaitlisted(opportunity._id, application.category);
     }
   }
@@ -330,9 +330,7 @@ export async function updateApplicationStatus(
 /**
  * Lists every application submitted by the authenticated student with its decorated opportunity.
  */
-export async function listStudentApplications(
-  user: PublicUser
-): Promise<StudentApplicationDTO[]> {
+export async function listStudentApplications(user: PublicUser): Promise<StudentApplicationDTO[]> {
   const applications = await Application.find({
     user: new mongoose.Types.ObjectId(user.id),
   })

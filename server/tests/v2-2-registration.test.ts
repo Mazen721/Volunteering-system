@@ -99,7 +99,9 @@ describe('Phase V2-2 Student Self-Registration, Linking & Approval Queue', () =>
     const firstRes = await fetch(`${apiServer.baseUrl}/api/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(buildRegistrationPayload({ email: 's1@mnu.edu.eg', volunteerId: 'V-1' })),
+      body: JSON.stringify(
+        buildRegistrationPayload({ email: 's1@mnu.edu.eg', volunteerId: 'V-1' })
+      ),
     });
     const firstBody = await readJson<RegisterResponse>(firstRes);
     assert.equal(firstRes.status, 201);
@@ -111,7 +113,11 @@ describe('Phase V2-2 Student Self-Registration, Linking & Approval Queue', () =>
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(
-        buildRegistrationPayload({ email: 's2@mnu.edu.eg', volunteerId: 'V-2', category: 'academic' })
+        buildRegistrationPayload({
+          email: 's2@mnu.edu.eg',
+          volunteerId: 'V-2',
+          category: 'academic',
+        })
       ),
     });
     assert.equal(secondRes.status, 201);

@@ -93,14 +93,26 @@ async function assertNoDuplicateRegistrationClaim(
   }
 }
 
+function assertAllowedEmailDomain(email: string, allowedEmailDomains: readonly string[]): void {
+  if (allowedEmailDomains.length === 0) {
+    return;
+  }
+  const domain = email.split('@')[1]?.toLowerCase() ?? '';
+  if (!allowedEmailDomains.includes(domain)) {
+    throw new AppError(400, 'يجب التسجيل باستخدام البريد الإلكتروني التابع للنطاق الجامعي المعتمد');
+  }
+}
+
 /**
  * Registers a pending student/staff volunteer account and detects faculty mismatch with existing records.
  */
 export async function registerStudent(
   input: RegisterInput,
-  jwtSecret: string
+  jwtSecret: string,
+  allowedEmailDomains: readonly string[] = []
 ): Promise<{ token: string; user: PublicUser }> {
   const email = input.email.toLowerCase().trim();
+  assertAllowedEmailDomain(email, allowedEmailDomains);
   const volunteerId = input.volunteerId.trim();
   const existingVolunteer = await Volunteer.findOne({ volunteerId }).lean<VolunteerLean>();
 
@@ -117,7 +129,12 @@ export async function registerStudent(
     faculty: input.faculty,
     status: 'pending',
     volunteer: null,
-    registration: { volunteerId, category: input.category, faculty: input.faculty, facultyMismatch },
+    registration: {
+      volunteerId,
+      category: input.category,
+      faculty: input.faculty,
+      facultyMismatch,
+    },
     interests: input.interests,
   });
 
@@ -212,7 +229,7 @@ function toRegistrationQueueItem(
   const existingVolunteer = previews.get(user.registration.volunteerId) ?? null;
   const facultyMismatch = Boolean(
     user.registration.facultyMismatch ||
-      (existingVolunteer && existingVolunteer.faculty !== user.registration.faculty)
+    (existingVolunteer && existingVolunteer.faculty !== user.registration.faculty)
   );
 
   return {
@@ -289,7 +306,7 @@ function assertApprovalAuthorized(
 ): void {
   const hasMismatch = Boolean(
     registration.facultyMismatch ||
-      (existingVolunteer && existingVolunteer.faculty !== registration.faculty)
+    (existingVolunteer && existingVolunteer.faculty !== registration.faculty)
   );
   if (hasMismatch && reviewer.role === 'dean') {
     throw new AppError(

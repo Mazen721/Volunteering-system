@@ -1,9 +1,5 @@
 import mongoose from 'mongoose';
-import type {
-  ApplicationStatus,
-  Faculty,
-  VolunteerCategory,
-} from '../constants/enums.js';
+import type { ApplicationStatus, Faculty, VolunteerCategory } from '../constants/enums.js';
 import { APPLICATION_STATUSES, CATEGORIES, FACULTIES } from '../constants/enums.js';
 import type { VolunteerLean } from './Volunteer.js';
 

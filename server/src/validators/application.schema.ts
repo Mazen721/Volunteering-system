@@ -22,17 +22,11 @@ export const applicationListQuerySchema = z.object({
 });
 
 export const checkInSubmitSchema = z.object({
-  token: z
-    .string({ error: 'رمز الحضور مطلوب' })
-    .trim()
-    .min(1, 'رمز الحضور مطلوب'),
+  token: z.string({ error: 'رمز الحضور مطلوب' }).trim().min(1, 'رمز الحضور مطلوب'),
 });
 
 export const manualCheckInSchema = z.object({
-  applicationId: z
-    .string({ error: 'معرف الطلب مطلوب' })
-    .trim()
-    .min(1, 'معرف الطلب مطلوب'),
+  applicationId: z.string({ error: 'معرف الطلب مطلوب' }).trim().min(1, 'معرف الطلب مطلوب'),
   attended: z.boolean({ error: 'حالة الحضور مطلوبة' }),
 });
 

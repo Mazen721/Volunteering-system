@@ -1,5 +1,10 @@
 import ExcelJS from 'exceljs';
-import type { ActivityStatus, ActivityType, Faculty, VolunteerCategory } from '../constants/enums.js';
+import type {
+  ActivityStatus,
+  ActivityType,
+  Faculty,
+  VolunteerCategory,
+} from '../constants/enums.js';
 import { ACTIVITY_TYPES, CATEGORY_FROM_AR, FACULTIES, STATUS_FROM_AR } from '../constants/enums.js';
 import { AppError } from '../utils/errors.js';
 import { parseExcelDate } from '../utils/excelDate.js';
@@ -168,7 +173,9 @@ export function parseActivityRow(
   }
 
   const hours = parsePositiveHours(row.getCell(cols.get('عدد الساعات')!).value, title);
-  const date = parseExcelDate(row.getCell(cols.get('تاريخ النشاط')!).value as Date | number | string);
+  const date = parseExcelDate(
+    row.getCell(cols.get('تاريخ النشاط')!).value as Date | number | string
+  );
   const supervisor = readCellText(row.getCell(cols.get('مشرف النشاط')!).value);
 
   return { volunteerId, title, type: type as ActivityType, hours, date, status, supervisor };

@@ -246,19 +246,19 @@ description: "Actionable, file-level task breakdown for MNU Volunteer Hours & Ce
 
 ### Backend & Seed (`server/`)
 
-- [ ] T084 [P] [US6] Install `helmet` and `express-rate-limit` in `server/package.json`, add `ALLOWED_EMAIL_DOMAINS` parsing in `server/src/config/env.ts`, and create configurable rate-limiting middleware (with Arabic `429` error responses) in `server/src/middleware/rateLimiter.ts`
-- [ ] T085 [US6] Wire `helmet()` and rate limiters on `POST /api/auth/login`, `POST /api/auth/register`, and `POST /api/opportunities/:id/checkin` in `server/src/app.ts`, `server/src/routes/auth.routes.ts`, and `server/src/routes/opportunities.routes.ts`, and enforce `ALLOWED_EMAIL_DOMAINS` in `server/src/services/registration.service.ts`
-- [ ] T086 [US6] Expand `server/src/seed/seed.ts` to idempotently seed the Admin account, Dean accounts per faculty, approved and pending Student accounts (including linked Excel volunteers), and Opportunities in `upcoming`, `in_progress` (live check-in open), and `completed` (with credited approved hours) states
+- [X] T084 [P] [US6] Install `helmet` and `express-rate-limit` in `server/package.json`, add `ALLOWED_EMAIL_DOMAINS` parsing in `server/src/config/env.ts`, and create configurable rate-limiting middleware (with Arabic `429` error responses) in `server/src/middleware/rateLimiter.ts`
+- [X] T085 [US6] Wire `helmet()` and rate limiters on `POST /api/auth/login`, `POST /api/auth/register`, and `POST /api/opportunities/:id/checkin` in `server/src/app.ts`, `server/src/routes/auth.routes.ts`, and `server/src/routes/opportunities.routes.ts`, and enforce `ALLOWED_EMAIL_DOMAINS` in `server/src/services/registration.service.ts`
+- [X] T086 [US6] Expand `server/src/seed/seed.ts` to idempotently seed the Admin account, Dean accounts per faculty, approved and pending Student accounts (including linked Excel volunteers), and Opportunities in `upcoming`, `in_progress` (live check-in open), and `completed` (with credited approved hours) states
 
 ### Frontend & Documentation (`client/` & `docs/`)
 
-- [ ] T087 [P] [US6] Add Arabic `429` rate-limit and email-domain validation messages in `client/src/constants/ar.ts` and document demo credentials and walkthrough steps in `server/.env.example` and `specs/001-volunteer-hours-v2/quickstart.md`
+- [X] T087 [P] [US6] Add Arabic `429` rate-limit and email-domain validation messages in `client/src/constants/ar.ts` and document demo credentials and walkthrough steps in `server/.env.example` and `specs/001-volunteer-hours-v2/quickstart.md`
 
 ### Phase V2-8 Automated Tests & Final Verification Gate
 
-- [ ] T088 [P] [US6] Write backend security hardening (`helmet` headers, rate-limit `429` throttling on login/register/checkin, `ALLOWED_EMAIL_DOMAINS` enforcement) and full demo seed walkthrough tests (Admin → Dean → Student → Live QR Check-in → Event Completion → Certificate eligibility & Dean/Admin certificate access) in `server/tests/v2-8-security.test.ts`
-- [ ] T089 [P] [US6] Write frontend end-to-end role walkthrough and rate-limit error display tests in `client/src/__tests__/v2-8-walkthrough.test.tsx`
-- [ ] T090 [US6] **Phase V2-8 Final Gate**: Run and pass `npm run lint`, `npm --prefix server run typecheck`, `npm --prefix client run typecheck`, `npm --prefix server test`, and `npm --prefix client test`
+- [X] T088 [P] [US6] Write backend security hardening (`helmet` headers, rate-limit `429` throttling on login/register/checkin, `ALLOWED_EMAIL_DOMAINS` enforcement) and full demo seed walkthrough tests (Admin → Dean → Student → Live QR Check-in → Event Completion → Certificate eligibility & Dean/Admin certificate access) in `server/tests/v2-8-security.test.ts`
+- [X] T089 [P] [US6] Write frontend end-to-end role walkthrough and rate-limit error display tests in `client/src/__tests__/v2-8-walkthrough.test.tsx`
+- [X] T090 [US6] **Phase V2-8 Final Gate**: Run and pass `npm run lint`, `npm --prefix server run typecheck`, `npm --prefix client run typecheck`, `npm --prefix server test`, and `npm --prefix client test`
 
 ---
 

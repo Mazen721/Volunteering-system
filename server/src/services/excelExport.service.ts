@@ -25,7 +25,10 @@ function styleHeaderRow(row: ExcelJS.Row): void {
   });
 }
 
-function addFacultySummaryTable(sheet: ExcelJS.Worksheet, facultyStats: FacultyStatsResponse): void {
+function addFacultySummaryTable(
+  sheet: ExcelJS.Worksheet,
+  facultyStats: FacultyStatsResponse
+): void {
   const facultyHeader = sheet.addRow([
     'الكلية / الجهة',
     'عدد المتطوعين',

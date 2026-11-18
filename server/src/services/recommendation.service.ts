@@ -60,9 +60,7 @@ async function resolveVolunteerCategory(user: PublicUser): Promise<VolunteerCate
 /**
  * Counts past attended events per interest field for the authenticated student.
  */
-async function buildPastAttendanceByField(
-  userId: string
-): Promise<Map<InterestKey, number>> {
+async function buildPastAttendanceByField(userId: string): Promise<Map<InterestKey, number>> {
   const attendanceByField = new Map<InterestKey, number>();
   const applications = await Application.find({
     user: new mongoose.Types.ObjectId(userId),
@@ -116,22 +114,14 @@ export function scoreOpportunity(
     context.user.interests.includes(field)
   );
 
-  let recommendationScore =
-    matchedFields.length * RECOMMENDATION_POINTS.interestMatch;
+  let recommendationScore = matchedFields.length * RECOMMENDATION_POINTS.interestMatch;
 
-  if (
-    opportunity.faculty !== null &&
-    opportunity.faculty === context.user.faculty
-  ) {
+  if (opportunity.faculty !== null && opportunity.faculty === context.user.faculty) {
     recommendationScore += RECOMMENDATION_POINTS.facultyTarget;
   }
 
-  const millisecondsToDeadline =
-    opportunity.registrationDeadline.getTime() - context.now.getTime();
-  if (
-    millisecondsToDeadline > 0 &&
-    millisecondsToDeadline <= DEADLINE_SOON_WINDOW_MS
-  ) {
+  const millisecondsToDeadline = opportunity.registrationDeadline.getTime() - context.now.getTime();
+  if (millisecondsToDeadline > 0 && millisecondsToDeadline <= DEADLINE_SOON_WINDOW_MS) {
     recommendationScore += RECOMMENDATION_POINTS.deadlineSoon;
   }
 
@@ -141,23 +131,18 @@ export function scoreOpportunity(
     totalCategorySlots - opportunity.acceptedCounts[context.volunteerCategory]
   );
 
-  if (
-    totalCategorySlots > 0 &&
-    remainingSlots / totalCategorySlots <= SCARCE_SLOT_RATIO
-  ) {
+  if (totalCategorySlots > 0 && remainingSlots / totalCategorySlots <= SCARCE_SLOT_RATIO) {
     recommendationScore += RECOMMENDATION_POINTS.scarceSlots;
   }
 
   const pastAttendanceBonus = Math.min(
     PAST_ATTENDANCE_BONUS_CAP,
     opportunity.fields.reduce(
-      (total, field) =>
-        total + (context.pastAttendanceByField.get(field) ?? 0),
+      (total, field) => total + (context.pastAttendanceByField.get(field) ?? 0),
       0
     )
   );
-  recommendationScore +=
-    pastAttendanceBonus * RECOMMENDATION_POINTS.pastAttendance;
+  recommendationScore += pastAttendanceBonus * RECOMMENDATION_POINTS.pastAttendance;
 
   return {
     opportunity,
@@ -175,17 +160,13 @@ export function rankRecommendedOpportunities(
   opportunities: OpportunityLean[],
   context: RecommendationContext
 ): ScoredOpportunity[] {
-  const scored = opportunities.map((opportunity) =>
-    scoreOpportunity(opportunity, context)
-  );
+  const scored = opportunities.map((opportunity) => scoreOpportunity(opportunity, context));
 
   const compare = (left: ScoredOpportunity, right: ScoredOpportunity): number => {
     if (right.recommendationScore !== left.recommendationScore) {
       return right.recommendationScore - left.recommendationScore;
     }
-    if (
-      left.opportunity.startAt.getTime() !== right.opportunity.startAt.getTime()
-    ) {
+    if (left.opportunity.startAt.getTime() !== right.opportunity.startAt.getTime()) {
       return left.opportunity.startAt.getTime() - right.opportunity.startAt.getTime();
     }
     return left.opportunity._id.toString().localeCompare(right.opportunity._id.toString());

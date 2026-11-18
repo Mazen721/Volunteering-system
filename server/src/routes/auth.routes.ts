@@ -1,4 +1,5 @@
 import express from 'express';
+import type { RequestHandler } from 'express';
 import { validateBody } from '../middleware/validate.js';
 import {
   buildAdminCompat,
@@ -6,27 +7,37 @@ import {
   updateOwnProfile,
 } from '../services/auth.service.js';
 import { registerStudent } from '../services/registration.service.js';
-import type {
-  LoginInput,
-  RegisterInput,
-  UpdateProfileInput,
-} from '../validators/auth.schema.js';
-import {
-  loginSchema,
-  registerSchema,
-  updateProfileSchema,
-} from '../validators/auth.schema.js';
+import type { LoginInput, RegisterInput, UpdateProfileInput } from '../validators/auth.schema.js';
+import { loginSchema, registerSchema, updateProfileSchema } from '../validators/auth.schema.js';
 
-export function createPublicAuthRouter(jwtSecret: string): express.Router {
+export interface PublicAuthRouterOptions {
+  loginRateLimiter?: RequestHandler;
+  registerRateLimiter?: RequestHandler;
+  allowedEmailDomains?: readonly string[];
+}
+
+const passThroughMiddleware: RequestHandler = (_req, _res, next) => next();
+
+export function createPublicAuthRouter(
+  jwtSecret: string,
+  options: PublicAuthRouterOptions = {}
+): express.Router {
   const router = express.Router();
+  const loginLimiter = options.loginRateLimiter ?? passThroughMiddleware;
+  const registerLimiter = options.registerRateLimiter ?? passThroughMiddleware;
+  const allowedEmailDomains = options.allowedEmailDomains ?? [];
 
-  router.post('/login', validateBody(loginSchema), async (req, res) => {
+  router.post('/login', loginLimiter, validateBody(loginSchema), async (req, res) => {
     const payload = await loginWithCredentials(req.body as LoginInput, jwtSecret);
     res.json(payload);
   });
 
-  router.post('/register', validateBody(registerSchema), async (req, res) => {
-    const payload = await registerStudent(req.body as RegisterInput, jwtSecret);
+  router.post('/register', registerLimiter, validateBody(registerSchema), async (req, res) => {
+    const payload = await registerStudent(
+      req.body as RegisterInput,
+      jwtSecret,
+      allowedEmailDomains
+    );
     res.status(201).json(payload);
   });
 

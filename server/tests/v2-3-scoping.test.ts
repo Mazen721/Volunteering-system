@@ -23,7 +23,10 @@ import type {
   LeaderboardResponse,
   OverviewStats,
 } from '../src/services/stats.service.js';
-import type { VolunteerListResult, VolunteerProfileResult } from '../src/services/volunteer.service.js';
+import type {
+  VolunteerListResult,
+  VolunteerProfileResult,
+} from '../src/services/volunteer.service.js';
 import type { TestServer } from './helpers.js';
 import { apiJson, buildTestDbUri, startTestServer } from './helpers.js';
 
@@ -150,7 +153,11 @@ describe('Phase V2-3 Dean Faculty Scoping, Anti-Enumeration & Admin Management',
 
   it('scopes_volunteers_and_activities_lists_to_dean_faculty_ignoring_query_faculty', async () => {
     const { volA1 } = await seedTwoFacultyDataset();
-    const deanA = await createAccount({ email: 'dean.a@mnu.edu.eg', role: 'dean', faculty: FACULTY_A });
+    const deanA = await createAccount({
+      email: 'dean.a@mnu.edu.eg',
+      role: 'dean',
+      faculty: FACULTY_A,
+    });
     const studentA = await createAccount({
       email: 'student.a@mnu.edu.eg',
       role: 'student',
@@ -180,7 +187,11 @@ describe('Phase V2-3 Dean Faculty Scoping, Anti-Enumeration & Admin Management',
   });
 
   it('forces_dean_faculty_on_volunteer_create_and_update_ignoring_spoofed_body', async () => {
-    const deanA = await createAccount({ email: 'dean.a@mnu.edu.eg', role: 'dean', faculty: FACULTY_A });
+    const deanA = await createAccount({
+      email: 'dean.a@mnu.edu.eg',
+      role: 'dean',
+      faculty: FACULTY_A,
+    });
 
     const created = await apiJson<VolunteerMutationResponse>(
       apiServer.baseUrl,
@@ -215,8 +226,16 @@ describe('Phase V2-3 Dean Faculty Scoping, Anti-Enumeration & Admin Management',
 
   it('returns_404_when_dean_accesses_or_mutates_out_of_faculty_resources', async () => {
     const { volB1, actB1 } = await seedTwoFacultyDataset();
-    const deanA = await createAccount({ email: 'dean.a@mnu.edu.eg', role: 'dean', faculty: FACULTY_A });
-    const deanB = await createAccount({ email: 'dean.b@mnu.edu.eg', role: 'dean', faculty: FACULTY_B });
+    const deanA = await createAccount({
+      email: 'dean.a@mnu.edu.eg',
+      role: 'dean',
+      faculty: FACULTY_A,
+    });
+    const deanB = await createAccount({
+      email: 'dean.b@mnu.edu.eg',
+      role: 'dean',
+      faculty: FACULTY_B,
+    });
     const studentB = await createAccount({
       email: 'student.b@mnu.edu.eg',
       role: 'student',
@@ -224,7 +243,11 @@ describe('Phase V2-3 Dean Faculty Scoping, Anti-Enumeration & Admin Management',
       volunteer: volB1._id,
     });
 
-    const outOfFacultyCalls: Array<{ route: string; method: string; body?: Record<string, unknown> }> = [
+    const outOfFacultyCalls: Array<{
+      route: string;
+      method: string;
+      body?: Record<string, unknown>;
+    }> = [
       { route: `/api/volunteers/${volB1.volunteerId}`, method: 'GET' },
       { route: `/api/volunteers/${volB1._id.toString()}`, method: 'GET' },
       { route: `/api/volunteers/${volB1.volunteerId}`, method: 'PUT', body: { fullName: 'تعديل' } },
@@ -349,7 +372,11 @@ describe('Phase V2-3 Dean Faculty Scoping, Anti-Enumeration & Admin Management',
   it('matches_dean_stats_and_excel_export_to_admin_filtered_faculty_without_cross_faculty_leakage', async () => {
     await seedTwoFacultyDataset();
     const admin = await createAccount({ email: 'admin@mnu.edu.eg', role: 'admin', faculty: null });
-    const deanA = await createAccount({ email: 'dean.a@mnu.edu.eg', role: 'dean', faculty: FACULTY_A });
+    const deanA = await createAccount({
+      email: 'dean.a@mnu.edu.eg',
+      role: 'dean',
+      faculty: FACULTY_A,
+    });
 
     const [
       deanOverview,
@@ -437,15 +464,20 @@ describe('Phase V2-3 Dean Faculty Scoping, Anti-Enumeration & Admin Management',
     });
 
     // Admin creates a dean account
-    const createDeanRes = await apiJson<UserResponse>(apiServer.baseUrl, '/api/users', admin.token, {
-      method: 'POST',
-      body: JSON.stringify({
-        email: 'new.dean@mnu.edu.eg',
-        fullName: 'د. عميد الطب الجديد',
-        faculty: FACULTY_A,
-        password: 'DeanPassword123!',
-      }),
-    });
+    const createDeanRes = await apiJson<UserResponse>(
+      apiServer.baseUrl,
+      '/api/users',
+      admin.token,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          email: 'new.dean@mnu.edu.eg',
+          fullName: 'د. عميد الطب الجديد',
+          faculty: FACULTY_A,
+          password: 'DeanPassword123!',
+        }),
+      }
+    );
     assert.equal(createDeanRes.status, 201);
     assert.equal(createDeanRes.body.user.role, 'dean');
     assert.equal(createDeanRes.body.user.faculty, FACULTY_A);

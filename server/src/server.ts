@@ -6,7 +6,11 @@ async function startServer(): Promise<void> {
   const env = loadEnv();
   await connectDatabase(env.mongoUri);
 
-  const app = createApp({ clientUrl: env.clientUrl, jwtSecret: env.jwtSecret });
+  const app = createApp({
+    clientUrl: env.clientUrl,
+    jwtSecret: env.jwtSecret,
+    allowedEmailDomains: env.allowedEmailDomains,
+  });
   app.listen(env.port, () => {
     console.log(`Server listening on port ${env.port}`);
   });

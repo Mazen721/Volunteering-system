@@ -96,12 +96,11 @@ async function buildDeanScopedUpdate(
   if (targetUser.role !== 'student' || targetUser.faculty !== scope.faculty) {
     throw new AppError(404, 'المستخدم غير موجود');
   }
-  if (
-    input.status !== undefined ||
-    input.fullName !== undefined ||
-    input.faculty !== undefined
-  ) {
-    throw new AppError(403, 'غير مصرح لك بتعديل هذا الحقل، يمكنك إعادة تعيين كلمة المرور المؤقتة فقط');
+  if (input.status !== undefined || input.fullName !== undefined || input.faculty !== undefined) {
+    throw new AppError(
+      403,
+      'غير مصرح لك بتعديل هذا الحقل، يمكنك إعادة تعيين كلمة المرور المؤقتة فقط'
+    );
   }
   if (!input.temporaryPassword) {
     throw new AppError(400, 'كلمة المرور المؤقتة مطلوبة');
@@ -172,10 +171,7 @@ export async function updateUserAccount({
   }
 
   if (input.faculty !== undefined && targetUser.role === 'student' && targetUser.volunteer) {
-    await Volunteer.updateOne(
-      { _id: targetUser.volunteer },
-      { $set: { faculty: input.faculty } }
-    );
+    await Volunteer.updateOne({ _id: targetUser.volunteer }, { $set: { faculty: input.faculty } });
   }
 
   return { user: serializeUser(updated) };

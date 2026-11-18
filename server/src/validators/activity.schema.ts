@@ -17,7 +17,9 @@ export const activitySchema = z.object({
     .trim()
     .min(2, 'عنوان النشاط يجب أن لا يقل عن حرفين'),
   type: z.enum(ACTIVITY_TYPES, { error: 'نوع النشاط غير صالح' }),
-  hours: z.number({ error: 'عدد الساعات يجب أن يكون رقماً' }).positive('عدد الساعات يجب أن يكون أكبر من صفر'),
+  hours: z
+    .number({ error: 'عدد الساعات يجب أن يكون رقماً' })
+    .positive('عدد الساعات يجب أن يكون أكبر من صفر'),
   date: z.coerce
     .date({ error: 'تاريخ النشاط غير صالح' })
     .refine(isNotFutureDate, 'لا يمكن تسجيل تاريخ نشاط في المستقبل'),

@@ -178,7 +178,9 @@ function detectRowConflicts(
   return conflicts;
 }
 
-function buildDuplicateTrackers(existingActivities: ActivityWithVolunteerLean[]): DuplicateTrackers {
+function buildDuplicateTrackers(
+  existingActivities: ActivityWithVolunteerLean[]
+): DuplicateTrackers {
   const exactKeys = new Map<string, string>();
   const titleKeys = new Map<string, string>();
 

@@ -15,6 +15,18 @@ export interface AppEnv {
   clientUrl: string;
   adminEmail: string;
   adminPassword: string;
+  allowedEmailDomains: string[];
+}
+
+export function parseAllowedEmailDomains(rawDomains?: string): string[] {
+  if (!rawDomains) {
+    return [];
+  }
+  const normalized = rawDomains
+    .split(',')
+    .map((entry) => entry.trim().toLowerCase().replace(/^@+/, ''))
+    .filter(Boolean);
+  return Array.from(new Set(normalized));
 }
 
 /**
@@ -39,6 +51,7 @@ export function validateEnv(rawEnv: Record<string, string | undefined>): AppEnv 
     clientUrl: rawEnv.CLIENT_URL!.trim(),
     adminEmail: rawEnv.ADMIN_EMAIL!.trim(),
     adminPassword: rawEnv.ADMIN_PASSWORD!,
+    allowedEmailDomains: parseAllowedEmailDomains(rawEnv.ALLOWED_EMAIL_DOMAINS),
   };
 }
 

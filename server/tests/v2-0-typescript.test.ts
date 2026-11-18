@@ -54,11 +54,7 @@ describe('Phase V2-0 TypeScript migration', () => {
         path.join(REPO_ROOT, packageName, 'tsconfig.json')
       );
       assert.equal(tsConfig.compilerOptions?.strict, true, `${packageName} strict mode`);
-      assert.equal(
-        tsConfig.compilerOptions?.noImplicitAny,
-        true,
-        `${packageName} noImplicitAny`
-      );
+      assert.equal(tsConfig.compilerOptions?.noImplicitAny, true, `${packageName} noImplicitAny`);
     }
   });
 

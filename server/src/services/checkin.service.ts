@@ -41,11 +41,7 @@ interface CheckInJwtPayload {
   type?: unknown;
 }
 
-function verifyCheckInJwt(
-  token: string,
-  expectedOpportunityId: string,
-  jwtSecret: string
-): void {
+function verifyCheckInJwt(token: string, expectedOpportunityId: string, jwtSecret: string): void {
   let payload: string | jwt.JwtPayload;
   try {
     payload = jwt.verify(token, jwtSecret);
@@ -153,9 +149,7 @@ async function creditCompletedEventApplications(
   attendedApps: ApplicationLean[],
   noShowApps: ApplicationLean[]
 ): Promise<void> {
-  await Promise.all(
-    attendedApps.map((app) => upsertApprovedActivityForAttendee(opportunity, app))
-  );
+  await Promise.all(attendedApps.map((app) => upsertApprovedActivityForAttendee(opportunity, app)));
 
   if (attendedApps.length > 0) {
     await Application.updateMany(
@@ -267,7 +261,7 @@ export async function toggleManualCheckIn(
     throw new AppError(409, 'يمكن تسجيل الحضور للمتطوعين المقبولين فقط');
   }
 
-  const nextCheckedInAt = attended ? application.checkedInAt ?? new Date() : null;
+  const nextCheckedInAt = attended ? (application.checkedInAt ?? new Date()) : null;
   const updated = await Application.findByIdAndUpdate(
     application._id,
     { $set: { attended, checkedInAt: nextCheckedInAt } },

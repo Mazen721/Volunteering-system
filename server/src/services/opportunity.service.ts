@@ -20,10 +20,7 @@ import { Opportunity, createEmptyCategoryCounts, hasPositiveSlot } from '../mode
 import type { PublicUser } from './auth.service.js';
 import type { OpportunityInput, OpportunityUpdateInput } from '../validators/opportunity.schema.js';
 import { applicationListQuerySchema } from '../validators/application.schema.js';
-import {
-  evaluateOpportunityPhase,
-  isCheckInWindowOpen,
-} from '../utils/cairoTime.js';
+import { evaluateOpportunityPhase, isCheckInWindowOpen } from '../utils/cairoTime.js';
 import { AppError } from '../utils/errors.js';
 import {
   buildRecommendationContext,
@@ -87,8 +84,7 @@ export function decorateOpportunity(
   return {
     ...opportunity,
     phase: evaluateOpportunityPhase(opportunity),
-    checkInOpen:
-      opportunity.status === 'published' && isCheckInWindowOpen(opportunity),
+    checkInOpen: opportunity.status === 'published' && isCheckInWindowOpen(opportunity),
     remainingSlots: buildRemainingSlots(opportunity),
     ...(myApplication ? { myApplication } : {}),
   };
@@ -126,7 +122,9 @@ function buildVisibilityFilter(
     return {
       $and: [
         { $or: [{ faculty: user.faculty }, { faculty: null }] },
-        { $or: [{ status: { $ne: 'draft' } }, { createdBy: new mongoose.Types.ObjectId(user.id) }] },
+        {
+          $or: [{ status: { $ne: 'draft' } }, { createdBy: new mongoose.Types.ObjectId(user.id) }],
+        },
       ],
     };
   }
@@ -186,11 +184,7 @@ export async function listOpportunities(
     OPPORTUNITY_PHASES,
     'مرحلة الفرصة غير صالحة'
   );
-  const field = assertQueryValue<InterestKey>(
-    query.field,
-    INTEREST_KEYS,
-    'مجال الاهتمام غير صالح'
-  );
+  const field = assertQueryValue<InterestKey>(query.field, INTEREST_KEYS, 'مجال الاهتمام غير صالح');
   const faculty = assertQueryValue<Faculty>(
     user.role === 'admin' ? query.faculty : undefined,
     FACULTIES,
@@ -253,10 +247,7 @@ export async function listOpportunities(
 /**
  * Loads a single opportunity visible to the authenticated role.
  */
-export async function getOpportunityById(
-  id: string,
-  user: PublicUser
-): Promise<OpportunityDTO> {
+export async function getOpportunityById(id: string, user: PublicUser): Promise<OpportunityDTO> {
   assertValidOpportunityId(id);
   const appliedOpportunityIds =
     user.role === 'student' ? await findAppliedOpportunityIds(user.id) : [];
@@ -272,10 +263,10 @@ export async function getOpportunityById(
 
   const myApplication =
     user.role === 'student'
-      ? (await Application.findOne({
+      ? ((await Application.findOne({
           opportunity: opportunity._id,
           user: new mongoose.Types.ObjectId(user.id),
-        }).lean<ApplicationLean>()) ?? undefined
+        }).lean<ApplicationLean>()) ?? undefined)
       : undefined;
 
   return decorateOpportunity(opportunity, myApplication ?? undefined);
@@ -351,7 +342,10 @@ function assertOpportunityReadable(opportunity: OpportunityLean, user: PublicUse
   if (user.role === 'admin') {
     return;
   }
-  if (user.role === 'dean' && (opportunity.faculty === null || opportunity.faculty === user.faculty)) {
+  if (
+    user.role === 'dean' &&
+    (opportunity.faculty === null || opportunity.faculty === user.faculty)
+  ) {
     return;
   }
   throw new AppError(404, 'الفرصة التطوعية غير موجودة');
@@ -409,10 +403,7 @@ function assertFieldsUnlockedForAcceptedApplicants(
   for (const category of CATEGORIES) {
     const requestedSlots = payload.slots?.[category];
     if (requestedSlots !== undefined && requestedSlots < opportunity.acceptedCounts[category]) {
-      throw new AppError(
-        409,
-        `لا يمكن تقليل مقاعد ${category} إلى أقل من عدد المقبولين الحالي`
-      );
+      throw new AppError(409, `لا يمكن تقليل مقاعد ${category} إلى أقل من عدد المقبولين الحالي`);
     }
   }
 }
@@ -465,10 +456,7 @@ export async function updateOpportunity(
 /**
  * Publishes a draft opportunity.
  */
-export async function publishOpportunity(
-  id: string,
-  user: PublicUser
-): Promise<OpportunityDTO> {
+export async function publishOpportunity(id: string, user: PublicUser): Promise<OpportunityDTO> {
   const opportunity = await findManagedOpportunity(id, user);
   if (opportunity.status !== 'draft') {
     throw new AppError(409, 'لا يمكن نشر فرصة ليست في حالة مسودة');
@@ -488,10 +476,7 @@ export async function publishOpportunity(
 /**
  * Cancels an opportunity, cancels its active applications, and resets accepted counters.
  */
-export async function cancelOpportunity(
-  id: string,
-  user: PublicUser
-): Promise<OpportunityDTO> {
+export async function cancelOpportunity(id: string, user: PublicUser): Promise<OpportunityDTO> {
   const opportunity = await findManagedOpportunity(id, user);
   if (opportunity.status === 'completed') {
     throw new AppError(409, 'لا يمكن إلغاء فرصة مكتملة');

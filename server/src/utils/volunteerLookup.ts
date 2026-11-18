@@ -11,10 +11,7 @@ export function escapeRegex(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-export function buildVolunteerFilter(
-  identifier: string,
-  scope: ScopeFilter = {}
-): VolunteerFilter {
+export function buildVolunteerFilter(identifier: string, scope: ScopeFilter = {}): VolunteerFilter {
   const baseFilter: VolunteerFilter = mongoose.isValidObjectId(identifier)
     ? { $or: [{ _id: new mongoose.Types.ObjectId(identifier) }, { volunteerId: identifier }] }
     : { volunteerId: identifier };
@@ -26,7 +23,9 @@ export async function findVolunteerOrThrow(
   identifier: string,
   scope: ScopeFilter = {}
 ): Promise<VolunteerLean> {
-  const volunteer = await Volunteer.findOne(buildVolunteerFilter(identifier, scope)).lean<VolunteerLean>();
+  const volunteer = await Volunteer.findOne(
+    buildVolunteerFilter(identifier, scope)
+  ).lean<VolunteerLean>();
   if (!volunteer) {
     throw new AppError(404, 'المتطوع غير موجود');
   }

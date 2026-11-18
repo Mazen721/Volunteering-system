@@ -1,4 +1,5 @@
 import express from 'express';
+import type { RequestHandler } from 'express';
 import { requireRole } from '../middleware/auth.js';
 import { validateBody } from '../middleware/validate.js';
 import type { OpportunityListQuery } from '../services/opportunity.service.js';
@@ -29,29 +30,28 @@ import {
   checkInSubmitSchema,
   manualCheckInSchema,
 } from '../validators/application.schema.js';
-import type {
-  OpportunityInput,
-  OpportunityUpdateInput,
-} from '../validators/opportunity.schema.js';
+import type { OpportunityInput, OpportunityUpdateInput } from '../validators/opportunity.schema.js';
 import { opportunitySchema, opportunityUpdateSchema } from '../validators/opportunity.schema.js';
 
 function getRouteId(req: express.Request): string {
   const value = req.params.id;
-  return Array.isArray(value) ? value[0] ?? '' : value;
+  return Array.isArray(value) ? (value[0] ?? '') : value;
 }
+
+const passThroughMiddleware: RequestHandler = (_req, _res, next) => next();
 
 /**
  * Creates the opportunities API with role-guarded CRUD, lifecycle, live check-in, and application actions.
  */
-export function createOpportunitiesRouter(jwtSecret: string): express.Router {
+export function createOpportunitiesRouter(
+  jwtSecret: string,
+  checkInRateLimiter: RequestHandler = passThroughMiddleware
+): express.Router {
   const router = express.Router();
   router.use(requireRole('admin', 'dean', 'student'));
 
   router.get('/', async (req, res) => {
-    const result = await listOpportunities(
-      req.query as unknown as OpportunityListQuery,
-      req.user!
-    );
+    const result = await listOpportunities(req.query as unknown as OpportunityListQuery, req.user!);
     res.json(result);
   });
 
@@ -129,6 +129,7 @@ export function createOpportunitiesRouter(jwtSecret: string): express.Router {
 
   router.post(
     '/:id/checkin',
+    checkInRateLimiter,
     requireRole('student'),
     validateBody<{ id: string }>(checkInSubmitSchema),
     async (req, res) => {

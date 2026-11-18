@@ -369,11 +369,22 @@ describe('Phase V2-5 Recommendations & Student Portal', () => {
     const ranked = response.body.opportunities;
     assert.deepEqual(
       ranked.map((opportunity) => opportunity._id),
-      [topMatch._id.toString(), educationMatch._id.toString(), sportsEarly._id.toString(), sportsLate._id.toString(), fullMatch._id.toString()]
+      [
+        topMatch._id.toString(),
+        educationMatch._id.toString(),
+        sportsEarly._id.toString(),
+        sportsLate._id.toString(),
+        fullMatch._id.toString(),
+      ]
     );
 
-    const excludedIds = new Set([closed._id, cancelled._id, draft._id, alreadyApplied._id].map(String));
-    assert.equal(ranked.some((opportunity) => excludedIds.has(opportunity._id.toString())), false);
+    const excludedIds = new Set(
+      [closed._id, cancelled._id, draft._id, alreadyApplied._id].map(String)
+    );
+    assert.equal(
+      ranked.some((opportunity) => excludedIds.has(opportunity._id.toString())),
+      false
+    );
 
     const [first, second, early, late, full] = ranked;
     assert.equal(first.recommendationScore, 17);

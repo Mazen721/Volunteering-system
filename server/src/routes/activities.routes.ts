@@ -9,7 +9,11 @@ import {
   updateActivity,
   updateActivityStatus,
 } from '../services/activity.service.js';
-import type { ActivityInput, ActivityStatusInput, ActivityUpdateInput } from '../validators/activity.schema.js';
+import type {
+  ActivityInput,
+  ActivityStatusInput,
+  ActivityUpdateInput,
+} from '../validators/activity.schema.js';
 import {
   activitySchema,
   activityStatusSchema,
@@ -42,14 +46,18 @@ export function createActivitiesRouter(): express.Router {
     res.json({ activity });
   });
 
-  router.patch('/:id/status', validateBody<{ id: string }>(activityStatusSchema), async (req, res) => {
-    const activity = await updateActivityStatus(
-      req.params.id,
-      (req.body as ActivityStatusInput).status,
-      buildScope(req.user!)
-    );
-    res.json({ activity });
-  });
+  router.patch(
+    '/:id/status',
+    validateBody<{ id: string }>(activityStatusSchema),
+    async (req, res) => {
+      const activity = await updateActivityStatus(
+        req.params.id,
+        (req.body as ActivityStatusInput).status,
+        buildScope(req.user!)
+      );
+      res.json({ activity });
+    }
+  );
 
   router.delete('/:id', async (req, res) => {
     const payload = await deleteActivity(req.params.id, buildScope(req.user!));

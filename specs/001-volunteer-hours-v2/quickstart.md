@@ -41,6 +41,22 @@ npm run seed
 npm run dev
 ```
 
+### Seeded Demo Accounts (`npm run seed`, all use `ADMIN_PASSWORD`)
+
+| Role | Email | Notes |
+| --- | --- | --- |
+| **Admin** | `admin@mnu.edu.eg` (or `ADMIN_EMAIL`) | Full university-wide access, dean management, Excel import, global settings |
+| **Medicine Dean** | `medicine.dean@mnu.edu.eg` | Scoped strictly to `كلية الطب البشري` |
+| **Dentistry Dean** | `dentistry.dean@mnu.edu.eg` | Scoped strictly to `كلية طب الأسنان` (plus 5 other faculty deans) |
+| **Approved Student (Eligible)** | `ahmed.student@mnu.edu.eg` | Linked to `20260001` (`كلية الطب البشري`), 30+ approved hours |
+| **Approved Student (Live Event)** | `sara.student@mnu.edu.eg` | Linked to `20260002` (`كلية طب الأسنان`), accepted in seeded live event |
+| **Pending Student** | `pending.student@mnu.edu.eg` | Pending approval in `كلية طب الأسنان` (`20260101`) |
+
+### Security Controls
+
+- **HTTP Headers & Rate Limiting**: `helmet()` is enabled globally; `POST /api/auth/login` and `POST /api/auth/register` allow 20 requests per 15 minutes per IP, and `POST /api/opportunities/:id/checkin` allows 30 requests per minute per IP, returning Arabic `429` JSON messages when exceeded.
+- **Email Domain Restriction**: Set `ALLOWED_EMAIL_DOMAINS=mnu.edu.eg` in `server/.env` to restrict self-registration to university email domains (leave empty in demo mode).
+
 ---
 
 ## 3. Mandatory Per-Phase Verification Gate (Principle V)
