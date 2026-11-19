@@ -1,5 +1,5 @@
-import type { RequestHandler } from 'express';
-import rateLimit from 'express-rate-limit';
+import type { Request, RequestHandler } from 'express';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 
 export interface RateLimitWindowConfig {
   windowMs: number;
@@ -8,6 +8,7 @@ export interface RateLimitWindowConfig {
 
 export interface RateLimiterOverrides {
   login?: Partial<RateLimitWindowConfig>;
+  loginIp?: Partial<RateLimitWindowConfig>;
   register?: Partial<RateLimitWindowConfig>;
   checkIn?: Partial<RateLimitWindowConfig>;
 }
@@ -23,6 +24,15 @@ const DEFAULT_LOGIN_CONFIG: RateLimitWindowConfig = {
   limit: 20,
 };
 
+// Coarse per-IP flood cap for the login route. The strict limit is per
+// IP+account (below); this second layer only stops a single source from
+// hammering the endpoint across many accounts, without locking out a whole
+// campus network that legitimately shares one public IP (NAT).
+const DEFAULT_LOGIN_IP_CONFIG: RateLimitWindowConfig = {
+  windowMs: 15 * 60 * 1000,
+  limit: 300,
+};
+
 const DEFAULT_REGISTER_CONFIG: RateLimitWindowConfig = {
   windowMs: 15 * 60 * 1000,
   limit: 20,
@@ -36,7 +46,8 @@ const DEFAULT_CHECKIN_CONFIG: RateLimitWindowConfig = {
 function buildRateLimiter(
   defaults: RateLimitWindowConfig,
   overrides: Partial<RateLimitWindowConfig> | undefined,
-  message: string
+  message: string,
+  keyGenerator?: (req: Request) => string
 ): RequestHandler {
   return rateLimit({
     windowMs: overrides?.windowMs ?? defaults.windowMs,
@@ -45,18 +56,55 @@ function buildRateLimiter(
     legacyHeaders: false,
     statusCode: 429,
     message: { message },
+    ...(keyGenerator ? { keyGenerator } : {}),
   });
+}
+
+function composeHandlers(...handlers: RequestHandler[]): RequestHandler {
+  return (req, res, next) => {
+    let index = 0;
+    const run = (err?: unknown): void => {
+      if (err) {
+        next(err);
+        return;
+      }
+      const handler = handlers[index];
+      index += 1;
+      if (!handler) {
+        next();
+        return;
+      }
+      handler(req, res, run);
+    };
+    run();
+  };
+}
+
+function loginAccountKey(req: Request): string {
+  const email =
+    typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+  return `${ipKeyGenerator(req.ip ?? '')}:${email}`;
+}
+
+function checkInUserKey(req: Request): string {
+  return req.user?.id ?? ipKeyGenerator(req.ip ?? '');
 }
 
 /**
  * Creates configurable rate-limiting middleware for login, registration, and QR check-in endpoints.
+ *
+ * Login is limited per IP+account (not per IP alone) so students sharing a
+ * campus NAT address cannot lock each other out, with a coarse per-IP cap on
+ * top against floods. Check-in is limited per authenticated user for the same
+ * reason: a whole event crowd checks in from one venue network.
  */
 export function createAppRateLimiters(overrides: RateLimiterOverrides = {}): AppRateLimiters {
+  const loginMessage =
+    'تم تجاوز الحد المسموح به لمحاولات تسجيل الدخول، يرجى الانتظار والمحاولة لاحقاً';
   return {
-    login: buildRateLimiter(
-      DEFAULT_LOGIN_CONFIG,
-      overrides.login,
-      'تم تجاوز الحد المسموح به لمحاولات تسجيل الدخول، يرجى الانتظار والمحاولة لاحقاً'
+    login: composeHandlers(
+      buildRateLimiter(DEFAULT_LOGIN_IP_CONFIG, overrides.loginIp, loginMessage),
+      buildRateLimiter(DEFAULT_LOGIN_CONFIG, overrides.login, loginMessage, loginAccountKey)
     ),
     register: buildRateLimiter(
       DEFAULT_REGISTER_CONFIG,
@@ -66,7 +114,8 @@ export function createAppRateLimiters(overrides: RateLimiterOverrides = {}): App
     checkIn: buildRateLimiter(
       DEFAULT_CHECKIN_CONFIG,
       overrides.checkIn,
-      'تم تجاوز الحد المسموح به لمحاولات تسجيل الحضور، يرجى الانتظار قليلاً ثم المحاولة مرة أخرى'
+      'تم تجاوز الحد المسموح به لمحاولات تسجيل الحضور، يرجى الانتظار قليلاً ثم المحاولة مرة أخرى',
+      checkInUserKey
     ),
   };
 }

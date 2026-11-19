@@ -41,6 +41,11 @@ export function createApp({
   rateLimit,
 }: CreateAppOptions): express.Express {
   const app = express();
+  // The app always runs behind a single reverse proxy (university VPS Nginx,
+  // Railway, or Vercel). Trusting exactly one proxy hop makes req.ip the real
+  // client IP, which the rate limiters and any IP logging rely on; without it
+  // every user shares the proxy's IP and per-IP limits lock out everyone.
+  app.set('trust proxy', 1);
   const rateLimiters = createAppRateLimiters(rateLimit);
 
   app.use(helmet());
