@@ -4,6 +4,7 @@ import { requireRole } from '../middleware/auth.js';
 import { validateBody } from '../middleware/validate.js';
 import type { OpportunityListQuery } from '../services/opportunity.service.js';
 import {
+  assignAttendanceDeputy,
   cancelOpportunity,
   createOpportunity,
   getOpportunityById,
@@ -22,11 +23,13 @@ import {
 } from '../services/checkin.service.js';
 import type {
   ApplicationApplyInput,
+  AssignDeputyInput,
   CheckInSubmitInput,
   ManualCheckInInput,
 } from '../validators/application.schema.js';
 import {
   applicationApplySchema,
+  assignDeputySchema,
   checkInSubmitSchema,
   manualCheckInSchema,
 } from '../validators/application.schema.js';
@@ -122,10 +125,25 @@ export function createOpportunitiesRouter(
     res.json({ application });
   });
 
-  router.get('/:id/checkin-token', requireRole('admin', 'dean'), async (req, res) => {
-    const result = await generateCheckInToken(getRouteId(req), req.user!, jwtSecret);
-    res.json(result);
-  });
+  router.get(
+    '/:id/checkin-token',
+    requireRole('admin', 'dean', 'student'),
+    async (req, res) => {
+      const result = await generateCheckInToken(getRouteId(req), req.user!, jwtSecret);
+      res.json(result);
+    }
+  );
+
+  router.put(
+    '/:id/deputy',
+    requireRole('admin', 'dean'),
+    validateBody<{ id: string }>(assignDeputySchema),
+    async (req, res) => {
+      const { deputyUserId } = req.body as AssignDeputyInput;
+      const opportunity = await assignAttendanceDeputy(getRouteId(req), deputyUserId, req.user!);
+      res.json({ opportunity });
+    }
+  );
 
   router.post(
     '/:id/checkin',
@@ -141,7 +159,7 @@ export function createOpportunitiesRouter(
 
   router.post(
     '/:id/checkin/manual',
-    requireRole('admin', 'dean'),
+    requireRole('admin', 'dean', 'student'),
     validateBody<{ id: string }>(manualCheckInSchema),
     async (req, res) => {
       const { applicationId, attended } = req.body as ManualCheckInInput;
@@ -155,7 +173,7 @@ export function createOpportunitiesRouter(
     }
   );
 
-  router.get('/:id/live', requireRole('admin', 'dean'), async (req, res) => {
+  router.get('/:id/live', requireRole('admin', 'dean', 'student'), async (req, res) => {
     const result = await getLiveOpportunityState(getRouteId(req), req.user!);
     res.json(result);
   });

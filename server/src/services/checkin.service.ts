@@ -9,7 +9,11 @@ import { isCheckInWindowOpen } from '../utils/cairoTime.js';
 import { AppError, isDuplicateKeyError } from '../utils/errors.js';
 import type { PublicUser } from './auth.service.js';
 import type { OpportunityDTO } from './opportunity.service.js';
-import { decorateOpportunity, findManagedOpportunity } from './opportunity.service.js';
+import {
+  decorateOpportunity,
+  findLiveOpportunity,
+  findManagedOpportunity,
+} from './opportunity.service.js';
 
 export const CHECK_IN_TOKEN_TTL_SECONDS = 45;
 
@@ -191,7 +195,7 @@ export async function generateCheckInToken(
   user: PublicUser,
   jwtSecret: string
 ): Promise<CheckInTokenResult> {
-  const opportunity = await findManagedOpportunity(opportunityId, user);
+  const opportunity = await findLiveOpportunity(opportunityId, user);
   if (opportunity.status !== 'published') {
     throw new AppError(409, 'لا يمكن إنشاء رمز حضور لفرصة غير منشورة أو منتهية');
   }
@@ -241,7 +245,7 @@ export async function toggleManualCheckIn(
   attended: boolean,
   user: PublicUser
 ): Promise<ApplicationWithVolunteerLean> {
-  const opportunity = await findManagedOpportunity(opportunityId, user);
+  const opportunity = await findLiveOpportunity(opportunityId, user);
   if (opportunity.status === 'completed' || opportunity.status === 'cancelled') {
     throw new AppError(409, 'لا يمكن تعديل الحضور لفرصة مكتملة أو ملغاة');
   }
@@ -286,7 +290,7 @@ export async function getLiveOpportunityState(
   opportunityId: string,
   user: PublicUser
 ): Promise<LiveOpportunityState> {
-  const opportunity = await findManagedOpportunity(opportunityId, user);
+  const opportunity = await findLiveOpportunity(opportunityId, user);
   const attendees = await Application.find({
     opportunity: opportunity._id,
     status: 'accepted',

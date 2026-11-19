@@ -15,6 +15,7 @@ import {
 } from '../constants/enums.js';
 import { Application } from '../models/Application.js';
 import type { ApplicationLean, ApplicationWithVolunteerLean } from '../models/Application.js';
+import { User } from '../models/User.js';
 import type { CategoryCounts, OpportunityLean } from '../models/Opportunity.js';
 import { Opportunity, createEmptyCategoryCounts, hasPositiveSlot } from '../models/Opportunity.js';
 import type { PublicUser } from './auth.service.js';
@@ -362,6 +363,88 @@ export async function findManagedOpportunity(
   }
   assertCanManageOpportunity(opportunity, user);
   return opportunity;
+}
+
+/** True when the caller is the student appointed as attendance deputy for this opportunity. */
+export function isAttendanceDeputy(opportunity: OpportunityLean, user: PublicUser): boolean {
+  return (
+    user.role === 'student' &&
+    Boolean(opportunity.attendanceDeputy) &&
+    opportunity.attendanceDeputy?.toString() === user.id
+  );
+}
+
+/**
+ * Loads an opportunity for the live attendance screen: managers (admin / owning dean)
+ * always pass; a student passes only when appointed as this opportunity's attendance deputy.
+ */
+export async function findLiveOpportunity(
+  id: string,
+  user: PublicUser
+): Promise<OpportunityLean> {
+  assertValidOpportunityId(id);
+  const opportunity = await Opportunity.findById(id).lean<OpportunityLean>();
+  if (!opportunity) {
+    throw new AppError(404, 'الفرصة التطوعية غير موجودة');
+  }
+  if (user.role === 'student') {
+    if (!isAttendanceDeputy(opportunity, user)) {
+      throw new AppError(404, 'الفرصة التطوعية غير موجودة');
+    }
+    return opportunity;
+  }
+  assertCanManageOpportunity(opportunity, user);
+  return opportunity;
+}
+
+/**
+ * Appoints (or clears) the attendance deputy for an opportunity. Only the opportunity's
+ * manager can appoint, and the deputy must be an active student with an accepted
+ * application for this opportunity — so the deputy is someone already attending it.
+ */
+export async function assignAttendanceDeputy(
+  id: string,
+  deputyUserId: string | null,
+  user: PublicUser
+): Promise<OpportunityDTO> {
+  const opportunity = await findManagedOpportunity(id, user);
+  if (opportunity.status === 'completed' || opportunity.status === 'cancelled') {
+    throw new AppError(409, 'لا يمكن تعيين مسؤول حضور لفرصة مكتملة أو ملغاة');
+  }
+
+  if (deputyUserId !== null) {
+    if (!mongoose.isValidObjectId(deputyUserId)) {
+      throw new AppError(400, 'مسؤول الحضور غير صالح');
+    }
+    const deputy = await User.findById(deputyUserId).lean();
+    if (!deputy || deputy.role !== 'student' || deputy.status !== 'active') {
+      throw new AppError(400, 'مسؤول الحضور يجب أن يكون طالباً نشطاً');
+    }
+    const accepted = await Application.findOne({
+      opportunity: opportunity._id,
+      user: deputy._id,
+      status: 'accepted',
+    }).lean();
+    if (!accepted) {
+      throw new AppError(400, 'مسؤول الحضور يجب أن يكون من المقبولين في هذه الفرصة');
+    }
+  }
+
+  const updated = await Opportunity.findByIdAndUpdate(
+    opportunity._id,
+    {
+      $set: {
+        attendanceDeputy: deputyUserId
+          ? new mongoose.Types.ObjectId(deputyUserId)
+          : null,
+      },
+    },
+    { returnDocument: 'after', runValidators: true }
+  ).lean<OpportunityLean>();
+  if (!updated) {
+    throw new AppError(404, 'الفرصة التطوعية غير موجودة');
+  }
+  return decorateOpportunity(updated);
 }
 
 function assertEditableStatus(opportunity: OpportunityLean): void {

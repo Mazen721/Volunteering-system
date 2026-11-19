@@ -30,8 +30,17 @@ export const manualCheckInSchema = z.object({
   attended: z.boolean({ error: 'حالة الحضور مطلوبة' }),
 });
 
+export const assignDeputySchema = z.object({
+  deputyUserId: z
+    .string({ error: 'معرف مسؤول الحضور غير صالح' })
+    .trim()
+    .min(1, 'معرف مسؤول الحضور غير صالح')
+    .nullable(),
+});
+
 export type ApplicationApplyInput = z.infer<typeof applicationApplySchema>;
 export type ApplicationDecisionStatus = (typeof DECISION_STATUSES)[number];
 export type ApplicationDecisionInput = z.infer<typeof applicationDecisionSchema>;
 export type CheckInSubmitInput = z.infer<typeof checkInSubmitSchema>;
 export type ManualCheckInInput = z.infer<typeof manualCheckInSchema>;
+export type AssignDeputyInput = z.infer<typeof assignDeputySchema>;

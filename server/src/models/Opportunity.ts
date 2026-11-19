@@ -47,6 +47,7 @@ export interface OpportunityDoc {
   approvalMode: ApprovalMode;
   status: OpportunityStatus;
   createdBy: mongoose.Types.ObjectId;
+  attendanceDeputy: mongoose.Types.ObjectId | null;
 }
 
 export interface OpportunityLean extends OpportunityDoc {
@@ -237,6 +238,11 @@ const opportunitySchema = new mongoose.Schema<OpportunityDoc>(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
+    },
+    attendanceDeputy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
     },
   },
   { timestamps: true }
