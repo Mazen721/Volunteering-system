@@ -14,6 +14,7 @@ import { CertificateBucketsCard } from '../components/dashboard/CertificateBucke
 import { DashboardErrorState } from '../components/dashboard/DashboardErrorState';
 import { EngagementDonutChart } from '../components/dashboard/EngagementDonutChart';
 import { EventEfficiencyCard } from '../components/dashboard/EventEfficiencyCard';
+import { DeanFacultyCard } from '../components/dashboard/DeanFacultyCard';
 import { FacultyChart } from '../components/dashboard/FacultyChart';
 import { FacultyComparisonChart } from '../components/dashboard/FacultyComparisonChart';
 import { KpiGrid } from '../components/dashboard/KpiGrid';
@@ -323,7 +324,11 @@ export function DashboardPage() {
             )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
-              <FacultyChart faculties={faculties} />
+              {isDean ? (
+                <DeanFacultyCard faculties={faculties} />
+              ) : (
+                <FacultyChart faculties={faculties} />
+              )}
               <LeaderboardCard
                 volunteers={leaderboard}
                 certificateHours={certificateHours}
