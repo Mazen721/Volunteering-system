@@ -143,82 +143,102 @@ export function buildVolunteerStatsStages(
   return stages;
 }
 
-interface VolunteerGroupRow {
-  _id: string;
-  volunteerCount: number;
-}
-
-interface ActivityGroupRow {
-  _id: string;
+interface ActivityByVolunteerRow {
+  _id: mongoose.Types.ObjectId;
   totalActivities: number;
   approvedActivities: number;
   approvedHours: number;
+}
+
+/**
+ * In-flight deduplication for the staff statistics getters: concurrent
+ * identical computations share one promise instead of running the same
+ * aggregations in parallel. Nothing is cached once a computation settles —
+ * the entry is removed in `finally`, so results are never stale and a
+ * rejected computation never stays stuck for the next caller.
+ */
+const statsInFlight = new Map<string, Promise<unknown>>();
+
+function dedupStats<T>(key: string, run: () => Promise<T>): Promise<T> {
+  const existing = statsInFlight.get(key) as Promise<T> | undefined;
+  if (existing) {
+    return existing;
+  }
+  const promise = run().finally(() => {
+    statsInFlight.delete(key);
+  });
+  statsInFlight.set(key, promise);
+  return promise;
+}
+
+function statsScopeKey(name: string, scope: ScopeFilter): string {
+  return `${name}:${scope.faculty ?? 'all'}`;
 }
 
 async function aggregateGroupedStats(
   groupField: 'faculty' | 'category',
   scope: ScopeFilter = {}
 ): Promise<Map<string, GroupMetrics>> {
-  const volunteerPipeline: PipelineStage[] = [];
+  const volunteerFilter: Record<string, unknown> = {};
   if (scope.faculty) {
-    volunteerPipeline.push({ $match: { faculty: scope.faculty } });
+    volunteerFilter.faculty = scope.faculty;
   }
-  volunteerPipeline.push({ $group: { _id: `$${groupField}`, volunteerCount: { $sum: 1 } } });
 
-  const activityPipeline: PipelineStage[] = [
-    {
-      $lookup: {
-        from: 'volunteers',
-        localField: 'volunteer',
-        foreignField: '_id',
-        as: 'volunteerDoc',
+  // Group activities by volunteer inside MongoDB (one indexed pass, no
+  // $lookup join over the whole activities collection), then roll the
+  // per-volunteer totals up to faculty/category in memory through a
+  // volunteer -> group map. Results are identical to the previous
+  // join-then-group pipeline: activities whose volunteer is out of scope
+  // (or deleted) are excluded, exactly as $unwind dropped them.
+  const [volunteers, activityRows] = await Promise.all([
+    Volunteer.find(volunteerFilter)
+      .select(groupField)
+      .lean<{ _id: mongoose.Types.ObjectId; faculty?: string; category?: string }[]>(),
+    Activity.aggregate<ActivityByVolunteerRow>([
+      {
+        $group: {
+          _id: '$volunteer',
+          totalActivities: { $sum: 1 },
+          approvedActivities: {
+            $sum: { $cond: [{ $eq: ['$status', 'approved'] }, 1, 0] },
+          },
+          approvedHours: {
+            $sum: { $cond: [{ $eq: ['$status', 'approved'] }, '$hours', 0] },
+          },
+        },
       },
-    },
-    { $unwind: '$volunteerDoc' },
-  ];
-  if (scope.faculty) {
-    activityPipeline.push({ $match: { 'volunteerDoc.faculty': scope.faculty } });
-  }
-  activityPipeline.push({
-    $group: {
-      _id: `$volunteerDoc.${groupField}`,
-      totalActivities: { $sum: 1 },
-      approvedActivities: {
-        $sum: { $cond: [{ $eq: ['$status', 'approved'] }, 1, 0] },
-      },
-      approvedHours: {
-        $sum: { $cond: [{ $eq: ['$status', 'approved'] }, '$hours', 0] },
-      },
-    },
-  });
-
-  const [volunteerGroups, activityGroups] = await Promise.all([
-    Volunteer.aggregate<VolunteerGroupRow>(volunteerPipeline),
-    Activity.aggregate<ActivityGroupRow>(activityPipeline),
+    ]),
   ]);
 
+  const groupByVolunteerId = new Map<string, string>();
   const statsByKey = new Map<string, GroupMetrics>();
-  for (const row of volunteerGroups) {
-    statsByKey.set(row._id, {
-      volunteerCount: row.volunteerCount,
-      totalActivities: 0,
-      approvedActivities: 0,
-      approvedHours: 0,
-    });
+  for (const volunteer of volunteers) {
+    const key = volunteer[groupField] as string;
+    groupByVolunteerId.set(String(volunteer._id), key);
+    const existing = statsByKey.get(key);
+    if (existing) {
+      existing.volunteerCount += 1;
+    } else {
+      statsByKey.set(key, {
+        volunteerCount: 1,
+        totalActivities: 0,
+        approvedActivities: 0,
+        approvedHours: 0,
+      });
+    }
   }
-  for (const row of activityGroups) {
-    const existing = statsByKey.get(row._id) || {
-      volunteerCount: 0,
-      totalActivities: 0,
-      approvedActivities: 0,
-      approvedHours: 0,
-    };
-    statsByKey.set(row._id, {
-      ...existing,
-      totalActivities: row.totalActivities,
-      approvedActivities: row.approvedActivities,
-      approvedHours: row.approvedHours,
-    });
+  for (const row of activityRows) {
+    const key = groupByVolunteerId.get(String(row._id));
+    if (key === undefined) {
+      continue;
+    }
+    const existing = statsByKey.get(key);
+    if (!existing) {
+      continue;
+    }
+    existing.totalActivities += row.totalActivities;
+    existing.approvedActivities += row.approvedActivities;
+    existing.approvedHours += row.approvedHours;
   }
 
   return statsByKey;
@@ -416,6 +436,10 @@ async function aggregateActivityOverviewTotals(
 }
 
 export async function getOverviewStats(scope: ScopeFilter = {}): Promise<OverviewStats> {
+  return dedupStats(statsScopeKey('overview', scope), () => computeOverviewStats(scope));
+}
+
+async function computeOverviewStats(scope: ScopeFilter = {}): Promise<OverviewStats> {
   const [certificateHours, activityScopeFilter] = await Promise.all([
     getCertificateHours(),
     scopeActivities(scope),
@@ -497,31 +521,45 @@ export interface FacultyStatsResponse {
 async function aggregateActiveVolunteersByFaculty(
   scope: ScopeFilter = {}
 ): Promise<Map<string, number>> {
-  const pipeline: PipelineStage[] = [
-    { $match: { status: 'approved' } },
-    {
-      $lookup: {
-        from: 'volunteers',
-        localField: 'volunteer',
-        foreignField: '_id',
-        as: 'volunteerDoc',
-      },
-    },
-    { $unwind: '$volunteerDoc' },
-  ];
+  const volunteerFilter: Record<string, unknown> = {};
   if (scope.faculty) {
-    pipeline.push({ $match: { 'volunteerDoc.faculty': scope.faculty } });
+    volunteerFilter.faculty = scope.faculty;
   }
-  pipeline.push(
-    { $group: { _id: { faculty: '$volunteerDoc.faculty', volunteer: '$volunteer' } } },
-    { $group: { _id: '$_id.faculty', activeVolunteers: { $sum: 1 } } }
-  );
 
-  const rows = await Activity.aggregate<{ _id: string; activeVolunteers: number }>(pipeline);
-  return new Map(rows.map((row) => [row._id, row.activeVolunteers]));
+  // Distinct volunteers with at least one approved activity, counted per
+  // faculty — computed without joining every approved activity to its
+  // volunteer document: group approved activities by volunteer in MongoDB,
+  // then map each volunteer to his faculty in memory.
+  const [volunteers, activeRows] = await Promise.all([
+    Volunteer.find(volunteerFilter)
+      .select('faculty')
+      .lean<{ _id: mongoose.Types.ObjectId; faculty?: string }[]>(),
+    Activity.aggregate<{ _id: mongoose.Types.ObjectId }>([
+      { $match: { status: 'approved' } },
+      { $group: { _id: '$volunteer' } },
+    ]),
+  ]);
+
+  const facultyByVolunteerId = new Map<string, string>();
+  for (const volunteer of volunteers) {
+    facultyByVolunteerId.set(String(volunteer._id), volunteer.faculty as string);
+  }
+  const counts = new Map<string, number>();
+  for (const row of activeRows) {
+    const faculty = facultyByVolunteerId.get(String(row._id));
+    if (faculty === undefined) {
+      continue;
+    }
+    counts.set(faculty, (counts.get(faculty) ?? 0) + 1);
+  }
+  return counts;
 }
 
 export async function getFacultyStats(scope: ScopeFilter = {}): Promise<FacultyStatsResponse> {
+  return dedupStats(statsScopeKey('faculties', scope), () => computeFacultyStats(scope));
+}
+
+async function computeFacultyStats(scope: ScopeFilter = {}): Promise<FacultyStatsResponse> {
   const [statsByFaculty, activeByFaculty] = await Promise.all([
     aggregateGroupedStats('faculty', scope),
     aggregateActiveVolunteersByFaculty(scope),
@@ -570,6 +608,10 @@ export interface CategoryStatsResponse {
 }
 
 export async function getCategoryStats(scope: ScopeFilter = {}): Promise<CategoryStatsResponse> {
+  return dedupStats(statsScopeKey('categories', scope), () => computeCategoryStats(scope));
+}
+
+async function computeCategoryStats(scope: ScopeFilter = {}): Promise<CategoryStatsResponse> {
   const statsByCategory = await aggregateGroupedStats('category', scope);
   const categories = CATEGORIES.map((category) => {
     const metrics = statsByCategory.get(category) || {
@@ -604,6 +646,14 @@ export interface LeaderboardResponse {
 }
 
 export async function getLeaderboard(
+  options: LeaderboardOptions = {},
+  scope: ScopeFilter = {}
+): Promise<LeaderboardResponse> {
+  const key = `${statsScopeKey('leaderboard', scope)}:${options.category ?? ''}:${options.limit ?? ''}`;
+  return dedupStats(key, () => computeLeaderboard(options, scope));
+}
+
+async function computeLeaderboard(
   { category, limit = 5 }: LeaderboardOptions = {},
   scope: ScopeFilter = {}
 ): Promise<LeaderboardResponse> {
@@ -806,6 +856,12 @@ async function aggregateCompletedNoShowCount(
 export async function getParticipationStats(
   scope: ScopeFilter = {}
 ): Promise<ParticipationStatsResponse> {
+  return dedupStats(statsScopeKey('participation', scope), () => computeParticipationStats(scope));
+}
+
+async function computeParticipationStats(
+  scope: ScopeFilter = {}
+): Promise<ParticipationStatsResponse> {
   const [certificateHours, activityScopeFilter] = await Promise.all([
     getCertificateHours(),
     scopeActivities(scope),
@@ -897,6 +953,10 @@ function buildEventEfficiencyRow(
  * Returns top events by attendance plus slot fill rate and no-show rate per completed opportunity.
  */
 export async function getEventStats(scope: ScopeFilter = {}): Promise<EventStatsResponse> {
+  return dedupStats(statsScopeKey('events', scope), () => computeEventStats(scope));
+}
+
+async function computeEventStats(scope: ScopeFilter = {}): Promise<EventStatsResponse> {
   const opportunityFilter = {
     status: { $in: ['published', 'completed'] as OpportunityStatus[] },
     ...(scope.faculty ? { faculty: scope.faculty } : {}),
@@ -1014,6 +1074,10 @@ function formatCairoMonthLabel(yearMonth: string): string {
  * Returns monthly approved volunteer hours grouped in Africa/Cairo time.
  */
 export async function getMonthlyHoursStats(scope: ScopeFilter = {}): Promise<MonthlyHoursResponse> {
+  return dedupStats(statsScopeKey('monthly-hours', scope), () => computeMonthlyHoursStats(scope));
+}
+
+async function computeMonthlyHoursStats(scope: ScopeFilter = {}): Promise<MonthlyHoursResponse> {
   const activityScopeFilter = await scopeActivities(scope);
   const rows = await Activity.aggregate<{
     _id: string;

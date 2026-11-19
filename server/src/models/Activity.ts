@@ -87,6 +87,9 @@ const activitySchema = new mongoose.Schema<ActivityDoc>(
 );
 
 activitySchema.index({ volunteer: 1, title: 1, date: 1 });
+// Serves the status-first aggregations (approved-hours rollups, active
+// volunteers) without scanning the whole collection.
+activitySchema.index({ status: 1, volunteer: 1 });
 // Partial unique index guarantees idempotent hour crediting per application while allowing manual activities with null.
 activitySchema.index(
   { application: 1 },
