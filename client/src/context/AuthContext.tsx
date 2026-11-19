@@ -13,6 +13,7 @@ import type {
   Admin,
   AuthStatus,
   AuthUser,
+  DemoAccount,
   LoginCredentials,
   RegisterPayload,
   UpdateProfilePayload,
@@ -146,6 +147,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
     [applySessionResult]
   );
 
+  const loginDemo = useCallback(
+    async (account: DemoAccount) => {
+      const response = await apiClient.post<LoginPayload>('/auth/demo-login', { account });
+      const authenticatedUser = normalizeAuthUser(response.data);
+      if (!authenticatedUser) {
+        throw new Error('Missing authenticated user payload');
+      }
+      setStoredToken(response.data.token);
+      applySessionResult({ status: 'authenticated', user: authenticatedUser, error: '' });
+      return authenticatedUser;
+    },
+    [applySessionResult]
+  );
+
   const register = useCallback(
     async (payload: RegisterPayload) => {
       const response = await apiClient.post<LoginPayload>('/auth/register', payload);
@@ -182,12 +197,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
       status,
       sessionError,
       login,
+      loginDemo,
       register,
       updateProfile,
       logout,
       retrySession,
     };
-  }, [user, status, sessionError, login, register, updateProfile, logout, retrySession]);
+  }, [user, status, sessionError, login, loginDemo, register, updateProfile, logout, retrySession]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

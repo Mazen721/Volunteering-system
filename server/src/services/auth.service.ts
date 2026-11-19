@@ -4,7 +4,11 @@ import type { Faculty, InterestKey, UserRole, UserStatus } from '../constants/en
 import type { RegistrationSnapshot, UserLean } from '../models/User.js';
 import { User } from '../models/User.js';
 import { AppError } from '../utils/errors.js';
-import type { LoginInput, UpdateProfileInput } from '../validators/auth.schema.js';
+import type {
+  DemoLoginInput,
+  LoginInput,
+  UpdateProfileInput,
+} from '../validators/auth.schema.js';
 
 export interface PublicUser {
   id: string;
@@ -67,6 +71,20 @@ export function signAuthToken(user: PublicUser, jwtSecret: string): string {
 }
 
 /**
+ * Stamps lastLoginAt and issues the standard login payload for an already-verified user.
+ */
+async function issueLoginResult(user: UserLean, jwtSecret: string): Promise<LoginResult> {
+  const now = new Date();
+  await User.updateOne({ _id: user._id }, { $set: { lastLoginAt: now } });
+
+  const serialized = serializeUser({ ...user, lastLoginAt: now });
+  const token = signAuthToken(serialized, jwtSecret);
+  const admin = buildAdminCompat(serialized);
+
+  return admin ? { token, user: serialized, admin } : { token, user: serialized };
+}
+
+/**
  * Authenticates a user by email and password, updates lastLoginAt, and issues a role-scoped JWT.
  */
 export async function loginWithCredentials(
@@ -88,14 +106,42 @@ export async function loginWithCredentials(
     throw new AppError(403, 'تم تعطيل الحساب');
   }
 
-  const now = new Date();
-  await User.updateOne({ _id: user._id }, { $set: { lastLoginAt: now } });
+  return issueLoginResult(user, jwtSecret);
+}
 
-  const serialized = serializeUser({ ...user, lastLoginAt: now });
-  const token = signAuthToken(serialized, jwtSecret);
-  const admin = buildAdminCompat(serialized);
+/** Seeded showcase accounts offered by the one-click demo login, one per role. */
+export const DEMO_LOGIN_EMAILS: Record<DemoLoginInput['account'], string> = {
+  admin: 'admin@mnu.edu.eg',
+  dean: 'medicine.dean@mnu.edu.eg',
+  student: 'ahmed.student@mnu.edu.eg',
+};
 
-  return admin ? { token, user: serialized, admin } : { token, user: serialized };
+/**
+ * Demo login is an explicit opt-in for showcases: it stays off unless the
+ * deployment sets ENABLE_DEMO_LOGIN=true, and should be turned off afterwards.
+ */
+export function isDemoLoginEnabled(): boolean {
+  return process.env.ENABLE_DEMO_LOGIN === 'true';
+}
+
+/**
+ * Issues a session for one of the seeded demo accounts without a password.
+ * Only reachable when demo login is enabled (the route enforces the flag).
+ */
+export async function loginWithDemoAccount(
+  account: DemoLoginInput['account'],
+  jwtSecret: string
+): Promise<LoginResult> {
+  const user = await User.findOne({ email: DEMO_LOGIN_EMAILS[account] }).lean<UserLean>();
+  if (!user) {
+    throw new AppError(404, 'الحساب التجريبي غير موجود');
+  }
+
+  if (user.status === 'disabled') {
+    throw new AppError(403, 'تم تعطيل الحساب');
+  }
+
+  return issueLoginResult(user, jwtSecret);
 }
 
 /**

@@ -67,7 +67,8 @@ apiClient.interceptors.response.use(
   (error: unknown) => {
     if (axios.isAxiosError(error)) {
       const requestUrl = error.config?.url || '';
-      const isLoginRequest = requestUrl.endsWith('/auth/login');
+      const isLoginRequest =
+        requestUrl.endsWith('/auth/login') || requestUrl.endsWith('/auth/demo-login');
       if (error.response?.status === 401 && !isLoginRequest) {
         clearStoredToken();
         if (unauthorizedHandler) {

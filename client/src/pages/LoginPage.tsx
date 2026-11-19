@@ -1,12 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ComponentType, FormEvent } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { AlertCircle, Lock, Mail } from 'lucide-react';
-import { extractApiErrorMessage } from '../api/client';
+import { AlertCircle, GraduationCap, Lock, Mail, Shield, UserRound } from 'lucide-react';
+import { apiClient, extractApiErrorMessage } from '../api/client';
 import { UniversityLogo } from '../components/UniversityLogo';
 import { AR } from '../constants/ar';
 import { getHomePathForUser, useAuth } from '../context/authContext';
-import type { AuthUser } from '../types';
+import type { AuthUser, DemoAccount } from '../types';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -96,11 +96,21 @@ function resolvePostLoginPath(user: AuthUser, fromPath?: string): string {
   return fromPath;
 }
 
+const DEMO_BUTTONS: {
+  account: DemoAccount;
+  label: string;
+  Icon: ComponentType<LoginFieldIconProps>;
+}[] = [
+  { account: 'admin', label: AR.auth.demoAdmin, Icon: Shield },
+  { account: 'dean', label: AR.auth.demoDean, Icon: GraduationCap },
+  { account: 'student', label: AR.auth.demoStudent, Icon: UserRound },
+];
+
 /**
  * Login page with Arabic client validation and role-aware redirect after JWT authentication.
  */
 export function LoginPage() {
-  const { user, status, login } = useAuth();
+  const { user, status, login, loginDemo } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const routeState = location.state as { from?: { pathname?: string } } | null;
@@ -110,6 +120,29 @@ export function LoginPage() {
   const [fieldErrors, setFieldErrors] = useState<LoginFieldErrors>({});
   const [submitError, setSubmitError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [demoEnabled, setDemoEnabled] = useState(false);
+  const [demoBusy, setDemoBusy] = useState<DemoAccount | null>(null);
+
+  // The one-click demo buttons render only when the deployment opted in
+  // (server-side ENABLE_DEMO_LOGIN); any probe failure keeps them hidden.
+  useEffect(() => {
+    let cancelled = false;
+    apiClient
+      .get<{ enabled: boolean }>('/auth/demo-login')
+      .then((response) => {
+        if (!cancelled) {
+          setDemoEnabled(Boolean(response.data.enabled));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setDemoEnabled(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   if (status === 'authenticated' && user) {
     return <Navigate to={resolvePostLoginPath(user, routeState?.from?.pathname)} replace />;
@@ -135,6 +168,21 @@ export function LoginPage() {
       setSubmitError(extractApiErrorMessage(error));
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleDemoLogin(account: DemoAccount) {
+    setSubmitError('');
+    setDemoBusy(account);
+    try {
+      const authenticatedUser = await loginDemo(account);
+      navigate(resolvePostLoginPath(authenticatedUser, routeState?.from?.pathname), {
+        replace: true,
+      });
+    } catch (error) {
+      setSubmitError(extractApiErrorMessage(error));
+    } finally {
+      setDemoBusy(null);
     }
   }
 
@@ -196,6 +244,30 @@ export function LoginPage() {
             {submitting ? AR.auth.loggingIn : AR.auth.submitLogin}
           </button>
         </form>
+
+        {demoEnabled && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <span className="h-px flex-1 bg-slate-200/80" />
+              <span className="text-[11px] font-bold text-slate-500">{AR.auth.demoTitle}</span>
+              <span className="h-px flex-1 bg-slate-200/80" />
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {DEMO_BUTTONS.map(({ account, label, Icon }) => (
+                <button
+                  key={account}
+                  type="button"
+                  onClick={() => handleDemoLogin(account)}
+                  disabled={demoBusy !== null || submitting}
+                  className="flex flex-col items-center gap-1.5 rounded-2xl border border-slate-200 bg-white/70 py-3 text-[11px] font-extrabold text-slate-700 transition hover:border-mnu-500/50 hover:text-mnu-600 disabled:opacity-60 cursor-pointer"
+                >
+                  <Icon className="w-5 h-5" />
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <p className="text-center text-xs text-slate-600 pt-2 border-t border-slate-200/70">
           {AR.auth.noAccountPrompt}{' '}

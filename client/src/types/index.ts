@@ -95,12 +95,15 @@ export interface RegistrationsListResponse {
   pages: number;
 }
 
+export type DemoAccount = 'admin' | 'dean' | 'student';
+
 export interface AuthContextValue {
   user: AuthUser | null;
   admin: Admin | null;
   status: AuthStatus;
   sessionError: string;
   login: (credentials: LoginCredentials) => Promise<AuthUser>;
+  loginDemo: (account: DemoAccount) => Promise<AuthUser>;
   register: (payload: RegisterPayload) => Promise<AuthUser>;
   updateProfile: (payload: UpdateProfilePayload) => Promise<AuthUser>;
   logout: () => void;

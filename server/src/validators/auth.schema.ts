@@ -74,6 +74,11 @@ export const updateProfileSchema = z
     }
   });
 
+export const demoLoginSchema = z.object({
+  account: z.enum(['admin', 'dean', 'student'], { error: 'الحساب التجريبي غير صالح' }),
+});
+
 export type LoginInput = z.infer<typeof loginSchema>;
+export type DemoLoginInput = z.infer<typeof demoLoginSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
