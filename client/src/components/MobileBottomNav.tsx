@@ -15,7 +15,10 @@ const STAFF_PRIMARY_PATHS = ['/', '/volunteers', '/approvals', '/opportunities/m
 const APPROVALS_PATH = '/approvals';
 
 function dockItemClass({ isActive }: { isActive: boolean }): string {
-  return `relative flex flex-col items-center justify-center gap-1 rounded-[20px] px-2 py-2 text-[10px] font-bold transition active:scale-95 ${
+  // flex-1 + min-w-0: the five items always share the bar equally, so the
+  // last one can never be pushed off-screen on narrow phones (the staff
+  // labels are long — «الفرص التطوعية» alone is ~87px at 10px font).
+  return `relative flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-[20px] px-1 py-2 text-[9px] font-bold transition active:scale-95 ${
     isActive ? 'bg-mnu-gold text-mnu-700 shadow-md' : 'text-white/55 hover:text-white'
   }`;
 }
@@ -40,7 +43,7 @@ function DockItem({
           </span>
         )}
       </span>
-      <span className="whitespace-nowrap">{label}</span>
+      <span className="max-w-full whitespace-nowrap">{label}</span>
     </NavLink>
   );
 }
@@ -118,9 +121,9 @@ export function MobileBottomNav() {
     <>
       <nav
         aria-label={AR.nav.bottomNav}
-        className="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-50 lg:hidden print:hidden"
+        className="fixed inset-x-2 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-50 lg:hidden print:hidden"
       >
-        <div className="flex items-stretch justify-around gap-1 rounded-[28px] bg-mnu-700/95 p-2 shadow-[0_18px_36px_rgba(18,47,74,0.4)] ring-1 ring-white/10 backdrop-blur-md">
+        <div className="flex items-stretch justify-around gap-0.5 rounded-[28px] bg-mnu-700/95 p-1.5 shadow-[0_18px_36px_rgba(18,47,74,0.4)] ring-1 ring-white/10 backdrop-blur-md">
           {primaryItems.map((item) => (
             <DockItem
               key={item.to}
@@ -134,10 +137,10 @@ export function MobileBottomNav() {
               onClick={() => setMoreOpen(true)}
               aria-haspopup="dialog"
               aria-expanded={moreOpen}
-              className="flex flex-col items-center justify-center gap-1 rounded-[20px] px-2 py-2 text-[10px] font-bold text-white/55 transition hover:text-white active:scale-95 cursor-pointer"
+              className="flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-[20px] px-1 py-2 text-[9px] font-bold text-white/55 transition hover:text-white active:scale-95 cursor-pointer"
             >
               <MoreHorizontal className="h-[22px] w-[22px]" />
-              <span className="whitespace-nowrap">{AR.nav.more}</span>
+              <span className="max-w-full whitespace-nowrap">{AR.nav.more}</span>
             </button>
           )}
         </div>
