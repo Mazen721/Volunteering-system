@@ -191,10 +191,12 @@ describe('Phase 3 Mobile Bottom Dock (Concept A)', () => {
     renderAppAt('/approvals', buildUser({ role: 'admin', faculty: null, volunteer: null, registration: null }));
 
     const dock = await getDock();
-    for (const label of [AR.nav.dashboard, AR.nav.volunteers, AR.nav.activities, AR.nav.approvals]) {
+    for (const label of [AR.nav.dashboard, AR.nav.volunteers, AR.nav.opportunities, AR.nav.approvals]) {
       expect(await within(dock).findByRole('link', { name: new RegExp(label) })).toBeInTheDocument();
     }
     // Secondary sections are not in the dock itself — they live in the sheet.
+    // Activities (legacy manual hours) was demoted out of the dock in Phase 4.
+    expect(within(dock).queryByRole('link', { name: new RegExp(AR.nav.activities) })).not.toBeInTheDocument();
     expect(within(dock).queryByRole('link', { name: new RegExp(AR.nav.deans) })).not.toBeInTheDocument();
     expect(within(dock).getByRole('button', { name: AR.nav.more })).toBeInTheDocument();
 
@@ -211,7 +213,7 @@ describe('Phase 3 Mobile Bottom Dock (Concept A)', () => {
     await user.click(await within(dock).findByRole('button', { name: AR.nav.more }));
 
     const dialog = await screen.findByRole('dialog', { name: AR.nav.more });
-    expect(within(dialog).getByRole('link', { name: new RegExp(AR.nav.opportunities) })).toBeInTheDocument();
+    expect(within(dialog).getByRole('link', { name: new RegExp(AR.nav.activities) })).toBeInTheDocument();
     expect(within(dialog).getByRole('link', { name: new RegExp(AR.nav.deans) })).toBeInTheDocument();
     expect(within(dialog).getByRole('link', { name: new RegExp(AR.nav.importExport) })).toBeInTheDocument();
 

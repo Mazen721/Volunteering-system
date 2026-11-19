@@ -8,8 +8,10 @@ import type { RegistrationsListResponse } from '../types';
 import { formatNumber } from '../utils/format';
 import { getNavLinks, type NavLinkItem } from './navLinks';
 
-/** Sections that stay visible in the dean/admin dock; the rest move under «المزيد». */
-const STAFF_PRIMARY_PATHS = ['/', '/volunteers', '/approvals', '/activities'];
+/** Sections that stay visible in the dean/admin dock; the rest move under «المزيد».
+ * Activities (manual hours approval) is legacy since opportunities + check-in took over,
+ * so it lives in «المزيد» at the end; Opportunities Manage is the daily work and is primary. */
+const STAFF_PRIMARY_PATHS = ['/', '/volunteers', '/approvals', '/opportunities/manage'];
 const APPROVALS_PATH = '/approvals';
 
 function dockItemClass({ isActive }: { isActive: boolean }): string {

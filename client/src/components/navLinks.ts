@@ -54,7 +54,6 @@ export function getNavLinks(role: UserRole | undefined): NavLinkItem[] {
     },
     { to: '/', label: AR.nav.dashboard, Icon: LayoutDashboard, end: true, roles: ['admin', 'dean'] },
     { to: '/volunteers', label: AR.nav.volunteers, Icon: Users, end: false, roles: ['admin', 'dean'] },
-    { to: '/activities', label: AR.nav.activities, Icon: ClipboardList, end: true, roles: ['admin', 'dean'] },
     { to: '/opportunities/manage', label: AR.nav.opportunities, Icon: CalendarClock, end: true, roles: ['admin', 'dean'] },
     { to: '/approvals', label: AR.nav.approvals, Icon: UserCheck, end: true, roles: ['admin', 'dean'] },
     { to: '/deans', label: AR.nav.deans, Icon: Shield, end: true, roles: ['admin'] },
@@ -65,6 +64,9 @@ export function getNavLinks(role: UserRole | undefined): NavLinkItem[] {
       end: true,
       roles: ['admin', 'dean'],
     },
+    // Manual activities / hours approval is legacy since opportunities + live check-in
+    // took over, so it sits last for staff on both desktop and mobile.
+    { to: '/activities', label: AR.nav.activities, Icon: ClipboardList, end: true, roles: ['admin', 'dean'] },
   ];
   return allLinks.filter((item) => item.roles.includes(effectiveRole));
 }

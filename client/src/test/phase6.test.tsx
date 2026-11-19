@@ -181,24 +181,19 @@ describe('Phase 6 UI edge cases', () => {
     expect(screen.getByRole('button', { name: AR.volunteers.certificateLocked })).toBeDisabled();
   });
 
-  it('displays_409_arabic_error_and_keeps_modal_open_on_duplicate_volunteer_id', async () => {
+  it('hides_manual_creation_and_locks_volunteer_id_in_edit_modal', async () => {
     const user = userEvent.setup();
     renderAuthenticatedRoute('/volunteers');
     await screen.findByText('سلمى حسام الدين');
 
-    await user.click(screen.getByRole('button', { name: AR.volunteers.addVolunteerBtn }));
+    // Phase 4: there is no manual creation any more, so a duplicate ID can no
+    // longer be created from this page at all — students self-register instead.
+    expect(screen.queryByRole('button', { name: AR.volunteers.addVolunteerBtn })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: AR.volunteers.addActivityBtn })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: `${AR.common.edit} سلمى حسام الدين` }));
     const dialog = screen.getByRole('dialog');
-
-    await user.type(within(dialog).getByLabelText(AR.volunteerModal.idLabel), '20260030');
-    await user.type(within(dialog).getByLabelText(AR.volunteerModal.nameLabel), 'اسم مكرر');
-    await user.selectOptions(
-      within(dialog).getByLabelText(AR.volunteerModal.facultyLabel),
-      'كلية الهندسة'
-    );
-    await user.click(within(dialog).getByRole('button', { name: AR.common.save }));
-
-    const alert = await within(dialog).findByRole('alert');
-    expect(alert).toHaveTextContent('الرقم التعريفي للمتطوع مسجل مسبقاً');
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    // The ID is locked in edit mode, so it cannot be changed into a duplicate either.
+    expect(within(dialog).getByLabelText(AR.volunteerModal.idLabel)).toBeDisabled();
   });
 });

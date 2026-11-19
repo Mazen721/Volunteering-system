@@ -184,18 +184,18 @@ describe('Phase V2-3 Dean Scoping, Deans Management & Certificate Role Guards', 
     expect(screen.queryByRole('link', { name: AR.nav.deans })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: AR.nav.exportOnly })).toBeInTheDocument();
 
-    // Open Add Volunteer modal: faculty is locked, not a dropdown
-    await user.click(screen.getByRole('button', { name: AR.volunteers.addVolunteerBtn }));
+    // Manual creation is gone in Phase 4 (students self-register), so open the Edit
+    // Volunteer modal instead: faculty is still locked for a dean, not a dropdown.
+    expect(screen.queryByRole('button', { name: AR.volunteers.addVolunteerBtn })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: `${AR.common.edit} أحمد محمد علي` }));
     const dialog = screen.getByRole('dialog');
     expect(within(dialog).getByText(FACULTY_A)).toBeInTheDocument();
     expect(within(dialog).queryByRole('combobox', { name: AR.volunteerModal.facultyLabel })).not.toBeInTheDocument();
 
-    await user.type(within(dialog).getByLabelText(AR.volunteerModal.idLabel), '20260099');
-    await user.type(within(dialog).getByLabelText(AR.volunteerModal.nameLabel), 'سلمى مصطفى');
-    await user.click(within(dialog).getByRole('button', { name: AR.common.save }));
-
+    await user.click(within(dialog).getByRole('button', { name: AR.common.cancel }));
     await waitForModalClose();
-    expect(lastCreateVolunteerBody?.faculty).toBe(FACULTY_A);
+    // Editing never goes through the creation endpoint.
+    expect(lastCreateVolunteerBody).toBeNull();
 
     // Reset linked student's temporary password
     await user.click(screen.getByRole('button', { name: `${AR.volunteers.resetPassword} أحمد محمد علي` }));

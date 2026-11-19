@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import {
   AlertTriangle,
   ClipboardList,
-  ClipboardPlus,
   FolderOpen,
   Pencil,
   RefreshCw,
@@ -486,14 +485,6 @@ export function ActivitiesPage() {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setModalState({ open: true, activity: null })}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition shadow-md cursor-pointer"
-            >
-              <ClipboardPlus className="w-4 h-4" />
-              <span>{AR.activitiesPage.addActivityBtn}</span>
-            </button>
           </div>
 
           <ActivitiesFilterBar

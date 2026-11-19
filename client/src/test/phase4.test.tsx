@@ -189,6 +189,19 @@ const mswServer = setupServer(
     return HttpResponse.json({ volunteer: created }, { status: 201 });
   }),
 
+  http.put(`${API_BASE}/volunteers/:volunteerId`, async ({ params, request }) => {
+    const volunteerId = String(params.volunteerId);
+    const body = (await request.json()) as VolunteerInput;
+    const target = store.volunteers.find((v) => v.volunteerId === volunteerId);
+    if (!target) {
+      return HttpResponse.json({ message: 'المتطوع غير موجود' }, { status: 404 });
+    }
+    target.fullName = body.fullName;
+    target.category = body.category;
+    target.faculty = body.faculty;
+    return HttpResponse.json({ volunteer: recomputeVolunteer(target) });
+  }),
+
   http.delete(`${API_BASE}/volunteers/:volunteerId`, ({ params }) => {
     const volunteerId = String(params.volunteerId);
     deleteCallCount += 1;
@@ -283,42 +296,41 @@ function renderAuthenticatedRoute(routePath: string) {
 }
 
 describe('Phase 4 Volunteers, Activities, Profile, and Import/Export', () => {
-  it('adds_volunteer_with_special_xss_characters_safely_and_displays_arabic_ui', async () => {
+  it('edits_volunteer_with_special_xss_characters_safely_and_displays_arabic_ui', async () => {
     const user = userEvent.setup();
     renderAuthenticatedRoute('/volunteers');
 
     await screen.findByText('أحمد محمد علي');
     expect(document.body.textContent).not.toMatch(/[A-Za-z]/);
 
-    await user.click(screen.getByRole('button', { name: AR.volunteers.addVolunteerBtn }));
+    // Phase 4: manual creation buttons are gone — students self-register instead.
+    expect(screen.queryByRole('button', { name: AR.volunteers.addVolunteerBtn })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: AR.volunteers.addActivityBtn })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: `${AR.common.edit} أحمد محمد علي` }));
 
     const dialog = screen.getByRole('dialog');
     const maliciousName = "سارة ' <script>alert(1)</script>";
-    await user.type(within(dialog).getByLabelText(AR.volunteerModal.idLabel), '20260099');
-    await user.type(within(dialog).getByLabelText(AR.volunteerModal.nameLabel), maliciousName);
-    await user.selectOptions(
-      within(dialog).getByLabelText(AR.volunteerModal.facultyLabel),
-      'كلية الهندسة'
-    );
+    const nameInput = within(dialog).getByLabelText(AR.volunteerModal.nameLabel);
+    await user.clear(nameInput);
+    await user.type(nameInput, maliciousName);
     await user.click(within(dialog).getByRole('button', { name: AR.common.save }));
 
     expect(await screen.findByText(maliciousName)).toBeInTheDocument();
   });
 
-  it('looks_up_volunteer_read_only_in_activity_modal_and_rejects_unknown_id', async () => {
+  it('shows_volunteer_read_only_in_activity_modal_from_profile', async () => {
     const user = userEvent.setup();
-    renderAuthenticatedRoute('/volunteers');
-    await screen.findByText('أحمد محمد علي');
+    renderAuthenticatedRoute('/volunteers/20260001');
+    await screen.findByRole('heading', { name: 'أحمد محمد علي' });
 
-    await user.click(screen.getByRole('button', { name: AR.volunteers.addActivityBtn }));
+    // The volunteers-list creation entry is gone; the per-volunteer profile entry
+    // remains and locks the volunteer instead of asking for a lookup.
+    await user.click(screen.getByRole('button', { name: AR.profile.addActivityForVolunteer }));
     const dialog = screen.getByRole('dialog');
     const idInput = within(dialog).getByLabelText(AR.activityModal.volunteerIdLabel);
-
-    await user.type(idInput, '99999999');
-    expect(await within(dialog).findByText('المتطوع غير موجود')).toBeInTheDocument();
-
-    await user.clear(idInput);
-    await user.type(idInput, '20260001');
+    expect(idInput).toBeDisabled();
+    expect(idInput).toHaveValue('20260001');
     expect(
       await within(dialog).findByText(AR.activityModal.volunteerFoundNotice)
     ).toBeInTheDocument();
@@ -334,13 +346,12 @@ describe('Phase 4 Volunteers, Activities, Profile, and Import/Export', () => {
     'rejects_invalid_activity_form_input(%s)_with_arabic_message',
     async (_case, title, hours, dateVal, supervisor, expectedError) => {
       const user = userEvent.setup();
-      renderAuthenticatedRoute('/volunteers');
-      await screen.findByText('أحمد محمد علي');
+      renderAuthenticatedRoute('/volunteers/20260001');
+      await screen.findByRole('heading', { name: 'أحمد محمد علي' });
 
-      await user.click(screen.getByRole('button', { name: AR.volunteers.addActivityBtn }));
+      await user.click(screen.getByRole('button', { name: AR.profile.addActivityForVolunteer }));
       const dialog = screen.getByRole('dialog');
 
-      await user.type(within(dialog).getByLabelText(AR.activityModal.volunteerIdLabel), '20260001');
       await within(dialog).findByText(AR.activityModal.volunteerFoundNotice);
 
       if (title) {

@@ -1,9 +1,8 @@
 import { useState } from 'react';
-import { AlertTriangle, ClipboardPlus, RefreshCw, UserPlus } from 'lucide-react';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { apiClient, extractApiErrorMessage } from '../api/client';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { Navbar } from '../components/Navbar';
-import { ActivityModal } from '../components/modals/ActivityModal';
 import type { ResetPasswordTarget } from '../components/modals/ResetPasswordModal';
 import { ResetPasswordModal } from '../components/modals/ResetPasswordModal';
 import { VolunteerModal } from '../components/modals/VolunteerModal';
@@ -46,7 +45,6 @@ export function VolunteersPage() {
     open: false,
     volunteer: null,
   });
-  const [activityModalOpen, setActivityModalOpen] = useState(false);
   const [volunteerToDelete, setVolunteerToDelete] = useState<Volunteer | null>(null);
   const [resetTarget, setResetTarget] = useState<ResetPasswordTarget | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -85,24 +83,6 @@ export function VolunteersPage() {
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2.5">
-              <button
-                type="button"
-                onClick={() => setVolunteerModalState({ open: true, volunteer: null })}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-mnu-500 hover:bg-mnu-600 text-white text-xs font-bold transition shadow-md cursor-pointer"
-              >
-                <UserPlus className="w-4 h-4" />
-                <span>{AR.volunteers.addVolunteerBtn}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setActivityModalOpen(true)}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition shadow-md cursor-pointer"
-              >
-                <ClipboardPlus className="w-4 h-4" />
-                <span>{AR.volunteers.addActivityBtn}</span>
-              </button>
-            </div>
           </div>
 
           <VolunteersToolbar
@@ -157,12 +137,6 @@ export function VolunteersPage() {
         isOpen={volunteerModalState.open}
         volunteer={volunteerModalState.volunteer}
         onClose={() => setVolunteerModalState({ open: false, volunteer: null })}
-        onSaved={reload}
-      />
-
-      <ActivityModal
-        isOpen={activityModalOpen}
-        onClose={() => setActivityModalOpen(false)}
         onSaved={reload}
       />
 
