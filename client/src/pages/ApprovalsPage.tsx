@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AlertCircle, RefreshCw, Search, UserCheck } from 'lucide-react';
 import { apiClient, extractApiErrorMessage } from '../api/client';
 import { Navbar } from '../components/Navbar';
@@ -10,21 +10,29 @@ import { FACULTIES } from '../constants/enums';
 import { useAuth } from '../context/authContext';
 import { useToast } from '../context/toastContext';
 import type { RegistrationQueueItem, RegistrationsListResponse } from '../types';
+import { formatNumber } from '../utils/format';
+
+const PAGE_LIMIT = 10;
 
 async function fetchRegistrationQueue(
   statusFilter: string,
   facultyFilter: Faculty | '',
-  reviewerRole: UserRole
-): Promise<RegistrationQueueItem[]> {
-  const params: Record<string, string> = {};
+  reviewerRole: UserRole,
+  search: string,
+  page: number
+): Promise<RegistrationsListResponse> {
+  const params: Record<string, string> = { page: String(page), limit: String(PAGE_LIMIT) };
   if (statusFilter) {
     params.status = statusFilter;
   }
   if (reviewerRole === 'admin' && facultyFilter) {
     params.faculty = facultyFilter;
   }
+  if (search.trim()) {
+    params.search = search.trim();
+  }
   const response = await apiClient.get<RegistrationsListResponse>('/registrations', { params });
-  return response.data.registrations;
+  return response.data;
 }
 
 /**
@@ -38,6 +46,9 @@ export function ApprovalsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('pending');
   const [facultyFilter, setFacultyFilter] = useState<Faculty | ''>('');
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [pages, setPages] = useState(1);
   const [registrations, setRegistrations] = useState<RegistrationQueueItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -47,13 +58,19 @@ export function ApprovalsPage() {
 
   const requestRef = useRef(0);
 
+  const applyPayload = useCallback((payload: RegistrationsListResponse) => {
+    setRegistrations(payload.registrations);
+    setTotal(payload.total ?? payload.registrations.length);
+    setPages(payload.pages ?? 1);
+  }, []);
+
   useEffect(() => {
     const requestId = ++requestRef.current;
 
-    fetchRegistrationQueue(statusFilter, facultyFilter, reviewerRole)
-      .then((items) => {
+    fetchRegistrationQueue(statusFilter, facultyFilter, reviewerRole, search, page)
+      .then((payload) => {
         if (requestId !== requestRef.current) return;
-        setRegistrations(items);
+        applyPayload(payload);
         setError('');
       })
       .catch((err: unknown) => {
@@ -66,16 +83,22 @@ export function ApprovalsPage() {
           setLoading(false);
         }
       });
-  }, [statusFilter, facultyFilter, reviewerRole]);
+  }, [statusFilter, facultyFilter, reviewerRole, search, page, applyPayload]);
 
   const reloadRegistrations = useCallback(async () => {
     const requestId = ++requestRef.current;
     setLoading(true);
     setError('');
     try {
-      const items = await fetchRegistrationQueue(statusFilter, facultyFilter, reviewerRole);
+      const payload = await fetchRegistrationQueue(
+        statusFilter,
+        facultyFilter,
+        reviewerRole,
+        search,
+        page
+      );
       if (requestId === requestRef.current) {
-        setRegistrations(items);
+        applyPayload(payload);
       }
     } catch (err) {
       if (requestId === requestRef.current) {
@@ -86,32 +109,28 @@ export function ApprovalsPage() {
         setLoading(false);
       }
     }
-  }, [statusFilter, facultyFilter, reviewerRole]);
+  }, [statusFilter, facultyFilter, reviewerRole, search, page, applyPayload]);
 
   function changeStatusFilter(nextStatus: string) {
     setLoading(true);
     setError('');
+    setPage(1);
     setStatusFilter(nextStatus);
   }
 
   function changeFacultyFilter(nextFaculty: Faculty | '') {
     setLoading(true);
     setError('');
+    setPage(1);
     setFacultyFilter(nextFaculty);
   }
 
-  const filteredRegistrations = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    if (!term) {
-      return registrations;
-    }
-    return registrations.filter(
-      (registration) =>
-        registration.fullName.toLowerCase().includes(term) ||
-        registration.email.toLowerCase().includes(term) ||
-        registration.registration.volunteerId.toLowerCase().includes(term)
-    );
-  }, [registrations, search]);
+  function changeSearch(nextSearch: string) {
+    setLoading(true);
+    setError('');
+    setPage(1);
+    setSearch(nextSearch);
+  }
 
   async function handleApprove(userId: string, facultyOverride?: Faculty) {
     setApprovingId(userId);
@@ -200,7 +219,7 @@ export function ApprovalsPage() {
                 <input
                   type="search"
                   value={search}
-                  onChange={(event) => setSearch(event.target.value)}
+                  onChange={(event) => changeSearch(event.target.value)}
                   placeholder={AR.approvals.searchPlaceholder}
                   aria-label={AR.approvals.searchPlaceholder}
                   className="w-full pr-9 pl-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-mnu-500/40"
@@ -254,15 +273,15 @@ export function ApprovalsPage() {
           </div>
         )}
 
-        {!loading && !error && filteredRegistrations.length === 0 && (
+        {!loading && !error && registrations.length === 0 && (
           <div className="glass-card rounded-3xl p-10 text-center text-xs sm:text-sm font-bold text-slate-500">
             {AR.approvals.empty}
           </div>
         )}
 
-        {!loading && !error && filteredRegistrations.length > 0 && (
+        {!loading && !error && registrations.length > 0 && (
           <div className="space-y-4">
-            {filteredRegistrations.map((registration) => (
+            {registrations.map((registration) => (
               <RegistrationCard
                 key={registration.id}
                 registration={registration}
@@ -272,6 +291,41 @@ export function ApprovalsPage() {
                 onOpenReject={setRejectTarget}
               />
             ))}
+          </div>
+        )}
+
+        {!loading && !error && total > 0 && (
+          <div className="glass-card rounded-3xl px-5 py-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+            <div>
+              {AR.approvals.shownPrefix}{' '}
+              <span className="font-bold text-slate-800">{formatNumber(registrations.length)}</span>{' '}
+              {AR.common.ofLabel}{' '}
+              <span className="font-bold text-slate-800">{formatNumber(total)}</span>{' '}
+              {AR.approvals.totalSuffix}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={page <= 1 || loading}
+                onClick={() => setPage(page - 1)}
+                className="px-3.5 py-1.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-100 disabled:opacity-50 font-bold text-slate-700 transition cursor-pointer"
+              >
+                {AR.common.previousPage}
+              </button>
+              <span className="font-bold text-slate-700 px-2">
+                {AR.common.pageLabel} {formatNumber(page)} {AR.common.ofLabel}{' '}
+                {formatNumber(pages)}
+              </span>
+              <button
+                type="button"
+                disabled={page >= pages || loading}
+                onClick={() => setPage(page + 1)}
+                className="px-3.5 py-1.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-100 disabled:opacity-50 font-bold text-slate-700 transition cursor-pointer"
+              >
+                {AR.common.nextPage}
+              </button>
+            </div>
           </div>
         )}
       </main>

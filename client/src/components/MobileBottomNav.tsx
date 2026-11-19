@@ -80,9 +80,13 @@ export function MobileBottomNav() {
     if (!isStaff) return;
     let cancelled = false;
     apiClient
-      .get<RegistrationsListResponse>('/registrations', { params: { status: 'pending' } })
+      .get<RegistrationsListResponse>('/registrations', {
+        params: { status: 'pending', limit: 1 },
+      })
       .then((response) => {
-        if (!cancelled) setPendingApprovals(response.data.registrations.length);
+        if (!cancelled) {
+          setPendingApprovals(response.data.total ?? response.data.registrations.length);
+        }
       })
       .catch(() => {
         if (!cancelled) setPendingApprovals(null);

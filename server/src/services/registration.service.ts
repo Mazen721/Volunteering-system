@@ -9,6 +9,7 @@ import { User } from '../models/User.js';
 import type { VolunteerLean } from '../models/Volunteer.js';
 import { Volunteer } from '../models/Volunteer.js';
 import { AppError } from '../utils/errors.js';
+import { escapeRegex } from '../utils/volunteerLookup.js';
 import type { RegisterInput } from '../validators/auth.schema.js';
 import type {
   ApproveRegistrationInput,
@@ -47,6 +48,16 @@ export interface RegistrationQueueItem {
 export interface RegistrationListQuery {
   status?: string;
   faculty?: string;
+  search?: string;
+  page?: string | number;
+  limit?: string | number;
+}
+
+export interface RegistrationListResult {
+  registrations: RegistrationQueueItem[];
+  total: number;
+  page: number;
+  pages: number;
 }
 
 export interface ApproveRegistrationParams {
@@ -164,6 +175,15 @@ function buildRegistrationListFilter(
     filter['registration.faculty'] = query.faculty;
   }
 
+  if (query.search?.trim()) {
+    const pattern = new RegExp(escapeRegex(query.search.trim()), 'i');
+    filter.$or = [
+      { fullName: pattern },
+      { email: pattern },
+      { 'registration.volunteerId': pattern },
+    ];
+  }
+
   return filter;
 }
 
@@ -251,15 +271,26 @@ function toRegistrationQueueItem(
 
 /**
  * Lists student registration requests scoped by faculty for deans or optionally filtered for admin.
+ * Paginated like the volunteers list (default 10 per page, max 100); the
+ * existing-volunteer previews are fetched only for the returned page.
  */
 export async function listRegistrations(
   query: RegistrationListQuery,
   scope: ScopeFilter
-): Promise<{ registrations: RegistrationQueueItem[] }> {
-  const users = await User.find(buildRegistrationListFilter(query, scope))
-    .select('-passwordHash')
-    .sort({ createdAt: -1 })
-    .lean<UserLean[]>();
+): Promise<RegistrationListResult> {
+  const page = Math.max(Number(query.page) || 1, 1);
+  const limit = Math.min(Math.max(Number(query.limit) || 10, 1), 100);
+  const filter = buildRegistrationListFilter(query, scope);
+
+  const [total, users] = await Promise.all([
+    User.countDocuments(filter),
+    User.find(filter)
+      .select('-passwordHash')
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean<UserLean[]>(),
+  ]);
 
   const validUsers = users.filter((user): user is PendingRegistrationUser =>
     Boolean(user.registration)
@@ -270,6 +301,9 @@ export async function listRegistrations(
 
   return {
     registrations: validUsers.map((user) => toRegistrationQueueItem(user, previews)),
+    total,
+    page,
+    pages: Math.ceil(total / limit) || 1,
   };
 }
 

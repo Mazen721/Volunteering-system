@@ -90,6 +90,9 @@ export interface RegistrationQueueItem {
 
 export interface RegistrationsListResponse {
   registrations: RegistrationQueueItem[];
+  total: number;
+  page: number;
+  pages: number;
 }
 
 export interface AuthContextValue {

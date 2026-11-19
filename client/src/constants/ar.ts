@@ -126,6 +126,8 @@ export const AR = {
     loading: 'جاري تحميل طلبات التسجيل...',
     errorTitle: 'تعذر تحميل طلبات التسجيل',
     empty: 'لا توجد طلبات تسجيل مطابقة لمعايير العرض الحالية',
+    shownPrefix: 'عرض',
+    totalSuffix: 'طلب تسجيل',
     volunteerIdLabel: 'الرقم التعريفي',
     categoryLabel: 'الفئة',
     facultyLabel: 'الكلية المختارة',
