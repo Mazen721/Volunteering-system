@@ -301,6 +301,30 @@ export function OpportunityDetailsPage() {
               </div>
             </header>
 
+            {opportunity.attendanceDeputy &&
+              user?.id &&
+              opportunity.attendanceDeputy === user.id && (
+                <section
+                  data-testid="deputy-live-card"
+                  className="rounded-3xl p-6 bg-mnu-700 text-white space-y-3 shadow-lg"
+                >
+                  <h2 className="text-base font-black flex items-center gap-2">
+                    <QrCode className="w-5 h-5 text-mnu-gold" />
+                    <span>{AR.studentPortal.details.deputyTitle}</span>
+                  </h2>
+                  <p className="text-xs text-white/80 leading-relaxed">
+                    {AR.studentPortal.details.deputyText}
+                  </p>
+                  <Link
+                    to={`/opportunities/${encodeURIComponent(opportunity._id)}/live`}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-mnu-gold text-mnu-700 text-xs font-black transition active:scale-95"
+                  >
+                    <QrCode className="w-4 h-4" />
+                    <span>{AR.studentPortal.details.deputyLiveBtn}</span>
+                  </Link>
+                </section>
+              )}
+
             <section className="glass-card rounded-3xl p-6 sm:p-8 space-y-5">
               <div className="space-y-1.5">
                 <h2 className="text-sm font-black text-slate-800">

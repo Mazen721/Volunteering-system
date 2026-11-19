@@ -1,4 +1,3 @@
-import type { FormEvent } from 'react';
 import { useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import {
@@ -11,6 +10,7 @@ import {
 } from 'lucide-react';
 import { apiClient, extractApiErrorMessage } from '../api/client';
 import { Navbar } from '../components/Navbar';
+import { QrCameraScanner } from '../components/student/QrCameraScanner';
 import { AR } from '../constants/ar';
 import { useAuth } from '../context/authContext';
 import { useToast } from '../context/toastContext';
@@ -74,11 +74,10 @@ export function CheckInPage() {
     };
   }, [opportunityId]);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function submitToken(rawToken: string) {
     if (!opportunityId) return;
 
-    const token = extractCheckInToken(tokenInput);
+    const token = extractCheckInToken(rawToken);
     if (!token) {
       setSubmitError(AR.studentPortal.checkin.tokenRequired);
       return;
@@ -209,7 +208,13 @@ export function CheckInPage() {
                 {AR.studentPortal.checkin.completedNotice}
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void submitToken(tokenInput);
+                }}
+                className="space-y-4"
+              >
                 {!opportunity.checkInOpen && (
                   <div
                     role="alert"
@@ -218,6 +223,13 @@ export function CheckInPage() {
                     {AR.studentPortal.checkin.windowClosedNotice}
                   </div>
                 )}
+
+                <QrCameraScanner
+                  onDetected={(rawValue) => {
+                    setTokenInput(rawValue);
+                    void submitToken(rawValue);
+                  }}
+                />
 
                 <div className="space-y-1.5">
                   <label

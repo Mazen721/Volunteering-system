@@ -472,6 +472,7 @@ export interface Opportunity {
   approvalMode: ApprovalMode;
   status: OpportunityStatus;
   createdBy: string;
+  attendanceDeputy?: string | null;
   createdAt: string;
   updatedAt: string;
   phase: OpportunityPhase;

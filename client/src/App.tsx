@@ -43,7 +43,6 @@ export default function App() {
               <Route path="/opportunities/manage" element={<OpportunitiesManagePage />} />
               <Route path="/opportunities/new" element={<OpportunityFormPage />} />
               <Route path="/opportunities/:id/edit" element={<OpportunityFormPage />} />
-              <Route path="/opportunities/:id/live" element={<OpportunityLivePage />} />
               <Route path="/approvals" element={<ApprovalsPage />} />
               <Route path="/certificate/:volunteerId" element={<CertificatePage />} />
               <Route path="/excel" element={<ImportExportPage />} />
@@ -51,6 +50,9 @@ export default function App() {
             </Route>
             <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
               <Route path="/deans" element={<DeansPage />} />
+            </Route>
+            <Route element={<ProtectedRoute allowedRoles={['admin', 'dean', 'student']} />}>
+              <Route path="/opportunities/:id/live" element={<OpportunityLivePage />} />
             </Route>
             <Route element={<ProtectedRoute allowedRoles={['student']} />}>
               <Route path="/home" element={<StudentHomePage />} />

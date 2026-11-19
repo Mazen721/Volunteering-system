@@ -4,9 +4,11 @@ import { AlertCircle, ArrowRight, CheckCircle2, Radio, RefreshCw } from 'lucide-
 import { apiClient, extractApiErrorMessage } from '../api/client';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { Navbar } from '../components/Navbar';
+import { AttendanceDeputyCard } from '../components/opportunities/AttendanceDeputyCard';
 import { LiveAttendeesTable } from '../components/opportunities/LiveAttendeesTable';
 import { LiveQrPanel } from '../components/opportunities/LiveQrPanel';
 import { AR } from '../constants/ar';
+import { useAuth } from '../context/authContext';
 import { useToast } from '../context/toastContext';
 import type {
   Application,
@@ -50,6 +52,8 @@ async function fetchCheckInToken(opportunityId: string): Promise<CheckInTokenRes
  */
 export function OpportunityLivePage() {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
+  const isStaff = user?.role === 'admin' || user?.role === 'dean';
   const { showToast } = useToast();
   const [liveState, setLiveState] = useState<LiveOpportunityResponse | null>(null);
   const [tokenState, setTokenState] = useState<CheckInTokenResponse>({ token: '', expiresAt: '' });
@@ -217,11 +221,15 @@ export function OpportunityLivePage() {
       <Navbar />
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
         <Link
-          to="/opportunities/manage"
+          to={isStaff ? '/opportunities/manage' : `/opportunities/${encodeURIComponent(id ?? '')}`}
           className="inline-flex items-center gap-1.5 text-xs font-bold text-mnu-600 hover:text-mnu-700"
         >
           <ArrowRight className="w-4 h-4" />
-          <span>{AR.opportunities.live.backToManage}</span>
+          <span>
+            {isStaff
+              ? AR.opportunities.live.backToManage
+              : AR.studentPortal.checkin.backToDetails}
+          </span>
         </Link>
 
         {loading && (
@@ -269,7 +277,7 @@ export function OpportunityLivePage() {
                   </p>
                 </div>
 
-                {opportunity.status === 'published' && (
+                {opportunity.status === 'published' && isStaff && (
                   <div className="flex flex-col items-start md:items-end gap-1.5">
                     <button
                       type="button"
@@ -295,7 +303,26 @@ export function OpportunityLivePage() {
                   <span>{AR.opportunities.live.completedNotice}</span>
                 </div>
               )}
+
+              {!isStaff && (
+                <div className="p-3.5 rounded-2xl bg-mnu-500/10 border border-mnu-500/20 text-mnu-700 text-xs font-bold flex items-center gap-2">
+                  <Radio className="w-4 h-4 shrink-0" />
+                  <span>{AR.opportunities.live.deputyBanner}</span>
+                </div>
+              )}
             </header>
+
+            {isStaff && !isClosed && (
+              <AttendanceDeputyCard
+                opportunity={opportunity}
+                attendees={liveState.attendees}
+                onUpdated={(updated) =>
+                  setLiveState((previous) =>
+                    previous ? { ...previous, opportunity: updated } : previous
+                  )
+                }
+              />
+            )}
 
             <LiveQrPanel
               opportunity={opportunity}
