@@ -11,6 +11,8 @@ import {
   APPROVAL_MODES,
   CATEGORIES,
   COVER_PRESET_KEYS,
+  CUSTOM_COVER_DATA_URL_PATTERN,
+  CUSTOM_COVER_MAX_LENGTH,
   FACULTIES,
   INTEREST_KEYS,
   OPPORTUNITY_STATUSES,
@@ -34,6 +36,7 @@ export interface OpportunityDoc {
   description: string;
   requirements: string;
   coverPreset: CoverPresetKey | '';
+  customCover: string;
   fields: InterestKey[];
   activityType: ActivityType;
   location: OpportunityLocation;
@@ -144,6 +147,15 @@ const opportunitySchema = new mongoose.Schema<OpportunityDoc>(
         message: 'صورة الغلاف غير صالحة',
       },
       default: '',
+    },
+    customCover: {
+      type: String,
+      default: '',
+      maxlength: [CUSTOM_COVER_MAX_LENGTH, 'صورة الغلاف المرفوعة أكبر من الحد المسموح'],
+      validate: {
+        validator: (value: string) => value === '' || CUSTOM_COVER_DATA_URL_PATTERN.test(value),
+        message: 'صورة الغلاف المرفوعة غير صالحة',
+      },
     },
     activityType: {
       type: String,

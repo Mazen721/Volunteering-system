@@ -3,6 +3,7 @@ import { CalendarDays, Clock3, MapPin, Sparkles, Users } from 'lucide-react';
 import { AR, INTEREST_LABELS } from '../../constants/ar';
 import type { Opportunity } from '../../types';
 import { hasActiveApplication } from '../../utils/applications';
+import { resolveOpportunityCover } from '../../utils/covers';
 import { formatDateTimeAr, formatNumber } from '../../utils/format';
 
 interface OpportunityCardProps {
@@ -22,16 +23,25 @@ export function OpportunityCard({ opportunity, suggested = false }: OpportunityC
 
   return (
     <article
-      className={`glass-card rounded-3xl p-5 sm:p-6 flex flex-col gap-4 ${
+      className={`glass-card rounded-3xl overflow-hidden flex flex-col ${
         suggested ? 'border-2 border-mnu-gold/70 bg-gradient-to-b from-amber-50/80 to-white shadow-[0_10px_26px_-12px_rgba(212,175,55,0.45)]' : ''
       }`}
     >
-      {suggested && (
-        <span className="self-start inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-mnu-gold text-[#231a00] text-[11px] font-black">
-          <Sparkles className="w-3.5 h-3.5" />
-          {AR.studentPortal.home.suggestedRibbon}
-        </span>
-      )}
+      <div className="relative shrink-0">
+        <img
+          src={resolveOpportunityCover(opportunity)}
+          alt=""
+          loading="lazy"
+          className="w-full h-40 object-cover"
+        />
+        {suggested && (
+          <span className="absolute top-3 inset-inline-start-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-mnu-gold text-[#231a00] text-[11px] font-black shadow">
+            <Sparkles className="w-3.5 h-3.5" />
+            {AR.studentPortal.home.suggestedRibbon}
+          </span>
+        )}
+      </div>
+      <div className="p-5 sm:p-6 flex flex-col gap-4 flex-1">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="space-y-1">
           <Link
@@ -113,6 +123,7 @@ export function OpportunityCard({ opportunity, suggested = false }: OpportunityC
         >
           {AR.studentPortal.board.detailsButton}
         </Link>
+      </div>
       </div>
     </article>
   );

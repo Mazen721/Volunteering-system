@@ -5,9 +5,11 @@ import {
   AlertCircle,
   ArrowRight,
   CalendarClock,
+  ImagePlus,
   Lock,
   RefreshCw,
   Save,
+  X,
 } from 'lucide-react';
 import { apiClient, extractApiErrorMessage } from '../api/client';
 import { Navbar } from '../components/Navbar';
@@ -29,6 +31,7 @@ import {
   coverUrlForKey,
   defaultCoverKeyForFields,
 } from '../utils/covers';
+import { downscaleImageFileToDataUrl } from '../utils/imageFile';
 import { toCairoInputDateTime } from '../utils/format';
 
 const INITIAL_FORM: OpportunityFormState = {
@@ -36,6 +39,7 @@ const INITIAL_FORM: OpportunityFormState = {
   description: '',
   requirements: '',
   coverPreset: '',
+  customCover: '',
   fields: [],
   activityType: ACTIVITY_TYPES[0],
   locationName: '',
@@ -61,6 +65,7 @@ function buildFormFromOpportunity(opportunity: Opportunity): OpportunityFormStat
     description: opportunity.description,
     requirements: opportunity.requirements,
     coverPreset: opportunity.coverPreset ?? '',
+    customCover: opportunity.customCover ?? '',
     fields: opportunity.fields,
     activityType: opportunity.activityType,
     locationName: opportunity.location.name,
@@ -264,6 +269,8 @@ export function OpportunityFormPage() {
   const [submitError, setSubmitError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [showAllCovers, setShowAllCovers] = useState(false);
+  const [coverUploadError, setCoverUploadError] = useState('');
+  const [coverProcessing, setCoverProcessing] = useState(false);
   const effectiveCoverKey = form.coverPreset || defaultCoverKeyForFields(form.fields);
 
   const isDean = user?.role === 'dean';
@@ -319,6 +326,26 @@ export function OpportunityFormPage() {
     setForm((previous) => ({ ...previous, [field]: value }));
   }
 
+  async function handleCoverFile(file: File | undefined) {
+    if (!file) {
+      return;
+    }
+    setCoverUploadError('');
+    setCoverProcessing(true);
+    try {
+      const dataUrl = await downscaleImageFileToDataUrl(file);
+      updateField('customCover', dataUrl);
+    } catch (error) {
+      setCoverUploadError(
+        error instanceof Error && error.message === 'image-too-large'
+          ? AR.opportunities.form.coverUploadTooLarge
+          : AR.opportunities.form.coverUploadInvalid
+      );
+    } finally {
+      setCoverProcessing(false);
+    }
+  }
+
   function toggleField(field: InterestKey) {
     setForm((previous) => ({
       ...previous,
@@ -334,6 +361,7 @@ export function OpportunityFormPage() {
       description: form.description.trim(),
       requirements: form.requirements.trim(),
       coverPreset: form.coverPreset || defaultCoverKeyForFields(form.fields),
+      customCover: form.customCover,
       fields: form.fields,
       activityType: form.activityType,
       location: {
@@ -695,6 +723,71 @@ export function OpportunityFormPage() {
                     ? AR.opportunities.form.coverShowRelevant
                     : AR.opportunities.form.coverShowAll}
                 </button>
+
+                <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50/60 p-3">
+                  <span className="block font-bold text-slate-700">
+                    {AR.opportunities.form.coverUploadLabel}
+                  </span>
+                  <p className="text-[11px] font-semibold text-slate-500 mt-0.5 mb-3">
+                    {AR.opportunities.form.coverUploadHint}
+                  </p>
+                  {form.customCover ? (
+                    <div className="flex flex-wrap items-start gap-3">
+                      <div className="relative rounded-2xl overflow-hidden border-2 border-mnu-gold ring-2 ring-mnu-gold/40 w-44 shrink-0">
+                        <img
+                          src={form.customCover}
+                          alt=""
+                          className="w-full h-24 object-cover"
+                        />
+                        <span className="absolute top-1.5 inset-inline-start-1.5 px-2 py-0.5 rounded-full bg-mnu-gold text-[#231a00] text-[10px] font-black">
+                          ✓
+                        </span>
+                      </div>
+                      <div className="space-y-2">
+                        <p className="font-black text-slate-700">
+                          {AR.opportunities.form.coverUploadedBadge}
+                        </p>
+                        <button
+                          type="button"
+                          disabled={formDisabled}
+                          onClick={() => updateField('customCover', '')}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-rose-200 text-rose-600 text-[11px] font-bold hover:bg-rose-50 transition"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                          <span>{AR.opportunities.form.coverRemoveUpload}</span>
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <label
+                      className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold transition ${
+                        formDisabled || coverProcessing
+                          ? 'opacity-60 cursor-not-allowed'
+                          : 'hover:border-mnu-300 hover:text-mnu-600 cursor-pointer'
+                      }`}
+                    >
+                      {coverProcessing ? (
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <ImagePlus className="w-4 h-4" />
+                      )}
+                      <span>{AR.opportunities.form.coverUploadButton}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="sr-only"
+                        disabled={formDisabled || coverProcessing}
+                        onChange={(event) => {
+                          void handleCoverFile(event.target.files?.[0]);
+                          event.target.value = '';
+                        }}
+                      />
+                    </label>
+                  )}
+                  {coverUploadError && (
+                    <p className="text-[11px] font-bold text-rose-600 mt-2">{coverUploadError}</p>
+                  )}
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

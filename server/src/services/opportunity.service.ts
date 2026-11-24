@@ -302,6 +302,7 @@ export async function createOpportunity(
     description: payload.description,
     requirements: payload.requirements,
     coverPreset: payload.coverPreset ?? defaultCoverPreset(payload.fields),
+    customCover: payload.customCover ?? '',
     fields: payload.fields,
     activityType: payload.activityType,
     location: payload.location,

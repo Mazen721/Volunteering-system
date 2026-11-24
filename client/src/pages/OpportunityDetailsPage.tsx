@@ -23,6 +23,7 @@ import { useAuth } from '../context/authContext';
 import { useToast } from '../context/toastContext';
 import type { Application, Opportunity, OpportunityResponse } from '../types';
 import { hasActiveApplication } from '../utils/applications';
+import { resolveOpportunityCover } from '../utils/covers';
 import { formatDateTimeAr, formatNumber } from '../utils/format';
 
 interface ApplicationResponse {
@@ -169,6 +170,14 @@ export function OpportunityDetailsPage() {
 
         {opportunity && !loading && !error && (
           <>
+            <div className="glass-card rounded-3xl overflow-hidden">
+              <img
+                src={resolveOpportunityCover(opportunity)}
+                alt=""
+                className="w-full h-52 sm:h-64 object-cover"
+              />
+            </div>
+
             <header className="glass-card rounded-3xl p-6 sm:p-8 space-y-3">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="space-y-1">

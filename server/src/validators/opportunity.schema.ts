@@ -4,9 +4,24 @@ import {
   APPROVAL_MODES,
   CATEGORIES,
   COVER_PRESET_KEYS,
+  CUSTOM_COVER_DATA_URL_PATTERN,
+  CUSTOM_COVER_MAX_LENGTH,
   FACULTIES,
   INTEREST_KEYS,
 } from '../constants/enums.js';
+
+/**
+ * An uploaded cover photo arrives as a data URL (the client downscales it
+ * first). Only jpeg/png/webp images up to ~1 MB are accepted; an empty
+ * string clears a previously uploaded photo.
+ */
+const customCoverSchema = z
+  .string({ error: 'صورة الغلاف المرفوعة غير صالحة' })
+  .max(CUSTOM_COVER_MAX_LENGTH, 'صورة الغلاف المرفوعة أكبر من الحد المسموح (1 ميجابايت)')
+  .refine((value) => value === '' || CUSTOM_COVER_DATA_URL_PATTERN.test(value), {
+    message: 'صورة الغلاف المرفوعة يجب أن تكون صورة بصيغة مدعومة',
+  })
+  .optional();
 import { parseCairoDateTime } from '../utils/cairoTime.js';
 
 /**
@@ -81,6 +96,7 @@ const opportunityFieldsSchema = z.object({
     .min(10, 'وصف الفرصة يجب أن لا يقل عن 10 أحرف'),
   requirements: z.string().trim(),
   coverPreset: z.enum(COVER_PRESET_KEYS, { error: 'صورة الغلاف غير صالحة' }).optional(),
+  customCover: customCoverSchema,
   fields: z
     .array(z.enum(INTEREST_KEYS, { error: 'مجال الاهتمام غير صالح' }), {
       error: 'يجب اختيار مجال اهتمام واحد على الأقل',

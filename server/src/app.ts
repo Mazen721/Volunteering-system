@@ -50,7 +50,9 @@ export function createApp({
 
   app.use(helmet());
   app.use(cors({ origin: parseAllowedOrigins(clientUrl) }));
-  app.use(express.json());
+  // 2 MB so an uploaded opportunity cover (a downscaled data URL of at most
+  // ~1 MB of image data, validated per-field) fits in the JSON body.
+  app.use(express.json({ limit: '2mb' }));
 
   app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok' });

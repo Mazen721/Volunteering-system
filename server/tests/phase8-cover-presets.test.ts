@@ -69,4 +69,68 @@ describe('Phase 8 cover presets', () => {
       );
     }
   });
+
+  it('ships_an_expanded_library_of_at_least_40_presets', () => {
+    assert.ok(
+      COVER_PRESET_KEYS.length >= 40,
+      `expected at least 40 cover presets, got ${COVER_PRESET_KEYS.length}`
+    );
+  });
+
+  it('accepts_the_new_expanded_preset_keys', () => {
+    for (const key of ['blood-donation', 'tree-planting', 'coding-laptop', 'festival-confetti']) {
+      const parsed = opportunitySchema.safeParse({ ...basePayload, coverPreset: key });
+      assert.equal(parsed.success, true, `preset ${key} should be accepted`);
+    }
+  });
+});
+
+const SMALL_JPEG_DATA_URL = `data:image/jpeg;base64,${Buffer.from('fake-jpeg-bytes').toString('base64')}`;
+
+describe('Problem 2 custom cover uploads', () => {
+  it('accepts_a_valid_custom_cover_data_url', () => {
+    const parsed = opportunitySchema.safeParse({
+      ...basePayload,
+      customCover: SMALL_JPEG_DATA_URL,
+    });
+    assert.equal(parsed.success, true);
+    if (parsed.success) {
+      assert.equal(parsed.data.customCover, SMALL_JPEG_DATA_URL);
+    }
+  });
+
+  it('accepts_an_empty_custom_cover_so_an_upload_can_be_cleared', () => {
+    const parsed = opportunitySchema.safeParse({ ...basePayload, customCover: '' });
+    assert.equal(parsed.success, true);
+  });
+
+  it('accepts_a_missing_custom_cover', () => {
+    const parsed = opportunitySchema.safeParse(basePayload);
+    assert.equal(parsed.success, true);
+    if (parsed.success) {
+      assert.equal(parsed.data.customCover, undefined);
+    }
+  });
+
+  it('rejects_a_non_image_data_url', () => {
+    const parsed = opportunitySchema.safeParse({
+      ...basePayload,
+      customCover: 'data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==',
+    });
+    assert.equal(parsed.success, false);
+  });
+
+  it('rejects_a_remote_url_instead_of_a_data_url', () => {
+    const parsed = opportunitySchema.safeParse({
+      ...basePayload,
+      customCover: 'https://example.com/cover.jpg',
+    });
+    assert.equal(parsed.success, false);
+  });
+
+  it('rejects_an_oversize_custom_cover', () => {
+    const oversized = `data:image/jpeg;base64,${'A'.repeat(1_400_000)}`;
+    const parsed = opportunitySchema.safeParse({ ...basePayload, customCover: oversized });
+    assert.equal(parsed.success, false);
+  });
 });

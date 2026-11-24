@@ -94,7 +94,55 @@ export const COVER_PRESET_KEYS = [
   'robotics',
   'graduation',
   'helping-hands',
+  'blood-donation',
+  'doctor-consult',
+  'surgery-team',
+  'blood-pressure',
+  'tree-planting',
+  'seedling-trays',
+  'garden-tools',
+  'school-class',
+  'kids-classroom',
+  'kids-drawing',
+  'library-hall',
+  'food-bank-packing',
+  'food-bank-team',
+  'clothing-drive',
+  'happy-kids',
+  'donation-coins',
+  'reaching-hands',
+  'coding-laptop',
+  'code-screen',
+  'engineer-lab',
+  'students-laptops',
+  'cycling-race',
+  'fitness-class',
+  'track-start',
+  'soccer-ball',
+  'runners-dusk',
+  'art-mural',
+  'paint-brushes',
+  'concert-singer',
+  'sheet-music',
+  'painted-hands',
+  'event-microphone',
+  'conference-stage',
+  'event-stage',
+  'festival-confetti',
+  'event-volunteer',
+  'planning-workshop',
 ] as const;
+
+/**
+ * A custom cover photo uploaded by the opportunity creator, stored on the
+ * document as a data URL. The client downscales before sending, so only
+ * jpeg/png/webp data URLs up to ~1 MB of image data are accepted.
+ */
+export const CUSTOM_COVER_DATA_URL_PATTERN =
+  /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/;
+
+/** Max length of the whole data URL string (~1 MB of base64 image data). */
+export const CUSTOM_COVER_MAX_LENGTH = 1_400_000;
 
 export type CoverPresetKey = (typeof COVER_PRESET_KEYS)[number];
 

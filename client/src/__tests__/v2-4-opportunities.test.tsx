@@ -279,6 +279,8 @@ describe('Phase V2-4 Opportunities & Applications Engine', () => {
       // Phase 5: the form sends the field's default cover preset when the
       // creator did not pick a different one (education → classroom).
       coverPreset: 'classroom',
+      // Problem 2: no uploaded photo in this flow, so the custom cover is empty.
+      customCover: '',
       fields: ['education'],
       activityType: 'قافلة',
       location: {

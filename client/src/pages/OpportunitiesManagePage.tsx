@@ -32,6 +32,7 @@ import type {
   OpportunityListResponse,
   OpportunityResponse,
 } from '../types';
+import { resolveOpportunityCover } from '../utils/covers';
 import { formatDateTimeAr, formatNumber } from '../utils/format';
 
 const STATUS_STYLES: Record<OpportunityStatus, string> = {
@@ -351,14 +352,24 @@ export function OpportunitiesManagePage() {
                     return (
                       <tr key={opportunity._id} className="hover:bg-slate-50/80 transition">
                         <td className="p-4 align-top">
-                          <div className="font-black text-slate-800 max-w-[16rem]">
-                            {opportunity.title}
-                          </div>
-                          <div className="text-[11px] text-slate-500 mt-0.5">
-                            {opportunity.location.name}
-                          </div>
-                          <div className="text-[11px] text-slate-500 mt-0.5">
-                            {formatNumber(opportunity.hours)} {AR.common.hourUnit}
+                          <div className="flex items-start gap-3">
+                            <img
+                              src={resolveOpportunityCover(opportunity)}
+                              alt=""
+                              loading="lazy"
+                              className="w-14 h-14 rounded-xl object-cover shrink-0 border border-slate-100"
+                            />
+                            <div>
+                              <div className="font-black text-slate-800 max-w-[16rem]">
+                                {opportunity.title}
+                              </div>
+                              <div className="text-[11px] text-slate-500 mt-0.5">
+                                {opportunity.location.name}
+                              </div>
+                              <div className="text-[11px] text-slate-500 mt-0.5">
+                                {formatNumber(opportunity.hours)} {AR.common.hourUnit}
+                              </div>
+                            </div>
                           </div>
                         </td>
                         <td className="p-4 align-top text-slate-700 whitespace-nowrap">

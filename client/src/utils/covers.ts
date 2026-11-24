@@ -2,10 +2,11 @@ import type { InterestKey } from '../constants/enums';
 import type { Opportunity } from '../types';
 
 /**
- * Preset cover photos for opportunities. The server stores only the preset
- * key on the opportunity; this module maps keys to the bundled photos and
- * resolves a cover for any opportunity (its own preset, else the default of
- * its primary field, else the generic volunteering photo).
+ * Cover photos for opportunities. An opportunity may carry a custom photo
+ * uploaded by its creator (a data URL stored on the document) or a preset
+ * key; this module maps preset keys to the bundled photos and resolves a
+ * cover for any opportunity: its uploaded photo first, then its own preset,
+ * then the default of its primary field, then the generic volunteering photo.
  */
 export interface CoverPreset {
   key: string;
@@ -46,6 +47,79 @@ export const COVER_PRESETS: CoverPreset[] = [
     key: 'helping-hands',
     file: 'helping-hands.jpg',
     fields: ['charity_community', 'awareness_campaigns', 'medical'],
+  },
+  { key: 'blood-donation', file: 'blood-donation.jpg', fields: ['medical'] },
+  { key: 'doctor-consult', file: 'doctor-consult.jpg', fields: ['medical'] },
+  { key: 'surgery-team', file: 'surgery-team.jpg', fields: ['medical'] },
+  {
+    key: 'blood-pressure',
+    file: 'blood-pressure.jpg',
+    fields: ['medical', 'charity_community'],
+  },
+  { key: 'tree-planting', file: 'tree-planting.jpg', fields: ['agriculture_environment'] },
+  { key: 'seedling-trays', file: 'seedling-trays.jpg', fields: ['agriculture_environment'] },
+  { key: 'garden-tools', file: 'garden-tools.jpg', fields: ['agriculture_environment'] },
+  { key: 'school-class', file: 'school-class.jpg', fields: ['education'] },
+  { key: 'kids-classroom', file: 'kids-classroom.jpg', fields: ['education'] },
+  { key: 'kids-drawing', file: 'kids-drawing.jpg', fields: ['education'] },
+  { key: 'library-hall', file: 'library-hall.jpg', fields: ['education'] },
+  { key: 'food-bank-packing', file: 'food-bank-packing.jpg', fields: ['charity_community'] },
+  { key: 'food-bank-team', file: 'food-bank-team.jpg', fields: ['charity_community'] },
+  { key: 'clothing-drive', file: 'clothing-drive.jpg', fields: ['charity_community'] },
+  {
+    key: 'happy-kids',
+    file: 'happy-kids.jpg',
+    fields: ['charity_community', 'education'],
+  },
+  { key: 'donation-coins', file: 'donation-coins.jpg', fields: ['charity_community'] },
+  {
+    key: 'reaching-hands',
+    file: 'reaching-hands.jpg',
+    fields: ['charity_community', 'awareness_campaigns'],
+  },
+  { key: 'coding-laptop', file: 'coding-laptop.jpg', fields: ['technology'] },
+  { key: 'code-screen', file: 'code-screen.jpg', fields: ['technology'] },
+  { key: 'engineer-lab', file: 'engineer-lab.jpg', fields: ['technology'] },
+  {
+    key: 'students-laptops',
+    file: 'students-laptops.jpg',
+    fields: ['technology', 'education'],
+  },
+  { key: 'cycling-race', file: 'cycling-race.jpg', fields: ['sports'] },
+  { key: 'fitness-class', file: 'fitness-class.jpg', fields: ['sports'] },
+  { key: 'track-start', file: 'track-start.jpg', fields: ['sports'] },
+  { key: 'soccer-ball', file: 'soccer-ball.jpg', fields: ['sports'] },
+  { key: 'runners-dusk', file: 'runners-dusk.jpg', fields: ['sports'] },
+  { key: 'art-mural', file: 'art-mural.jpg', fields: ['arts_culture'] },
+  { key: 'paint-brushes', file: 'paint-brushes.jpg', fields: ['arts_culture'] },
+  { key: 'concert-singer', file: 'concert-singer.jpg', fields: ['arts_culture'] },
+  { key: 'sheet-music', file: 'sheet-music.jpg', fields: ['arts_culture'] },
+  {
+    key: 'painted-hands',
+    file: 'painted-hands.jpg',
+    fields: ['arts_culture', 'charity_community'],
+  },
+  {
+    key: 'event-microphone',
+    file: 'event-microphone.jpg',
+    fields: ['awareness_campaigns', 'event_organizing'],
+  },
+  { key: 'conference-stage', file: 'conference-stage.jpg', fields: ['event_organizing'] },
+  { key: 'event-stage', file: 'event-stage.jpg', fields: ['event_organizing'] },
+  {
+    key: 'festival-confetti',
+    file: 'festival-confetti.jpg',
+    fields: ['event_organizing', 'arts_culture'],
+  },
+  {
+    key: 'event-volunteer',
+    file: 'event-volunteer.jpg',
+    fields: ['event_organizing', 'sports'],
+  },
+  {
+    key: 'planning-workshop',
+    file: 'planning-workshop.jpg',
+    fields: ['event_organizing', 'technology'],
   },
 ];
 
@@ -88,12 +162,16 @@ export function coverPresetsForFields(fields: readonly InterestKey[]): CoverPres
 }
 
 /**
- * Resolves the cover image URL for an opportunity: its stored preset when
- * valid, otherwise its primary field's default, otherwise the generic photo.
+ * Resolves the cover image for an opportunity: its uploaded custom photo
+ * when present, then its stored preset when valid, otherwise its primary
+ * field's default, otherwise the generic photo.
  */
 export function resolveOpportunityCover(
-  opportunity: Pick<Opportunity, 'coverPreset' | 'fields'>
+  opportunity: Pick<Opportunity, 'coverPreset' | 'customCover' | 'fields'>
 ): string {
+  if (opportunity.customCover) {
+    return opportunity.customCover;
+  }
   if (opportunity.coverPreset && PRESET_BY_KEY.has(opportunity.coverPreset)) {
     return coverUrlForKey(opportunity.coverPreset);
   }

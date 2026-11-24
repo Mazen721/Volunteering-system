@@ -116,6 +116,42 @@ describe('Phase 5 cover presets', () => {
     expect(url).toBe('/assets/covers/helping-hands.jpg');
   });
 
+  it('prefers_an_uploaded_custom_cover_over_the_preset', () => {
+    const dataUrl = 'data:image/jpeg;base64,/9j/4AAQSkZJRg==';
+    const url = resolveOpportunityCover(
+      buildOpportunity({ customCover: dataUrl, coverPreset: 'gardening', fields: ['medical'] })
+    );
+    expect(url).toBe(dataUrl);
+  });
+
+  it('falls_back_to_the_preset_when_the_custom_cover_is_empty', () => {
+    const url = resolveOpportunityCover(
+      buildOpportunity({ customCover: '', coverPreset: 'gardening', fields: ['medical'] })
+    );
+    expect(url).toBe('/assets/covers/gardening.jpg');
+  });
+
+  it('ships_an_expanded_library_with_several_presets_per_field', () => {
+    expect(COVER_PRESET_KEYS.length).toBeGreaterThanOrEqual(40);
+    const fields = [
+      'medical',
+      'agriculture_environment',
+      'education',
+      'charity_community',
+      'technology',
+      'sports',
+      'arts_culture',
+      'awareness_campaigns',
+      'event_organizing',
+    ] as const;
+    for (const field of fields) {
+      expect(
+        coverPresetsForFields([field]).length,
+        `field ${field} should offer at least 4 covers`
+      ).toBeGreaterThanOrEqual(4);
+    }
+  });
+
   it('has_at_least_one_preset_for_every_interest_field', () => {
     const fields = [
       'medical',
