@@ -222,9 +222,10 @@ describe('Phase 2 Student Home Page', () => {
     renderAppAt('/home', buildStudentUser());
 
     expect(await screen.findByText(HOME.nextBadge)).toBeInTheDocument();
-    // The same activity also appears under «شغلي القادم», so the title shows twice.
-    expect(screen.getAllByText('حملة التوعية الصحية القادمة').length).toBeGreaterThanOrEqual(2);
-    expect(screen.getByText(HOME.startsInLabel)).toBeInTheDocument();
+    // Phase 5: the featured activity is the hero itself and is not repeated
+    // in the rows below it.
+    expect(screen.getAllByText('حملة التوعية الصحية القادمة').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(new RegExp(HOME.startsInLabel))).toBeInTheDocument();
     expect(screen.getByText(HOME.checkInOpensNote)).toBeInTheDocument();
     expect(
       screen.queryByRole('link', { name: new RegExp(AR.studentPortal.dashboard.happeningNowCta) }),
@@ -243,7 +244,7 @@ describe('Phase 2 Student Home Page', () => {
     expect(screen.queryByText(HOME.nextBadge)).not.toBeInTheDocument();
   });
 
-  it('shows_no_hero_but_my_upcoming_when_only_applications_are_under_review', async () => {
+  it('shows_a_hero_and_a_review_note_when_only_applications_are_under_review', async () => {
     const pendingOpportunity = buildOpportunity({
       _id: 'op-pending',
       title: 'ندوة بانتظار المراجعة',
@@ -259,7 +260,11 @@ describe('Phase 2 Student Home Page', () => {
     expect(
       within(section).getByText(AR.opportunities.applicationStatuses.pending),
     ).toBeInTheDocument();
-    expect(screen.queryByText(HOME.welcomeTitle)).not.toBeInTheDocument();
+    // Phase 5 fix: the hero never disappears for review-only students — with
+    // no recommendations available it falls back to the welcome hero, and a
+    // calm under-review note is shown under it.
+    expect(await screen.findByText(HOME.welcomeTitle)).toBeInTheDocument();
+    expect(screen.getByText(HOME.reviewNoteTitle + ':')).toBeInTheDocument();
     expect(screen.queryByText(HOME.liveBadge)).not.toBeInTheDocument();
     expect(screen.queryByText(HOME.nextBadge)).not.toBeInTheDocument();
   });
@@ -272,13 +277,17 @@ describe('Phase 2 Student Home Page', () => {
 
     renderAppAt('/home', buildStudentUser());
 
+    // Phase 5: the top recommendation becomes the photo hero itself.
+    expect(await screen.findByText(HOME.featuredBadge)).toBeInTheDocument();
+    expect(screen.getAllByText('فرصة أولى').length).toBeGreaterThanOrEqual(1);
+
     const suggestedSection = await screen
       .findByRole('heading', { name: HOME.suggestedTitle })
       .then(() => sectionByHeading(HOME.suggestedTitle));
     const suggestedCards = within(suggestedSection).getAllByRole('article');
-    expect(suggestedCards).toHaveLength(2);
+    expect(suggestedCards).toHaveLength(1);
     for (const card of suggestedCards) {
-      expect(within(card).getByText(HOME.suggestedRibbon)).toBeInTheDocument();
+      expect(within(card).getByText(HOME.suggestedRibbon, { exact: false })).toBeInTheDocument();
     }
 
     const allWorkSection = sectionByHeading(HOME.allWorkTitle);
@@ -342,7 +351,11 @@ describe('Phase 2 Student Home Page', () => {
     renderAppAt('/home', buildStudentUser({ status: 'pending' }));
 
     expect(await screen.findByText(AR.pending.waitingTitle)).toBeInTheDocument();
-    expect(await screen.findByText(HOME.welcomeTitle)).toBeInTheDocument();
+    // Phase 5: the open opportunity becomes the featured photo hero, but the
+    // apply CTA stays hidden while the account is pending (participation is
+    // locked until approval, matching the server 403 behaviour).
+    expect(await screen.findByText(HOME.featuredBadge)).toBeInTheDocument();
     expect(screen.getAllByText('فرصة متاحة للتصفح').length).toBeGreaterThan(0);
+    expect(screen.queryByText(HOME.applyNowCta)).not.toBeInTheDocument();
   });
 });

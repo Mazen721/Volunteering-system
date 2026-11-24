@@ -75,6 +75,53 @@ export const INTEREST_KEYS = [
 
 export type InterestKey = (typeof INTEREST_KEYS)[number];
 
+/**
+ * Preset cover photos an opportunity can carry. Keys are stable identifiers
+ * stored on the opportunity; the client maps each key to a bundled photo.
+ * Every interest field has at least one preset, plus a generic fallback.
+ */
+export const COVER_PRESET_KEYS = [
+  'doctor-care',
+  'dental-care',
+  'medical-tablet',
+  'gardening',
+  'seedling',
+  'classroom',
+  'lecture-hall',
+  'charity-boxes',
+  'donation-hands',
+  'volunteers-packing',
+  'robotics',
+  'graduation',
+  'helping-hands',
+] as const;
+
+export type CoverPresetKey = (typeof COVER_PRESET_KEYS)[number];
+
+export const GENERIC_COVER_PRESET: CoverPresetKey = 'helping-hands';
+
+/** The default cover preset for each interest field (its first preset). */
+export const DEFAULT_COVER_PRESET_BY_FIELD: Record<InterestKey, CoverPresetKey> = {
+  medical: 'doctor-care',
+  agriculture_environment: 'gardening',
+  education: 'classroom',
+  charity_community: 'charity-boxes',
+  technology: 'robotics',
+  sports: 'volunteers-packing',
+  arts_culture: 'graduation',
+  awareness_campaigns: 'helping-hands',
+  event_organizing: 'volunteers-packing',
+};
+
+/**
+ * Resolves the cover preset an opportunity gets when none was chosen: the
+ * default of its primary (first) field, or the generic volunteering photo.
+ */
+export function defaultCoverPreset(fields: readonly InterestKey[]): CoverPresetKey {
+  const primary = fields[0];
+  return primary ? DEFAULT_COVER_PRESET_BY_FIELD[primary] : GENERIC_COVER_PRESET;
+}
+
 export const OPPORTUNITY_STATUSES = ['draft', 'published', 'cancelled', 'completed'] as const;
 
 export type OpportunityStatus = (typeof OPPORTUNITY_STATUSES)[number];

@@ -23,12 +23,19 @@ import type {
   OpportunityFormState,
   OpportunityResponse,
 } from '../types';
+import {
+  COVER_PRESETS,
+  coverPresetsForFields,
+  coverUrlForKey,
+  defaultCoverKeyForFields,
+} from '../utils/covers';
 import { toCairoInputDateTime } from '../utils/format';
 
 const INITIAL_FORM: OpportunityFormState = {
   title: '',
   description: '',
   requirements: '',
+  coverPreset: '',
   fields: [],
   activityType: ACTIVITY_TYPES[0],
   locationName: '',
@@ -53,6 +60,7 @@ function buildFormFromOpportunity(opportunity: Opportunity): OpportunityFormStat
     title: opportunity.title,
     description: opportunity.description,
     requirements: opportunity.requirements,
+    coverPreset: opportunity.coverPreset ?? '',
     fields: opportunity.fields,
     activityType: opportunity.activityType,
     locationName: opportunity.location.name,
@@ -255,6 +263,8 @@ export function OpportunityFormPage() {
   const [fieldErrors, setFieldErrors] = useState<OpportunityFieldErrors>({});
   const [submitError, setSubmitError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [showAllCovers, setShowAllCovers] = useState(false);
+  const effectiveCoverKey = form.coverPreset || defaultCoverKeyForFields(form.fields);
 
   const isDean = user?.role === 'dean';
 
@@ -323,6 +333,7 @@ export function OpportunityFormPage() {
       title: form.title.trim(),
       description: form.description.trim(),
       requirements: form.requirements.trim(),
+      coverPreset: form.coverPreset || defaultCoverKeyForFields(form.fields),
       fields: form.fields,
       activityType: form.activityType,
       location: {
@@ -633,6 +644,57 @@ export function OpportunityFormPage() {
                     )}
                   </div>
                 </div>
+              </div>
+
+              <div>
+                <span className="block font-bold text-slate-700 mb-1">
+                  {AR.opportunities.form.coverLabel}
+                </span>
+                <p className="text-[11px] font-semibold text-slate-500 mb-2">
+                  {AR.opportunities.form.coverHint}
+                </p>
+                <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2">
+                  {(showAllCovers ? COVER_PRESETS : coverPresetsForFields(form.fields)).map(
+                    (preset) => {
+                      const selected = effectiveCoverKey === preset.key;
+                      return (
+                        <button
+                          key={preset.key}
+                          type="button"
+                          disabled={formDisabled}
+                          onClick={() => updateField('coverPreset', preset.key)}
+                          aria-pressed={selected}
+                          className={`relative rounded-2xl overflow-hidden border-2 transition ${
+                            selected
+                              ? 'border-mnu-gold ring-2 ring-mnu-gold/40'
+                              : 'border-transparent opacity-80 hover:opacity-100'
+                          }`}
+                        >
+                          <img
+                            src={coverUrlForKey(preset.key)}
+                            alt=""
+                            className="w-full h-20 object-cover"
+                            loading="lazy"
+                          />
+                          {selected && (
+                            <span className="absolute top-1.5 inset-inline-start-1.5 px-2 py-0.5 rounded-full bg-mnu-gold text-[#231a00] text-[10px] font-black">
+                              ✓
+                            </span>
+                          )}
+                        </button>
+                      );
+                    }
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAllCovers((value) => !value)}
+                  className="mt-2 text-[11px] font-bold text-mnu-600 hover:text-mnu-700"
+                >
+                  {showAllCovers
+                    ? AR.opportunities.form.coverShowRelevant
+                    : AR.opportunities.form.coverShowAll}
+                </button>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

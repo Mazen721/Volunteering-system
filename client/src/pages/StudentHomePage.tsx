@@ -1,29 +1,36 @@
 import { Link } from 'react-router-dom';
-import { ArrowLeft, CalendarClock, LayoutGrid, RefreshCw, Sparkles, XCircle } from 'lucide-react';
+import { ArrowLeft, CalendarClock, Info, LayoutGrid, RefreshCw, Sparkles, XCircle } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
-import { MyUpcomingCard } from '../components/student/MyUpcomingCard';
-import { OpportunityCard } from '../components/student/OpportunityCard';
+import { HomeJourneyLine } from '../components/student/HomeJourneyLine';
+import { OpportunityRow } from '../components/student/OpportunityRow';
 import { StudentHomeHero } from '../components/student/StudentHomeHero';
 import { AR } from '../constants/ar';
 import { useAuth } from '../context/authContext';
 import { useStudentHome } from '../hooks/useStudentHome';
+import { selectFeaturedHome } from '../utils/featuredHome';
 import { formatDateAr } from '../utils/format';
 import { buildMyUpcoming } from '../utils/myUpcoming';
 
 const HOME = AR.studentPortal.home;
-const MY_UPCOMING_PREVIEW = 4;
 
 /**
- * The student's main page: the work itself, with no statistics. A big hero
- * block shows what is happening now (or next, or a welcome for new students),
- * followed by his upcoming work, gold-marked suggested opportunities, and a
- * short preview of all volunteer work with a see-all link to the board.
+ * The student's main page (Concept I — overlay): one big bright photo hero
+ * for the featured activity (his live work, his next work, or the top
+ * recommendation — never an empty hero), a quiet journey line toward the
+ * certificate, then wide photo rows for his upcoming work, suggested
+ * opportunities, and a preview of all volunteer work.
  */
 export function StudentHomePage() {
   const { user } = useAuth();
   const { summary, recommendations, allOpportunities, loading, error, retry } = useStudentHome();
   const isPendingAccount = user?.status === 'pending';
-  const myUpcoming = summary ? buildMyUpcoming(summary).slice(0, MY_UPCOMING_PREVIEW) : [];
+  const featured = summary ? selectFeaturedHome(summary, recommendations) : null;
+  const myUpcoming = summary ? buildMyUpcoming(summary) : [];
+  const featuredId = featured?.opportunity?._id;
+  const upcomingRows = myUpcoming.filter((item) => item.opportunity._id !== featuredId);
+  const suggestedRows = recommendations.filter(
+    (opportunity) => opportunity._id !== featuredId
+  );
   const firstName = user?.fullName.trim().split(/\s+/)[0] ?? '';
 
   return (
@@ -79,11 +86,25 @@ export function StudentHomePage() {
           </div>
         )}
 
-        {summary && (
+        {summary && featured && (
           <>
-            <StudentHomeHero summary={summary} />
+            <StudentHomeHero featured={featured} isPending={isPendingAccount} />
 
-            {myUpcoming.length > 0 && (
+            {featured.reviewOnly && (
+              <div className="flex items-start gap-2.5 px-1 sm:px-2 text-slate-600">
+                <Info className="w-4.5 h-4.5 shrink-0 mt-0.5 text-mnu-500" />
+                <p className="text-xs sm:text-sm font-semibold leading-relaxed">
+                  <b className="text-slate-800">{HOME.reviewNoteTitle}:</b> {HOME.reviewNoteText}
+                </p>
+              </div>
+            )}
+
+            <HomeJourneyLine
+              approvedHours={summary.approvedHours}
+              certificateHours={summary.certificateHours}
+            />
+
+            {upcomingRows.length > 0 && (
               <section className="space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h2 className="flex items-center gap-2 text-base font-black text-slate-800">
@@ -97,29 +118,31 @@ export function StudentHomePage() {
                     {HOME.myUpcomingAll}
                   </Link>
                 </div>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                  {myUpcoming.map((item) => (
-                    <MyUpcomingCard key={item.opportunity._id} item={item} />
+                <div className="space-y-3">
+                  {upcomingRows.slice(0, 3).map((item) => (
+                    <OpportunityRow
+                      key={item.opportunity._id}
+                      opportunity={item.opportunity}
+                      myStatus={item.status}
+                    />
                   ))}
                 </div>
               </section>
             )}
 
-            <section id="home-suggested" className="space-y-3 scroll-mt-28">
-              <h2 className="flex items-center gap-2 text-base font-black text-slate-800">
-                <Sparkles className="w-5 h-5 text-mnu-gold" />
-                {HOME.suggestedTitle}
-              </h2>
-              {recommendations.length === 0 ? (
-                <p className="text-xs text-slate-500">{HOME.suggestedEmpty}</p>
-              ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-                  {recommendations.map((opportunity) => (
-                    <OpportunityCard key={opportunity._id} opportunity={opportunity} suggested />
+            {suggestedRows.length > 0 && (
+              <section id="home-suggested" className="space-y-3 scroll-mt-28">
+                <h2 className="flex items-center gap-2 text-base font-black text-slate-800">
+                  <Sparkles className="w-5 h-5 text-mnu-gold" />
+                  {HOME.suggestedTitle}
+                </h2>
+                <div className="space-y-3">
+                  {suggestedRows.map((opportunity) => (
+                    <OpportunityRow key={opportunity._id} opportunity={opportunity} suggested />
                   ))}
                 </div>
-              )}
-            </section>
+              </section>
+            )}
 
             <section className="space-y-3">
               <h2 className="flex items-center gap-2 text-base font-black text-slate-800">
@@ -130,9 +153,9 @@ export function StudentHomePage() {
                 <p className="text-xs text-slate-500">{HOME.allWorkEmpty}</p>
               ) : (
                 <>
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+                  <div className="space-y-3">
                     {allOpportunities.map((opportunity) => (
-                      <OpportunityCard key={opportunity._id} opportunity={opportunity} />
+                      <OpportunityRow key={opportunity._id} opportunity={opportunity} />
                     ))}
                   </div>
                   <div className="flex justify-center pt-1">

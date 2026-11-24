@@ -462,6 +462,7 @@ export interface Opportunity {
   title: string;
   description: string;
   requirements: string;
+  coverPreset?: string;
   fields: InterestKey[];
   activityType: ActivityType;
   location: OpportunityLocation;
@@ -555,6 +556,7 @@ export interface OpportunityFormState {
   title: string;
   description: string;
   requirements: string;
+  coverPreset: string;
   fields: InterestKey[];
   activityType: ActivityType;
   locationName: string;

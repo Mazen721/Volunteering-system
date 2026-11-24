@@ -276,6 +276,9 @@ describe('Phase V2-4 Opportunities & Applications Engine', () => {
       title: 'قافلة توعية صحية',
       description: 'فرصة تطوعية لتنظيم قافلة توعية صحية لأهالي المنصورة',
       requirements: '',
+      // Phase 5: the form sends the field's default cover preset when the
+      // creator did not pick a different one (education → classroom).
+      coverPreset: 'classroom',
       fields: ['education'],
       activityType: 'قافلة',
       location: {

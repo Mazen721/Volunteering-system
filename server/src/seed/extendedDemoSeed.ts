@@ -8,7 +8,7 @@ import type {
   InterestKey,
   OpportunityStatus,
 } from '../constants/enums.js';
-import { FACULTIES } from '../constants/enums.js';
+import { FACULTIES, defaultCoverPreset } from '../constants/enums.js';
 import { Activity } from '../models/Activity.js';
 import type { ApplicationLean } from '../models/Application.js';
 import { Application } from '../models/Application.js';
@@ -536,6 +536,7 @@ function buildOpportunityUpdatePayload(spec: WorkflowOpportunitySpec) {
   return {
     description: spec.description,
     requirements: spec.requirements,
+    coverPreset: defaultCoverPreset(spec.fields),
     fields: spec.fields,
     activityType: spec.activityType,
     location: { name: spec.locationName, address: spec.locationAddress, mapUrl: '' },

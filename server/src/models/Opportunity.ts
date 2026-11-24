@@ -10,10 +10,12 @@ import {
   ACTIVITY_TYPES,
   APPROVAL_MODES,
   CATEGORIES,
+  COVER_PRESET_KEYS,
   FACULTIES,
   INTEREST_KEYS,
   OPPORTUNITY_STATUSES,
 } from '../constants/enums.js';
+import type { CoverPresetKey } from '../constants/enums.js';
 
 export interface CategoryCounts {
   student: number;
@@ -31,6 +33,7 @@ export interface OpportunityDoc {
   title: string;
   description: string;
   requirements: string;
+  coverPreset: CoverPresetKey | '';
   fields: InterestKey[];
   activityType: ActivityType;
   location: OpportunityLocation;
@@ -133,6 +136,14 @@ const opportunitySchema = new mongoose.Schema<OpportunityDoc>(
         validator: (fields: InterestKey[]) => Array.isArray(fields) && fields.length > 0,
         message: 'يجب اختيار مجال اهتمام واحد على الأقل',
       },
+    },
+    coverPreset: {
+      type: String,
+      enum: {
+        values: [...COVER_PRESET_KEYS, ''],
+        message: 'صورة الغلاف غير صالحة',
+      },
+      default: '',
     },
     activityType: {
       type: String,

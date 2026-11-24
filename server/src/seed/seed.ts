@@ -5,8 +5,8 @@ import mongoose from 'mongoose';
 import type { Types } from 'mongoose';
 import { loadEnv } from '../config/env.js';
 import { connectDatabase } from '../config/db.js';
-import type { ActivityType, Faculty, InterestKey } from '../constants/enums.js';
-import { DEFAULT_CERTIFICATE_HOURS, FACULTIES } from '../constants/enums.js';
+import type { ActivityType, CoverPresetKey, Faculty, InterestKey } from '../constants/enums.js';
+import { DEFAULT_CERTIFICATE_HOURS, FACULTIES, defaultCoverPreset } from '../constants/enums.js';
 import { Activity } from '../models/Activity.js';
 import { Application } from '../models/Application.js';
 import type { CategoryCounts, OpportunityLean } from '../models/Opportunity.js';
@@ -244,6 +244,7 @@ interface DemoOpportunitySpec {
   title: string;
   description: string;
   requirements: string;
+  coverPreset?: CoverPresetKey;
   fields: InterestKey[];
   activityType: ActivityType;
   locationName: string;
@@ -268,6 +269,7 @@ async function upsertDemoOpportunity(spec: DemoOpportunitySpec): Promise<Opportu
       $set: {
         description: spec.description,
         requirements: spec.requirements,
+        coverPreset: spec.coverPreset ?? defaultCoverPreset(spec.fields),
         fields: spec.fields,
         activityType: spec.activityType,
         location: { name: spec.locationName, address: spec.locationAddress, mapUrl: '' },
@@ -384,6 +386,7 @@ function buildDemoOpportunitySpecs(
       title: 'حملة التوعية الصحية بجامعة المنصورة الأهلية',
       description: 'حملة توعوية داخل الحرم الجامعي للتعريف بالإسعافات الأولية والصحة العامة.',
       requirements: 'الالتزام بالزي الجامعي وحضور الجلسة التعريفية.',
+      coverPreset: 'medical-tablet',
       fields: ['medical', 'awareness_campaigns'],
       activityType: 'حملة توعية',
       locationName: 'ساحة الأنشطة الطلابية - المبنى الرئيسي',
@@ -404,6 +407,7 @@ function buildDemoOpportunitySpecs(
       title: 'قافلة الكشف الطبي والتوعية المجتمعية (مباشر)',
       description: 'قافلة طبية وتوعوية جارية الآن مع فتح تسجيل الحضور المباشر برمز QR المتجدد.',
       requirements: 'إبراز البطاقة الجامعية وتسجيل الحضور عند البوابة.',
+      coverPreset: 'helping-hands',
       fields: ['medical', 'charity_community'],
       activityType: 'قافلة',
       locationName: 'العيادات الخارجية - جامعة المنصورة الأهلية',
@@ -424,6 +428,7 @@ function buildDemoOpportunitySpecs(
       title: 'مبادرة تنظيم يوم استقبال الطلاب الجدد',
       description: 'تنظيم وإرشاد الطلاب الجدد داخل كلية الطب البشري خلال أسبوع التهيئة.',
       requirements: 'التواجد قبل الموعد بربع ساعة.',
+      coverPreset: 'graduation',
       fields: ['event_organizing', 'education'],
       activityType: 'مبادرة',
       locationName: 'مدرج كلية الطب البشري',

@@ -3,6 +3,7 @@ import {
   ACTIVITY_TYPES,
   APPROVAL_MODES,
   CATEGORIES,
+  COVER_PRESET_KEYS,
   FACULTIES,
   INTEREST_KEYS,
 } from '../constants/enums.js';
@@ -79,6 +80,7 @@ const opportunityFieldsSchema = z.object({
     .trim()
     .min(10, 'وصف الفرصة يجب أن لا يقل عن 10 أحرف'),
   requirements: z.string().trim(),
+  coverPreset: z.enum(COVER_PRESET_KEYS, { error: 'صورة الغلاف غير صالحة' }).optional(),
   fields: z
     .array(z.enum(INTEREST_KEYS, { error: 'مجال الاهتمام غير صالح' }), {
       error: 'يجب اختيار مجال اهتمام واحد على الأقل',

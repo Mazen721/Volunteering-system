@@ -12,6 +12,7 @@ import {
   INTEREST_KEYS,
   OPPORTUNITY_PHASES,
   OPPORTUNITY_STATUSES,
+  defaultCoverPreset,
 } from '../constants/enums.js';
 import { Application } from '../models/Application.js';
 import type { ApplicationLean, ApplicationWithVolunteerLean } from '../models/Application.js';
@@ -300,6 +301,7 @@ export async function createOpportunity(
     title: payload.title,
     description: payload.description,
     requirements: payload.requirements,
+    coverPreset: payload.coverPreset ?? defaultCoverPreset(payload.fields),
     fields: payload.fields,
     activityType: payload.activityType,
     location: payload.location,
