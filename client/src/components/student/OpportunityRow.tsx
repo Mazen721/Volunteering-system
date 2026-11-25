@@ -38,7 +38,7 @@ export function OpportunityRow({ opportunity, suggested = false, myStatus }: Opp
         loading="lazy"
       />
       <div className="flex-1 p-5 flex flex-col gap-1.5 min-w-0">
-        <p className="text-[11px] font-bold text-amber-700">
+        <p className="text-xs font-bold text-amber-700">
           {publisher}
           {suggested && (
             <>
@@ -53,7 +53,7 @@ export function OpportunityRow({ opportunity, suggested = false, myStatus }: Opp
         >
           {opportunity.title}
         </Link>
-        <p className="text-xs font-semibold text-slate-500">
+        <p className="text-[13px] sm:text-sm font-semibold text-slate-600">
           {opportunity.location.name} • {formatDateTimeAr(opportunity.startAt)} •{' '}
           {formatNumber(opportunity.hours)} {AR.studentPortal.common.hours}
         </p>

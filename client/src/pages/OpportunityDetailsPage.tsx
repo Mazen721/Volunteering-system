@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowRight,
   CalendarDays,
@@ -13,15 +13,16 @@ import {
   Sparkles,
   Undo2,
   UserRound,
-  Users,
   XCircle,
 } from 'lucide-react';
 import { apiClient, extractApiErrorMessage } from '../api/client';
 import { Navbar } from '../components/Navbar';
+import { CategorySeatsBreakdown } from '../components/student/CategorySeats';
 import { AR, INTEREST_LABELS } from '../constants/ar';
 import { useAuth } from '../context/authContext';
 import { useToast } from '../context/toastContext';
 import type { Application, Opportunity, OpportunityResponse } from '../types';
+import { getApplyBlockReason } from '../utils/applyEligibility';
 import { hasActiveApplication, isLapsedApplication } from '../utils/applications';
 import { resolveOpportunityCover } from '../utils/covers';
 import { formatDateTimeAr, formatNumber } from '../utils/format';
@@ -37,6 +38,20 @@ export function OpportunityDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const { showToast } = useToast();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // History-aware back: a student who arrived from Home (or anywhere inside
+  // the app) returns there; only a direct landing (fresh tab / shared link,
+  // where the router's initial entry key is 'default') falls back to the
+  // board instead of leaving the app.
+  function handleBack() {
+    if (location.key !== 'default') {
+      navigate(-1);
+    } else {
+      navigate('/opportunities');
+    }
+  }
   const [opportunity, setOpportunity] = useState<Opportunity | null>(null);
   const [loading, setLoading] = useState(Boolean(id));
   const [error, setError] = useState(id ? '' : AR.studentPortal.details.errorTitle);
@@ -121,6 +136,27 @@ export function OpportunityDetailsPage() {
   }
 
   const myApplication = opportunity?.myApplication;
+  const myCategory = user?.registration?.category ?? null;
+  // The specific reason applying is impossible (started, deadline passed,
+  // ended, another faculty's opportunity, or no quota for his category) —
+  // derived from the payload so the page explains itself instead of the old
+  // generic «غير متاح حالياً». A full category is NOT a block: the waitlist
+  // path stays open, exactly as the server accepts it.
+  const blockReason = opportunity
+    ? getApplyBlockReason(opportunity, { category: myCategory, faculty: user?.faculty ?? null })
+    : null;
+  const blockReasonText = !opportunity
+    ? null
+    : blockReason === 'facultyRestricted'
+      ? AR.studentPortal.details.unavailableReasons.facultyRestricted.replace(
+          '{faculty}',
+          opportunity.faculty ?? ''
+        )
+      : blockReason
+        ? AR.studentPortal.details.unavailableReasons[blockReason]
+        : opportunity.phase !== 'upcoming'
+          ? AR.studentPortal.details.applyUnavailable
+          : null;
   const activeApplication = hasActiveApplication(myApplication);
   // A pending or waitlisted application on an opportunity that has already
   // ended lapsed undecided — the banner must say so instead of «قيد المراجعة»,
@@ -140,21 +176,26 @@ export function OpportunityDetailsPage() {
     opportunity.phase === 'upcoming' &&
     !activeApplication &&
     !isRejectedApplication &&
-    !isPendingAccount;
+    !isPendingAccount &&
+    !blockReason;
   const canWithdraw = opportunity !== null && opportunity.phase === 'upcoming' && activeApplication;
-  const isFull = opportunity?.isFull ?? (opportunity?.remainingSlots.student ?? 0) <= 0;
+  // Fullness is judged on HIS category's seats, not a hardcoded one.
+  const isFull =
+    opportunity?.isFull ??
+    (opportunity ? opportunity.remainingSlots[myCategory ?? 'student'] <= 0 : false);
 
   return (
     <div className="min-h-screen pb-16">
       <Navbar />
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-5">
-        <Link
-          to="/opportunities"
+        <button
+          type="button"
+          onClick={handleBack}
           className="inline-flex items-center gap-1.5 text-xs font-bold text-mnu-600 hover:text-mnu-700"
         >
           <ArrowRight className="w-4 h-4" />
           {AR.studentPortal.details.backToBoard}
-        </Link>
+        </button>
 
         {loading && (
           <div className="glass-card rounded-3xl p-6 flex items-center gap-3 text-mnu-500 text-sm font-bold">
@@ -254,7 +295,7 @@ export function OpportunityDetailsPage() {
                 </div>
               )}
 
-              {isFull && (
+              {isFull && canApply && (
                 <p className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold">
                   {AR.studentPortal.details.waitlistNotice}
                 </p>
@@ -320,11 +361,16 @@ export function OpportunityDetailsPage() {
                       <span>{AR.studentPortal.details.checkInCta}</span>
                     </Link>
                   )}
-                {!canApply && !canWithdraw && opportunity.phase !== 'upcoming' && (
-                  <p className="text-xs font-bold text-slate-500">
-                    {AR.studentPortal.details.applyUnavailable}
-                  </p>
-                )}
+                {!canApply &&
+                  !canWithdraw &&
+                  !activeApplication &&
+                  !isRejectedApplication &&
+                  // The pending-account notice already explains the upcoming
+                  // case; everywhere else the specific reason speaks.
+                  !(isPendingAccount && opportunity.phase === 'upcoming') &&
+                  blockReasonText && (
+                    <p className="text-xs font-bold text-slate-500">{blockReasonText}</p>
+                  )}
               </div>
             </header>
 
@@ -382,18 +428,15 @@ export function OpportunityDetailsPage() {
                   <Clock3 className="w-4 h-4 text-mnu-500" />
                   {formatNumber(opportunity.hours)} {AR.studentPortal.common.hours}
                 </p>
-                {!isEnded && (
-                  <p className="flex items-center gap-2">
-                    <Users className="w-4 h-4 text-mnu-500" />
-                    {AR.studentPortal.details.slotsLabel}:{' '}
-                    {formatNumber(opportunity.remainingSlots.student)}
-                  </p>
-                )}
                 <p className="flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-mnu-500" />
                   {opportunity.location.address}
                 </p>
               </div>
+
+              {!isEnded && (
+                <CategorySeatsBreakdown opportunity={opportunity} myCategory={myCategory} />
+              )}
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-200/70 text-xs text-slate-600">
                 <p className="flex items-center gap-2">

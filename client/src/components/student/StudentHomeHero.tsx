@@ -2,13 +2,15 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ClipboardList, MapPin, QrCode, Sparkles } from 'lucide-react';
 import { AR } from '../../constants/ar';
-import type { ApplicationStatus } from '../../constants/enums';
+import type { ApplicationStatus, VolunteerCategory } from '../../constants/enums';
+import { useAuth } from '../../context/authContext';
 import type { Opportunity } from '../../types';
 import type { FeaturedHome } from '../../utils/featuredHome';
 import { coverUrlForKey, resolveOpportunityCover } from '../../utils/covers';
 import { formatDurationAr } from '../../utils/duration';
 import { formatDateAr, formatNumber, formatPercent, formatTimeAr } from '../../utils/format';
-import { MyApplicationChip } from './OpportunityChips';
+import { CategorySeatsHeroLine } from './CategorySeats';
+import { MyApplicationChip, PhaseChip } from './OpportunityChips';
 
 const HOME = AR.studentPortal.home;
 
@@ -45,7 +47,7 @@ function HeroPlace({ opportunity }: { opportunity: Opportunity }) {
       <MapPin className="w-5 h-5 shrink-0 mt-0.5" />
       <span>
         {opportunity.location.name}
-        <small className="block text-white/75 font-semibold text-xs mt-0.5">
+        <small className="block text-white/75 font-semibold text-[13px] mt-0.5">
           {opportunity.location.address}
         </small>
       </span>
@@ -80,7 +82,7 @@ function LiveHero({
       </span>
       <h2 className="text-2xl sm:text-4xl font-black leading-snug">{opportunity.title}</h2>
       <HeroPlace opportunity={opportunity} />
-      <p className="text-xs sm:text-sm font-bold text-white/85">
+      <p className="text-sm sm:text-base font-bold text-white/85">
         {HOME.startedLabel} {formatTimeAr(opportunity.startAt)} • {HOME.endsLabel}{' '}
         {formatTimeAr(opportunity.endAt)} • {formatNumber(opportunity.hours)}{' '}
         {AR.studentPortal.common.hours}
@@ -95,7 +97,7 @@ function LiveHero({
       >
         <div className="h-full rounded-full bg-rose-500" style={{ width: `${progress}%` }} />
       </div>
-      <p className="text-[11px] font-bold text-white/85">
+      <p className="text-xs sm:text-sm font-bold text-white/85">
         {HOME.elapsedLabel} <bdi>{formatPercent(progress)}</bdi> — {HOME.remainingLabel}{' '}
         {formatDurationAr(Math.max(0, end - now))}
       </p>
@@ -127,11 +129,13 @@ function NextHero({
   now,
   isPending,
   myStatus,
+  myCategory,
 }: {
   opportunity: Opportunity;
   now: number;
   isPending: boolean;
   myStatus: ApplicationStatus | null;
+  myCategory: VolunteerCategory | null;
 }) {
   // The badge names the real state of his application: confirmed next work,
   // still under review, or waitlisted — never dressed up as confirmed.
@@ -154,11 +158,12 @@ function NextHero({
       </span>
       <h2 className="text-2xl sm:text-4xl font-black leading-snug">{opportunity.title}</h2>
       <HeroPlace opportunity={opportunity} />
-      <p className="text-xs sm:text-sm font-bold text-white/85">
+      <p className="text-sm sm:text-base font-bold text-white/85">
         {HOME.startsInLabel} {formatDurationAr(new Date(opportunity.startAt).getTime() - now)} •{' '}
         {formatDateAr(opportunity.startAt)} • {formatTimeAr(opportunity.startAt)} •{' '}
         {formatNumber(opportunity.hours)} {AR.studentPortal.common.hours}
       </p>
+      <CategorySeatsHeroLine opportunity={opportunity} myCategory={myCategory} />
       <div className="flex flex-wrap items-center gap-2.5 pt-1">
         <Link
           to={`/opportunities/${opportunity._id}`}
@@ -175,7 +180,21 @@ function NextHero({
   );
 }
 
-function SuggestedHero({ opportunity, isPending }: { opportunity: Opportunity; isPending: boolean }) {
+function SuggestedHero({
+  opportunity,
+  isPending,
+  myCategory,
+}: {
+  opportunity: Opportunity;
+  isPending: boolean;
+  myCategory: VolunteerCategory | null;
+}) {
+  // Honest CTA: «قدّم دلوقتي» is an invitation the server would refuse when
+  // registration already closed, the activity already started, or his
+  // category is full — in those cases the hero shows the phase chip and a
+  // plain details link instead of dressing the opportunity up as open.
+  const isAppliable = opportunity.phase === 'upcoming' && !opportunity.isFull;
+
   return (
     <HeroShell coverUrl={resolveOpportunityCover(opportunity)}>
       <span className="inline-flex items-center gap-2 text-amber-300 text-xs font-black">
@@ -184,26 +203,43 @@ function SuggestedHero({ opportunity, isPending }: { opportunity: Opportunity; i
       </span>
       <h2 className="text-2xl sm:text-4xl font-black leading-snug">{opportunity.title}</h2>
       <HeroPlace opportunity={opportunity} />
-      <p className="text-xs sm:text-sm font-bold text-white/85">
+      <p className="text-sm sm:text-base font-bold text-white/85">
         {formatDateAr(opportunity.startAt)} • {formatTimeAr(opportunity.startAt)} •{' '}
         {formatNumber(opportunity.hours)} {AR.studentPortal.common.hours}
       </p>
-      {!isPending && (
-        <div className="flex flex-wrap items-center gap-2.5 pt-1">
-          <Link
-            to={`/opportunities/${opportunity._id}`}
-            className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl bg-mnu-gold text-[#231a00] text-sm font-black transition hover:brightness-105 active:scale-95"
-          >
-            {HOME.applyNowCta}
-          </Link>
-          <Link
-            to={`/opportunities/${opportunity._id}`}
-            className="px-5 py-3.5 rounded-2xl text-white text-sm font-bold underline decoration-mnu-gold decoration-2 underline-offset-8"
-          >
-            {HOME.detailsButton}
-          </Link>
-        </div>
-      )}
+      {isAppliable && <CategorySeatsHeroLine opportunity={opportunity} myCategory={myCategory} />}
+      {!isPending &&
+        (isAppliable ? (
+          <div className="flex flex-wrap items-center gap-2.5 pt-1">
+            <Link
+              to={`/opportunities/${opportunity._id}`}
+              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl bg-mnu-gold text-[#231a00] text-sm font-black transition hover:brightness-105 active:scale-95"
+            >
+              {HOME.applyNowCta}
+            </Link>
+            <Link
+              to={`/opportunities/${opportunity._id}`}
+              className="px-5 py-3.5 rounded-2xl text-white text-sm font-bold underline decoration-mnu-gold decoration-2 underline-offset-8"
+            >
+              {HOME.detailsButton}
+            </Link>
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center gap-2.5 pt-1">
+            <PhaseChip phase={opportunity.phase} size="lg" />
+            {opportunity.isFull && opportunity.phase === 'upcoming' && (
+              <span className="inline-flex items-center rounded-full border px-4 py-2 text-xs font-black bg-amber-50 text-amber-700 border-amber-200">
+                {AR.studentPortal.board.fullBadge}
+              </span>
+            )}
+            <Link
+              to={`/opportunities/${opportunity._id}`}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl border border-white/50 bg-white/10 text-white text-sm font-black transition hover:bg-white/20 active:scale-95"
+            >
+              {HOME.detailsButton}
+            </Link>
+          </div>
+        ))}
     </HeroShell>
   );
 }
@@ -244,6 +280,8 @@ function WelcomeHero({ isPending }: { isPending: boolean }) {
 export function StudentHomeHero({ featured, isPending }: HeroProps) {
   // Read the clock once per mount so hero times stay stable across re-renders.
   const [now] = useState(() => Date.now());
+  const { user } = useAuth();
+  const myCategory = user?.registration?.category ?? null;
 
   if (featured.kind === 'live' && featured.opportunity) {
     return <LiveHero opportunity={featured.opportunity} now={now} myStatus={featured.myStatus} />;
@@ -255,11 +293,18 @@ export function StudentHomeHero({ featured, isPending }: HeroProps) {
         now={now}
         isPending={isPending}
         myStatus={featured.myStatus}
+        myCategory={myCategory}
       />
     );
   }
   if (featured.kind === 'suggested' && featured.opportunity) {
-    return <SuggestedHero opportunity={featured.opportunity} isPending={isPending} />;
+    return (
+      <SuggestedHero
+        opportunity={featured.opportunity}
+        isPending={isPending}
+        myCategory={myCategory}
+      />
+    );
   }
   return <WelcomeHero isPending={isPending} />;
 }

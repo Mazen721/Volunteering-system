@@ -60,7 +60,7 @@ export function OpportunityCard({ opportunity, suggested = false }: OpportunityC
           >
             {opportunity.title}
           </Link>
-          <p className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500">
+          <p className="flex items-center gap-1.5 text-xs font-bold text-slate-500">
             <MapPin className="w-3.5 h-3.5 text-mnu-500" />
             <span>{opportunity.location.name}</span>
             <span className="text-slate-300">•</span>
@@ -104,7 +104,7 @@ export function OpportunityCard({ opportunity, suggested = false }: OpportunityC
         {opportunity.description}
       </p>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] font-semibold text-slate-600">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[13px] font-semibold text-slate-600">
         <span className="flex items-center gap-1.5">
           <CalendarDays className="w-3.5 h-3.5 text-mnu-500" />
           {formatDateTimeAr(opportunity.startAt)}
@@ -123,7 +123,7 @@ export function OpportunityCard({ opportunity, suggested = false }: OpportunityC
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-        <span className="text-[11px] font-semibold text-amber-700">
+        <span className="text-xs font-bold text-amber-700">
           {AR.studentPortal.board.deadlineLabel}: {formatDateTimeAr(opportunity.registrationDeadline)}
         </span>
         <Link
