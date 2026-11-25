@@ -75,6 +75,18 @@ export const INTEREST_KEYS = [
 
 export type InterestKey = (typeof INTEREST_KEYS)[number];
 
+export const INTEREST_LABELS: Record<InterestKey, string> = {
+  medical: 'القطاع الطبي',
+  agriculture_environment: 'الزراعة والبيئة',
+  education: 'التعليم ومحو الأمية',
+  charity_community: 'التكافل والعمل الخيري',
+  technology: 'التكنولوجيا والتحول الرقمي',
+  sports: 'الأنشطة الرياضية',
+  arts_culture: 'الفنون والثقافة',
+  awareness_campaigns: 'حملات التوعية',
+  event_organizing: 'تنظيم الفعاليات',
+};
+
 /**
  * Preset cover photos an opportunity can carry. Keys are stable identifiers
  * stored on the opportunity; the client maps each key to a bundled photo.

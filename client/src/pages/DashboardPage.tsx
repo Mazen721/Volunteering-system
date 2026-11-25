@@ -2,6 +2,7 @@ import {
   AlertTriangle,
   CalendarDays,
   ClipboardList,
+  FileDown,
   LineChart,
   RefreshCw,
   Shield,
@@ -307,6 +308,14 @@ export function DashboardPage() {
                     <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
                     <span>{refreshing ? AR.dashboard.refreshing : AR.dashboard.refreshButton}</span>
                   </button>
+
+                  <Link
+                    to="/reports/print?autoprint=1"
+                    className="px-4 py-2.5 rounded-xl bg-[#c9a227] hover:bg-[#b28e1f] text-[#122f4a] text-xs font-black transition flex items-center gap-2 shadow-md shadow-[#c9a227]/25 active:scale-95"
+                  >
+                    <FileDown className="w-4 h-4" />
+                    <span>{AR.report.exportButton}</span>
+                  </Link>
                 </div>
               </div>
 

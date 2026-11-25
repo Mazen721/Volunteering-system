@@ -285,8 +285,11 @@ export interface LeaderboardVolunteer {
   category: VolunteerCategory;
   categoryLabel: string;
   faculty: string;
+  totalActivities: number;
   approvedActivities: number;
   approvedHours: number;
+  remainingHours: number;
+  eligible: boolean;
 }
 
 export interface LeaderboardResponse {
@@ -389,6 +392,73 @@ export interface DashboardStatsBundle {
   events: EventStatsResponse | null;
   monthlyHours: MonthlyHoursPoint[];
   analyticsError: string;
+}
+
+export interface ReportMeta {
+  scope: 'university' | 'faculty';
+  faculty: Faculty | null;
+  generatedAt: string;
+  generatedBy: {
+    id: string;
+    fullName: string;
+    email: string;
+    role: UserRole;
+  };
+}
+
+export interface ReportOpportunityRow {
+  _id: string;
+  title: string;
+  faculty: Faculty | null;
+  status: OpportunityStatus;
+  fields: InterestKey[];
+  startAt: string;
+  endAt: string;
+  hours: number;
+  totalSlots: number;
+  applicationsCount: number;
+  pendingCount: number;
+  acceptedCount: number;
+  attendedCount: number;
+  rejectedCount: number;
+  fillRate: number;
+  attendanceRate: number;
+}
+
+export interface InterestDistributionRow {
+  field: InterestKey;
+  label: string;
+  opportunitiesCount: number;
+  totalHours: number;
+  percentage: number;
+}
+
+export interface OpportunityStatusRow {
+  status: OpportunityStatus;
+  count: number;
+  percentage: number;
+}
+
+export interface ReportSummary {
+  totalOpportunities: number;
+  totalApplications: number;
+  approvalRate: number;
+  attendanceRate: number;
+  totalAttended: number;
+}
+
+export interface VolunteeringReport {
+  meta: ReportMeta;
+  overview: OverviewStats;
+  faculties: FacultyStatsResponse;
+  categories: CategoryStatsResponse;
+  participation: ParticipationStatsResponse;
+  monthlyHours: MonthlyHoursResponse;
+  leaderboard: LeaderboardResponse;
+  interests: InterestDistributionRow[];
+  opportunityStatuses: OpportunityStatusRow[];
+  opportunities: ReportOpportunityRow[];
+  summary: ReportSummary;
 }
 
 export interface VolunteerFilters {

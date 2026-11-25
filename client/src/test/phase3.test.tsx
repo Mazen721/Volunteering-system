@@ -87,6 +87,9 @@ const LEADERBOARD_BY_CATEGORY: Record<string, LeaderboardVolunteer[]> = {
       faculty: 'كلية الصيدلة',
       approvedActivities: 3,
       approvedHours: 37,
+      totalActivities: 3,
+      remainingHours: 0,
+      eligible: true,
     },
     {
       _id: 'v1',
@@ -97,6 +100,9 @@ const LEADERBOARD_BY_CATEGORY: Record<string, LeaderboardVolunteer[]> = {
       faculty: 'كلية الطب البشري',
       approvedActivities: 3,
       approvedHours: 31,
+      totalActivities: 3,
+      remainingHours: 0,
+      eligible: true,
     },
   ],
   student: [
@@ -109,6 +115,9 @@ const LEADERBOARD_BY_CATEGORY: Record<string, LeaderboardVolunteer[]> = {
       faculty: 'كلية الطب البشري',
       approvedActivities: 3,
       approvedHours: 31,
+      totalActivities: 3,
+      remainingHours: 0,
+      eligible: true,
     },
   ],
   academic: [
@@ -121,6 +130,9 @@ const LEADERBOARD_BY_CATEGORY: Record<string, LeaderboardVolunteer[]> = {
       faculty: 'كلية الصيدلة',
       approvedActivities: 3,
       approvedHours: 37,
+      totalActivities: 3,
+      remainingHours: 0,
+      eligible: true,
     },
   ],
   admin: [
@@ -133,6 +145,9 @@ const LEADERBOARD_BY_CATEGORY: Record<string, LeaderboardVolunteer[]> = {
       faculty: 'كلية الهندسة',
       approvedActivities: 2,
       approvedHours: 24,
+      totalActivities: 2,
+      remainingHours: 6,
+      eligible: false,
     },
   ],
 };

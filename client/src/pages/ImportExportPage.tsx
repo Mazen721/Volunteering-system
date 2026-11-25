@@ -1,6 +1,15 @@
 import { useState } from 'react';
 import type { ChangeEvent } from 'react';
-import { AlertCircle, CheckCircle2, Download, FileSpreadsheet, Lock, Upload } from 'lucide-react';
+import {
+  AlertCircle,
+  CheckCircle2,
+  Download,
+  FileSpreadsheet,
+  FileText,
+  Lock,
+  Upload,
+} from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { apiClient, extractApiErrorMessage } from '../api/client';
 import { Navbar } from '../components/Navbar';
 import { ImportPreviewReport } from '../components/importExport/ImportPreviewReport';
@@ -133,15 +142,25 @@ export function ImportExportPage() {
               )}
             </div>
 
-            <button
-              type="button"
-              disabled={exporting}
-              onClick={handleExport}
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-mnu-500 hover:bg-mnu-600 disabled:opacity-60 text-white text-xs font-bold transition shadow-md cursor-pointer"
-            >
-              <Download className="w-4 h-4" />
-              <span>{exporting ? AR.importExport.exporting : AR.importExport.exportButton}</span>
-            </button>
+            <div className="space-y-2.5">
+              <button
+                type="button"
+                disabled={exporting}
+                onClick={handleExport}
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-mnu-500 hover:bg-mnu-600 disabled:opacity-60 text-white text-xs font-bold transition shadow-md cursor-pointer"
+              >
+                <Download className="w-4 h-4" />
+                <span>{exporting ? AR.importExport.exporting : AR.importExport.exportButton}</span>
+              </button>
+
+              <Link
+                to="/reports/print?autoprint=1"
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[#c9a227] hover:bg-[#b28e1f] text-[#122f4a] text-xs font-black transition shadow-md"
+              >
+                <FileText className="w-4 h-4" />
+                <span>{AR.report.exportButton}</span>
+              </Link>
+            </div>
           </section>
 
           {!isDean && (

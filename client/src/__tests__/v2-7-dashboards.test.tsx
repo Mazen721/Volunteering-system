@@ -176,8 +176,11 @@ const POPULATED_LEADERBOARD: LeaderboardVolunteer[] = [
     category: 'student',
     categoryLabel: 'الطلاب',
     faculty: FACULTY_A,
+    totalActivities: 5,
     approvedActivities: 4,
     approvedHours: 36,
+    remainingHours: 0,
+    eligible: true,
   },
 ];
 

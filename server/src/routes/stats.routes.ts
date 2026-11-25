@@ -4,6 +4,7 @@ import type { Faculty } from '../constants/enums.js';
 import { FACULTIES } from '../constants/enums.js';
 import type { ScopeFilter } from '../middleware/auth.js';
 import { buildScope, requireRole } from '../middleware/auth.js';
+import { getVolunteeringReport } from '../services/report.service.js';
 import {
   getCategoryStats,
   getEventStats,
@@ -45,6 +46,11 @@ export function createStatsRouter(): express.Router {
   router.get('/overview', async (req, res) => {
     const overview = await getOverviewStats(resolveStatsScope(req));
     res.json(overview);
+  });
+
+  router.get('/report', async (req, res) => {
+    const report = await getVolunteeringReport(resolveStatsScope(req), req.user!);
+    res.json(report);
   });
 
   router.get('/faculties', async (req, res) => {

@@ -18,6 +18,7 @@ import { OpportunityFormPage } from './pages/OpportunityFormPage';
 import { OpportunityLivePage } from './pages/OpportunityLivePage';
 import { PendingApprovalPage } from './pages/PendingApprovalPage';
 import { RegisterPage } from './pages/RegisterPage';
+import { ReportPrintPage } from './pages/ReportPrintPage';
 import { StudentDashboardPage } from './pages/StudentDashboardPage';
 import { StudentHomePage } from './pages/StudentHomePage';
 import { StudentProfilePage } from './pages/StudentProfilePage';
@@ -45,6 +46,7 @@ export default function App() {
               <Route path="/opportunities/:id/edit" element={<OpportunityFormPage />} />
               <Route path="/approvals" element={<ApprovalsPage />} />
               <Route path="/certificate/:volunteerId" element={<CertificatePage />} />
+              <Route path="/reports/print" element={<ReportPrintPage />} />
               <Route path="/excel" element={<ImportExportPage />} />
               <Route path="/import-export" element={<ImportExportPage />} />
             </Route>

@@ -199,6 +199,108 @@ body {
   );
 }
 
+/* Printable volunteering report (admin / dean PDF export) */
+.report-print-page {
+  page: report;
+}
+
+@page report {
+  size: A4 portrait;
+  margin: 13mm 10mm 16mm;
+
+  @bottom-center {
+    content: 'جامعة المنصورة الأهلية — مركز المسؤولية المجتمعية';
+    font-family: 'Cairo', sans-serif;
+    font-size: 8pt;
+    font-weight: 700;
+    color: #64748b;
+  }
+
+  @bottom-left {
+    content: 'صفحة ' counter(page) ' من ' counter(pages);
+    font-family: 'Cairo', sans-serif;
+    font-size: 8pt;
+    font-weight: 700;
+    color: #64748b;
+  }
+}
+
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  background: #ffffff;
+}
+
+.report-table th {
+  background: #122f4a;
+  color: #ffffff;
+  font-weight: 800;
+  text-align: right;
+  padding: 7px 8px;
+  border: 1px solid #122f4a;
+  white-space: nowrap;
+}
+
+.report-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #e2e8f0;
+  color: #334155;
+  vertical-align: top;
+}
+
+.report-table tbody tr:nth-child(even) td {
+  background: #f8fafc;
+}
+
+.report-total-row td {
+  background: #eef4fa !important;
+  font-weight: 900;
+  color: #122f4a !important;
+  border-top: 2px solid #c9a227;
+}
+
+.report-empty {
+  border: 1px dashed #cbd5e1;
+  border-radius: 16px;
+  padding: 20px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #94a3b8;
+  background: #ffffff;
+}
+
+@media print {
+  .report-no-print {
+    display: none !important;
+  }
+
+  .report-print-page {
+    background: #ffffff !important;
+  }
+
+  .report-sheet {
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+
+  .report-section,
+  .report-chart-card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .report-table thead {
+    display: table-header-group;
+  }
+
+  .report-table tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
+
 @media print {
   html,
   body {
