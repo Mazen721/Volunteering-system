@@ -786,7 +786,7 @@ export interface ParticipationStatsResponse {
   engagement: EngagementBreakdown;
 }
 
-async function aggregateApplicationFunnelCounts(
+export async function aggregateApplicationFunnelCounts(
   applicationFilter: Record<string, unknown>
 ): Promise<Omit<ParticipationFunnel, 'noShow'>> {
   const rows = await Application.aggregate<{
@@ -831,7 +831,7 @@ async function aggregateApplicationFunnelCounts(
     : { applied: 0, accepted: 0, attended: 0, rejected: 0 };
 }
 
-async function aggregateCompletedNoShowCount(
+export async function aggregateCompletedNoShowCount(
   applicationFilter: Record<string, unknown>
 ): Promise<number> {
   const rows = await Application.aggregate<{ _id: null; noShow: number }>([
@@ -1056,7 +1056,7 @@ export interface MonthlyHoursResponse {
   months: MonthlyHoursPoint[];
 }
 
-function formatCairoMonthLabel(yearMonth: string): string {
+export function formatCairoMonthLabel(yearMonth: string): string {
   const [yearPart, monthPart] = yearMonth.split('-');
   const year = Number(yearPart);
   const month = Number(monthPart);
