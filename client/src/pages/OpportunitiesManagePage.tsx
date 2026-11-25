@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   AlertCircle,
+  BadgeCheck,
   CalendarClock,
   CalendarPlus,
   Eye,
@@ -17,6 +18,7 @@ import { apiClient, extractApiErrorMessage } from '../api/client';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { Navbar } from '../components/Navbar';
 import { ApplicantsModal } from '../components/opportunities/ApplicantsModal';
+import { CompleteOpportunityDialog } from '../components/opportunities/CompleteOpportunityDialog';
 import { AR } from '../constants/ar';
 import type { OpportunityPhase, OpportunityStatus } from '../constants/enums';
 import {
@@ -117,7 +119,9 @@ export function OpportunitiesManagePage() {
   const [filters, setFilters] = useState<OpportunityFilters>(INITIAL_FILTERS);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [cancelTarget, setCancelTarget] = useState<Opportunity | null>(null);
+  const [completeTarget, setCompleteTarget] = useState<Opportunity | null>(null);
   const [applicantsTarget, setApplicantsTarget] = useState<Opportunity | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
     let cancelled = false;
@@ -141,6 +145,29 @@ export function OpportunitiesManagePage() {
       cancelled = true;
     };
   }, []);
+
+  // Dashboard action blocks deep-link here with ?applicants=<id> to open the
+  // applicants review of one opportunity directly.
+  const applicantsParam = searchParams.get('applicants');
+  const deepLinkedApplicantsTarget =
+    applicantsParam && !loading
+      ? (opportunities.find((opportunity) => opportunity._id === applicantsParam) ?? null)
+      : null;
+  const effectiveApplicantsTarget = applicantsTarget ?? deepLinkedApplicantsTarget;
+
+  function handleApplicantsClose() {
+    setApplicantsTarget(null);
+    if (applicantsParam) {
+      setSearchParams(
+        (previous) => {
+          const next = new URLSearchParams(previous);
+          next.delete('applicants');
+          return next;
+        },
+        { replace: true }
+      );
+    }
+  }
 
   async function handleRefresh() {
     setLoading(true);
@@ -183,6 +210,14 @@ export function OpportunitiesManagePage() {
     } finally {
       setBusyId(null);
     }
+  }
+
+  function handleCompleted(updated: Opportunity) {
+    setOpportunities((previous) =>
+      previous.map((entry) => (entry._id === updated._id ? updated : entry))
+    );
+    setCompleteTarget(null);
+    showToast({ type: 'success', message: AR.opportunities.completeSuccess });
   }
 
   async function handleCancelConfirmed() {
@@ -445,6 +480,20 @@ export function OpportunitiesManagePage() {
                               </Link>
                             )}
 
+                            {manageable &&
+                              opportunity.status === 'published' &&
+                              opportunity.phase === 'ended' && (
+                                <button
+                                  type="button"
+                                  disabled={busy}
+                                  onClick={() => setCompleteTarget(opportunity)}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#c9a227] hover:bg-[#b28e1f] text-[#122f4a] border border-[#c9a227] text-[11px] font-black transition cursor-pointer disabled:opacity-60 shadow-sm shadow-[#c9a227]/30"
+                                >
+                                  <BadgeCheck className="w-3.5 h-3.5" />
+                                  <span>{AR.opportunities.completeBtn}</span>
+                                </button>
+                              )}
+
                             {manageable && opportunity.status === 'draft' && (
                               <button
                                 type="button"
@@ -461,7 +510,7 @@ export function OpportunitiesManagePage() {
                               </button>
                             )}
 
-                            {manageable && !isClosed && (
+                            {manageable && !isClosed && opportunity.phase !== 'ended' && (
                               <button
                                 type="button"
                                 disabled={busy}
@@ -494,11 +543,19 @@ export function OpportunitiesManagePage() {
       </main>
 
       <ApplicantsModal
-        isOpen={applicantsTarget !== null}
-        opportunityId={applicantsTarget?._id ?? null}
-        opportunityTitle={applicantsTarget?.title ?? ''}
-        isClosed={applicantsTarget ? isClosedOpportunity(applicantsTarget) : false}
-        onClose={() => setApplicantsTarget(null)}
+        isOpen={effectiveApplicantsTarget !== null}
+        opportunityId={effectiveApplicantsTarget?._id ?? null}
+        opportunityTitle={effectiveApplicantsTarget?.title ?? ''}
+        isClosed={
+          effectiveApplicantsTarget ? isClosedOpportunity(effectiveApplicantsTarget) : false
+        }
+        onClose={handleApplicantsClose}
+      />
+
+      <CompleteOpportunityDialog
+        opportunity={completeTarget}
+        onClose={() => setCompleteTarget(null)}
+        onCompleted={handleCompleted}
       />
 
       <ConfirmDialog

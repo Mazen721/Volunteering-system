@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Navbar } from '../components/Navbar';
+import { ActionItemsBlocks } from '../components/dashboard/ActionItemsBlocks';
 import { CertificateBucketsCard } from '../components/dashboard/CertificateBucketsCard';
 import { DashboardErrorState } from '../components/dashboard/DashboardErrorState';
 import { EngagementDonutChart } from '../components/dashboard/EngagementDonutChart';
@@ -26,6 +27,7 @@ import { AR } from '../constants/ar';
 import type { Faculty } from '../constants/enums';
 import { FACULTIES } from '../constants/enums';
 import { useAuth } from '../context/authContext';
+import { useActionItems } from '../hooks/useActionItems';
 import { useDashboardStats } from '../hooks/useDashboardStats';
 import type { OverviewStats, ZeroHourVolunteerRow } from '../types';
 import { formatNumber } from '../utils/format';
@@ -250,6 +252,13 @@ export function DashboardPage() {
     refresh,
   } = useDashboardStats();
 
+  const { actionItems, reloadActionItems } = useActionItems();
+
+  const handleRefresh = () => {
+    void refresh();
+    void reloadActionItems();
+  };
+
   const headerTitle =
     isDean && user?.faculty
       ? `${AR.dashboard.deanTitlePrefix} ${user.faculty}`
@@ -302,7 +311,7 @@ export function DashboardPage() {
 
                   <button
                     type="button"
-                    onClick={refresh}
+                    onClick={handleRefresh}
                     disabled={refreshing}
                     className="px-4 py-2.5 rounded-xl bg-mnu-500 hover:bg-mnu-600 disabled:opacity-60 text-white text-xs font-bold transition flex items-center gap-2 shadow-md shadow-mnu-500/20 active:scale-95 cursor-pointer"
                   >
@@ -322,6 +331,8 @@ export function DashboardPage() {
 
               {overview && <KpiGrid overview={overview} />}
             </section>
+
+            <ActionItemsBlocks actionItems={actionItems} />
 
             {overview && <QuickQueuesStrip overview={overview} isAdmin={isAdmin} />}
 

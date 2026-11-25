@@ -684,6 +684,31 @@ export interface CompleteOpportunityResponse {
   noShowCount: number;
 }
 
+export interface AwaitingCompletionItem {
+  opportunityId: string;
+  title: string;
+  faculty: Faculty | null;
+  startAt: string;
+  endAt: string;
+  hours: number;
+  acceptedCount: number;
+  attendedCount: number;
+}
+
+export interface PendingUrgentItem {
+  opportunityId: string;
+  title: string;
+  faculty: Faculty | null;
+  startAt: string;
+  phase: OpportunityPhase;
+  pendingCount: number;
+}
+
+export interface ActionItemsResponse {
+  awaitingCompletion: AwaitingCompletionItem[];
+  pendingUrgent: PendingUrgentItem[];
+}
+
 export interface CheckInSubmitResponse {
   application: Application;
 }
