@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarDays, MapPin, QrCode, Sparkles } from 'lucide-react';
+import { ClipboardList, MapPin, QrCode, Sparkles } from 'lucide-react';
 import { AR } from '../../constants/ar';
+import type { ApplicationStatus } from '../../constants/enums';
 import type { Opportunity } from '../../types';
 import type { FeaturedHome } from '../../utils/featuredHome';
 import { coverUrlForKey, resolveOpportunityCover } from '../../utils/covers';
 import { formatDurationAr } from '../../utils/duration';
 import { formatDateAr, formatNumber, formatPercent, formatTimeAr } from '../../utils/format';
+import { MyApplicationChip } from './OpportunityChips';
 
 const HOME = AR.studentPortal.home;
 
@@ -51,17 +53,30 @@ function HeroPlace({ opportunity }: { opportunity: Opportunity }) {
   );
 }
 
-function LiveHero({ opportunity, now }: { opportunity: Opportunity; now: number }) {
+function LiveHero({
+  opportunity,
+  now,
+  myStatus,
+}: {
+  opportunity: Opportunity;
+  now: number;
+  myStatus: ApplicationStatus | null;
+}) {
   const start = new Date(opportunity.startAt).getTime();
   const end = new Date(opportunity.endAt).getTime();
   const progress = Math.min(100, Math.max(0, Math.round(((now - start) / (end - start)) * 100)));
+  const isAccepted = myStatus === 'accepted' || myStatus === null;
 
   return (
     <HeroShell coverUrl={resolveOpportunityCover(opportunity)}>
-      <span className="inline-flex items-center gap-2 text-rose-300 text-xs font-black">
+      <span className="inline-flex flex-wrap items-center gap-2 text-rose-300 text-xs font-black">
         <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse" />
         <span>{HOME.liveBadge}</span>
-        <span className="text-white/70">— {HOME.registeredBadge}</span>
+        {isAccepted ? (
+          <span className="text-white/70">— {HOME.registeredBadge}</span>
+        ) : (
+          myStatus && <MyApplicationChip status={myStatus} />
+        )}
       </span>
       <h2 className="text-2xl sm:text-4xl font-black leading-snug">{opportunity.title}</h2>
       <HeroPlace opportunity={opportunity} />
@@ -85,24 +100,57 @@ function LiveHero({ opportunity, now }: { opportunity: Opportunity; now: number 
         {formatDurationAr(Math.max(0, end - now))}
       </p>
       <div className="pt-1">
-        <Link
-          to={`/checkin/${encodeURIComponent(opportunity._id)}`}
-          className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl bg-mnu-gold text-[#231a00] text-sm font-black transition hover:brightness-105 active:scale-95"
-        >
-          <QrCode className="w-5 h-5" />
-          {AR.studentPortal.dashboard.happeningNowCta}
-        </Link>
+        {isAccepted ? (
+          <Link
+            to={`/checkin/${encodeURIComponent(opportunity._id)}`}
+            className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl bg-mnu-gold text-[#231a00] text-sm font-black transition hover:brightness-105 active:scale-95"
+          >
+            <QrCode className="w-5 h-5" />
+            {AR.studentPortal.dashboard.happeningNowCta}
+          </Link>
+        ) : (
+          <Link
+            to={`/opportunities/${opportunity._id}`}
+            className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl bg-mnu-gold text-[#231a00] text-sm font-black transition hover:brightness-105 active:scale-95"
+          >
+            <ClipboardList className="w-5 h-5" />
+            {AR.studentPortal.board.viewApplicationButton}
+          </Link>
+        )}
       </div>
     </HeroShell>
   );
 }
 
-function NextHero({ opportunity, now, isPending }: { opportunity: Opportunity; now: number; isPending: boolean }) {
+function NextHero({
+  opportunity,
+  now,
+  isPending,
+  myStatus,
+}: {
+  opportunity: Opportunity;
+  now: number;
+  isPending: boolean;
+  myStatus: ApplicationStatus | null;
+}) {
+  // The badge names the real state of his application: confirmed next work,
+  // still under review, or waitlisted — never dressed up as confirmed.
+  const badge =
+    myStatus === 'pending' ? (
+      <span>{HOME.pendingBadge}</span>
+    ) : myStatus === 'waitlisted' ? (
+      <span>{HOME.waitlistedBadge}</span>
+    ) : (
+      <>
+        <span>{HOME.nextBadge}</span>
+        <span className="opacity-70">— {HOME.registeredBadge}</span>
+      </>
+    );
+
   return (
     <HeroShell coverUrl={resolveOpportunityCover(opportunity)}>
       <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-mnu-gold text-[#231a00] text-xs font-black self-start">
-        <span>{HOME.nextBadge}</span>
-        <span className="opacity-70">— {HOME.registeredBadge}</span>
+        {badge}
       </span>
       <h2 className="text-2xl sm:text-4xl font-black leading-snug">{opportunity.title}</h2>
       <HeroPlace opportunity={opportunity} />
@@ -116,10 +164,10 @@ function NextHero({ opportunity, now, isPending }: { opportunity: Opportunity; n
           to={`/opportunities/${opportunity._id}`}
           className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-mnu-gold text-[#231a00] text-sm font-black transition hover:brightness-105 active:scale-95"
         >
-          <CalendarDays className="w-5 h-5" />
-          {HOME.detailsButton}
+          <ClipboardList className="w-5 h-5" />
+          {AR.studentPortal.board.viewApplicationButton}
         </Link>
-        {!isPending && (
+        {!isPending && (myStatus === 'accepted' || myStatus === null) && (
           <span className="text-[11px] font-bold text-white/75">{HOME.checkInOpensNote}</span>
         )}
       </div>
@@ -188,19 +236,27 @@ function WelcomeHero({ isPending }: { isPending: boolean }) {
 /**
  * The big photo hero at the top of the student home page (Concept I —
  * overlay): white text directly on the featured activity's cover photo over
- * a soft dark bottom scrim. It NEVER renders nothing: live work first, then
- * his next accepted work, then the top recommendation, and finally a warm
- * welcome hero when there are no opportunities at all.
+ * a soft dark bottom scrim. It NEVER renders nothing: his live work first,
+ * then his soonest own application (accepted, pending, or waitlisted —
+ * rendered honestly with its real status), then the top recommendation, and
+ * finally a warm welcome hero when there are no opportunities at all.
  */
 export function StudentHomeHero({ featured, isPending }: HeroProps) {
   // Read the clock once per mount so hero times stay stable across re-renders.
   const [now] = useState(() => Date.now());
 
   if (featured.kind === 'live' && featured.opportunity) {
-    return <LiveHero opportunity={featured.opportunity} now={now} />;
+    return <LiveHero opportunity={featured.opportunity} now={now} myStatus={featured.myStatus} />;
   }
   if (featured.kind === 'next' && featured.opportunity) {
-    return <NextHero opportunity={featured.opportunity} now={now} isPending={isPending} />;
+    return (
+      <NextHero
+        opportunity={featured.opportunity}
+        now={now}
+        isPending={isPending}
+        myStatus={featured.myStatus}
+      />
+    );
   }
   if (featured.kind === 'suggested' && featured.opportunity) {
     return <SuggestedHero opportunity={featured.opportunity} isPending={isPending} />;

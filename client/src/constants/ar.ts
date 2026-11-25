@@ -961,6 +961,8 @@ export const AR = {
       elapsedLabel: 'مرّ من الوقت',
       detailsButton: 'تفاصيل النشاط',
       nextBadge: 'نشاطك القادم',
+      pendingBadge: 'طلبك قيد المراجعة',
+      waitlistedBadge: 'في قائمة الانتظار',
       startsInLabel: 'يبدأ بعد',
       dateLabel: 'التاريخ',
       timeLabel: 'الساعة',
@@ -1016,6 +1018,7 @@ export const AR = {
       hoursLabel: 'الساعات',
       deadlineLabel: 'آخر موعد للتسجيل',
       detailsButton: 'عرض التفاصيل',
+      viewApplicationButton: 'شوف طلبك',
       appliedBadge: 'تم التقديم',
       allFaculties: 'جميع الكليات',
       phaseLabels: {

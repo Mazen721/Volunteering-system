@@ -18,6 +18,13 @@ interface OpportunityCardProps {
 export function OpportunityCard({ opportunity, suggested = false }: OpportunityCardProps) {
   const matchedFields = opportunity.matchedFields ?? [];
   const myStatus = opportunity.myApplication?.status;
+  // The button itself tells the story: once he has an application riding on
+  // this opportunity (pending, waitlisted, or accepted) it invites him to
+  // view that application instead of re-reading the opportunity as fresh.
+  const ctaLabel =
+    myStatus === 'pending' || myStatus === 'waitlisted' || myStatus === 'accepted'
+      ? AR.studentPortal.board.viewApplicationButton
+      : AR.studentPortal.board.detailsButton;
   const isFull = opportunity.isFull ?? opportunity.remainingSlots.student <= 0;
   const isWaitlistAvailable = opportunity.waitlistAvailable ?? isFull;
 
@@ -118,7 +125,7 @@ export function OpportunityCard({ opportunity, suggested = false }: OpportunityC
           to={`/opportunities/${opportunity._id}`}
           className="px-4 py-2 rounded-xl bg-mnu-500 hover:bg-mnu-600 text-white text-xs font-bold transition active:scale-95"
         >
-          {AR.studentPortal.board.detailsButton}
+          {ctaLabel}
         </Link>
       </div>
       </div>

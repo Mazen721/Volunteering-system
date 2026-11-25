@@ -63,6 +63,99 @@ describe('Phase 5 featured home selection', () => {
     const featured = selectFeaturedHome({ ...emptySummary, upcomingAccepted: [next] }, []);
     expect(featured.kind).toBe('next');
     expect(featured.opportunity?._id).toBe('next');
+    expect(featured.myStatus).toBe('accepted');
+  });
+
+  it('features_the_soonest_application_across_statuses_pending_beats_later_accepted', () => {
+    const acceptedLater = buildOpportunity({
+      _id: 'op-accepted-later',
+      startAt: '2026-12-03T07:00:00.000Z',
+      endAt: '2026-12-03T09:00:00.000Z',
+    });
+    const pendingSooner = buildOpportunity({
+      _id: 'op-pending-sooner',
+      startAt: '2026-12-02T07:00:00.000Z',
+      endAt: '2026-12-02T09:00:00.000Z',
+    });
+    const pendingApplication = {
+      _id: 'app-pending',
+      status: 'pending',
+      opportunity: pendingSooner,
+    } as unknown as StudentApplication;
+
+    const featured = selectFeaturedHome(
+      {
+        ...emptySummary,
+        upcomingAccepted: [acceptedLater],
+        activeApplications: [pendingApplication],
+      },
+      []
+    );
+
+    expect(featured.kind).toBe('next');
+    expect(featured.opportunity?._id).toBe('op-pending-sooner');
+    expect(featured.myStatus).toBe('pending');
+    // The featured application IS the pending one: no separate review note.
+    expect(featured.reviewOnly).toBe(false);
+    expect(featured.pendingOpportunity).toBeNull();
+  });
+
+  it('features_a_pending_application_on_a_live_opportunity_as_live_with_its_status', () => {
+    const liveOpportunity = buildOpportunity({
+      _id: 'op-live-pending',
+      phase: 'in_progress',
+      checkInOpen: true,
+      startAt: '2026-12-01T07:00:00.000Z',
+      endAt: '2026-12-01T11:00:00.000Z',
+    });
+    const pendingApplication = {
+      _id: 'app-live-pending',
+      status: 'pending',
+      opportunity: liveOpportunity,
+    } as unknown as StudentApplication;
+
+    const featured = selectFeaturedHome(
+      { ...emptySummary, activeApplications: [pendingApplication] },
+      []
+    );
+
+    expect(featured.kind).toBe('live');
+    expect(featured.opportunity?._id).toBe('op-live-pending');
+    expect(featured.myStatus).toBe('pending');
+  });
+
+  it('keeps_the_review_note_for_a_pending_application_the_hero_does_not_feature', () => {
+    const acceptedNext = buildOpportunity({
+      _id: 'op-accepted-next',
+      startAt: '2026-12-02T07:00:00.000Z',
+      endAt: '2026-12-02T09:00:00.000Z',
+    });
+    const pendingLater = buildOpportunity({
+      _id: 'op-pending-later',
+      title: 'ندوة لسه قيد المراجعة',
+      startAt: '2026-12-05T07:00:00.000Z',
+      endAt: '2026-12-05T09:00:00.000Z',
+    });
+    const pendingApplication = {
+      _id: 'app-pending-later',
+      status: 'pending',
+      opportunity: pendingLater,
+    } as unknown as StudentApplication;
+
+    const featured = selectFeaturedHome(
+      {
+        ...emptySummary,
+        upcomingAccepted: [acceptedNext],
+        activeApplications: [pendingApplication],
+      },
+      []
+    );
+
+    expect(featured.kind).toBe('next');
+    expect(featured.opportunity?._id).toBe('op-accepted-next');
+    expect(featured.myStatus).toBe('accepted');
+    expect(featured.reviewOnly).toBe(true);
+    expect(featured.pendingOpportunity?._id).toBe('op-pending-later');
   });
 
   it('features_the_top_recommendation_for_a_new_student', () => {
@@ -72,7 +165,7 @@ describe('Phase 5 featured home selection', () => {
     expect(featured.reviewOnly).toBe(false);
   });
 
-  it('never_returns_an_empty_hero_for_a_review_only_student', () => {
+  it('features_his_own_pending_application_in_the_hero_for_a_review_only_student', () => {
     const top = buildOpportunity({ _id: 'top' });
     const pendingOpportunity = buildOpportunity({ _id: 'op-pending', title: 'ندوة قيد المراجعة' });
     const application = {
@@ -83,16 +176,20 @@ describe('Phase 5 featured home selection', () => {
     const featured = selectFeaturedHome({ ...emptySummary, activeApplications: [application] }, [
       top,
     ]);
-    expect(featured.kind).toBe('suggested');
-    expect(featured.reviewOnly).toBe(true);
-    expect(featured.pendingOpportunity?.title).toBe('ندوة قيد المراجعة');
+    // His own application outranks any recommendation, and because the hero
+    // itself carries it, the separate review note is de-duplicated away.
+    expect(featured.kind).toBe('next');
+    expect(featured.opportunity?._id).toBe('op-pending');
+    expect(featured.myStatus).toBe('pending');
+    expect(featured.reviewOnly).toBe(false);
+    expect(featured.pendingOpportunity).toBeNull();
 
     const noRecommendations = selectFeaturedHome(
       { ...emptySummary, activeApplications: [application] },
       []
     );
-    expect(noRecommendations.kind).toBe('welcome');
-    expect(noRecommendations.reviewOnly).toBe(true);
+    expect(noRecommendations.kind).toBe('next');
+    expect(noRecommendations.opportunity?._id).toBe('op-pending');
   });
 
   it('does_not_flag_review_only_for_history_on_ended_opportunities', () => {

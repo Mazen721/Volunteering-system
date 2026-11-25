@@ -244,7 +244,7 @@ describe('Phase 2 Student Home Page', () => {
     expect(screen.queryByText(HOME.nextBadge)).not.toBeInTheDocument();
   });
 
-  it('shows_a_hero_and_a_review_note_when_only_applications_are_under_review', async () => {
+  it('features_the_pending_application_itself_in_the_hero_for_a_review_only_student', async () => {
     const pendingOpportunity = buildOpportunity({
       _id: 'op-pending',
       title: 'ندوة بانتظار المراجعة',
@@ -255,18 +255,23 @@ describe('Phase 2 Student Home Page', () => {
 
     renderAppAt('/home', buildStudentUser());
 
-    const section = await screen.findByText(HOME.myUpcomingTitle).then(() => sectionByHeading(HOME.myUpcomingTitle));
-    expect(within(section).getByText('ندوة بانتظار المراجعة')).toBeInTheDocument();
-    expect(
-      within(section).getByText(AR.studentPortal.board.myStatusChips.pending),
-    ).toBeInTheDocument();
-    // Phase 5 fix: the hero never disappears for review-only students — with
-    // no recommendations available it falls back to the welcome hero, and a
-    // calm under-review note is shown under it.
-    expect(await screen.findByText(HOME.welcomeTitle)).toBeInTheDocument();
-    expect(screen.getByText(HOME.reviewNoteTitle + ':')).toBeInTheDocument();
-    expect(screen.queryByText(HOME.liveBadge)).not.toBeInTheDocument();
+    // His own pending application is the hero now: it carries the honest
+    // under-review badge and a «شوف طلبك» call to action, and it is not
+    // dressed up as confirmed next work.
+    expect(await screen.findByText(HOME.pendingBadge)).toBeInTheDocument();
+    expect(screen.getByText('ندوة بانتظار المراجعة')).toBeInTheDocument();
+    const viewApplicationLink = screen.getByRole('link', {
+      name: new RegExp(AR.studentPortal.board.viewApplicationButton),
+    });
+    expect(viewApplicationLink).toHaveAttribute('href', '/opportunities/op-pending');
+    expect(screen.queryByText(HOME.welcomeTitle)).not.toBeInTheDocument();
     expect(screen.queryByText(HOME.nextBadge)).not.toBeInTheDocument();
+    expect(screen.queryByText(HOME.liveBadge)).not.toBeInTheDocument();
+    // De-duplication: the hero already carries the pending application, so
+    // the separate under-review note under the hero stays hidden.
+    expect(screen.queryByText(HOME.reviewNoteTitle + ':')).not.toBeInTheDocument();
+    // The featured application is not repeated in the «شغلي القادم» rows.
+    expect(screen.queryByText(HOME.myUpcomingTitle)).not.toBeInTheDocument();
   });
 
   it('marks_suggested_cards_with_the_gold_ribbon_and_keeps_all_work_cards_plain', async () => {

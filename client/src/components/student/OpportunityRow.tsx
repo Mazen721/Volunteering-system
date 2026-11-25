@@ -64,6 +64,16 @@ export function OpportunityRow({ opportunity, suggested = false, myStatus }: Opp
           {effectiveStatus ? (
             <>
               <MyApplicationChip status={effectiveStatus} size="lg" />
+              {(effectiveStatus === 'pending' ||
+                effectiveStatus === 'waitlisted' ||
+                effectiveStatus === 'accepted') && (
+                <Link
+                  to={`/opportunities/${opportunity._id}`}
+                  className="inline-flex px-5 py-2.5 rounded-full bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs font-black transition active:scale-95"
+                >
+                  {AR.studentPortal.board.viewApplicationButton}
+                </Link>
+              )}
               {effectiveStatus === 'cancelled' && (
                 <Link
                   to={`/opportunities/${opportunity._id}`}
