@@ -398,6 +398,10 @@ export interface DashboardStatsBundle {
 export interface ReportMeta {
   scope: 'university' | 'faculty';
   faculty: Faculty | null;
+  facultyName?: string | null;
+  /** Applied period bounds as date-only 'YYYY-MM-DD'; null/absent = all time. */
+  from?: string | null;
+  to?: string | null;
   generatedAt: string;
   generatedBy: {
     id: string;

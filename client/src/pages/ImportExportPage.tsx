@@ -14,6 +14,7 @@ import { apiClient, extractApiErrorMessage } from '../api/client';
 import { Navbar } from '../components/Navbar';
 import { ImportPreviewReport } from '../components/importExport/ImportPreviewReport';
 import { AR } from '../constants/ar';
+import { FACULTIES } from '../constants/enums';
 import { useAuth } from '../context/authContext';
 import { useToast } from '../context/toastContext';
 import type { ImportPreview, ImportResult, ImportSummary } from '../types';
@@ -46,6 +47,22 @@ export function ImportExportPage() {
   const [commitSummary, setCommitSummary] = useState<ImportSummary | null>(null);
   const [previewing, setPreviewing] = useState(false);
   const [committing, setCommitting] = useState(false);
+
+  const [reportFaculty, setReportFaculty] = useState('');
+  const [reportFrom, setReportFrom] = useState('');
+  const [reportTo, setReportTo] = useState('');
+
+  const reportParams = new URLSearchParams({ autoprint: '1' });
+  if (!isDean && reportFaculty) {
+    reportParams.set('faculty', reportFaculty);
+  }
+  if (reportFrom) {
+    reportParams.set('from', reportFrom);
+  }
+  if (reportTo) {
+    reportParams.set('to', reportTo);
+  }
+  const reportHref = `/reports/print?${reportParams.toString()}`;
 
   async function handleExport() {
     setExporting(true);
@@ -122,6 +139,97 @@ export function ImportExportPage() {
           </p>
         </section>
 
+        <section className="glass-card rounded-3xl p-6 space-y-4" data-testid="report-export-panel">
+          <div className="flex items-start gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-[#c9a227]/15 text-[#8a6d1d] flex items-center justify-center shrink-0">
+              <FileText className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-base font-extrabold text-slate-800">{AR.report.panel.title}</h3>
+              <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                {AR.report.panel.description}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="space-y-1.5">
+              <label
+                htmlFor="report-faculty-select"
+                className="block text-xs font-bold text-slate-700"
+              >
+                {AR.report.panel.facultyLabel}
+              </label>
+              {isDean ? (
+                <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-600">
+                  <Lock className="w-4 h-4 text-slate-500 shrink-0" />
+                  <span>{user?.faculty ?? ''}</span>
+                </div>
+              ) : (
+                <select
+                  id="report-faculty-select"
+                  data-testid="report-faculty-select"
+                  value={reportFaculty}
+                  onChange={(event) => setReportFaculty(event.target.value)}
+                  className="w-full text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl px-3 py-2.5 cursor-pointer"
+                >
+                  <option value="">{AR.report.allFaculties}</option>
+                  {FACULTIES.map((faculty) => (
+                    <option key={faculty} value={faculty}>
+                      {faculty}
+                    </option>
+                  ))}
+                </select>
+              )}
+              {isDean && (
+                <p className="text-[11px] font-bold text-slate-400">
+                  {AR.report.panel.deanFacultyNote}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <label htmlFor="report-from-input" className="block text-xs font-bold text-slate-700">
+                {AR.report.panel.fromLabel}
+              </label>
+              <input
+                id="report-from-input"
+                data-testid="report-from-input"
+                type="date"
+                value={reportFrom}
+                onChange={(event) => setReportFrom(event.target.value)}
+                className="w-full text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl px-3 py-2.5"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label htmlFor="report-to-input" className="block text-xs font-bold text-slate-700">
+                {AR.report.panel.toLabel}
+              </label>
+              <input
+                id="report-to-input"
+                data-testid="report-to-input"
+                type="date"
+                value={reportTo}
+                onChange={(event) => setReportTo(event.target.value)}
+                className="w-full text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl px-3 py-2.5"
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-[11px] font-bold text-slate-400">{AR.report.panel.allTimeHint}</p>
+            <Link
+              to={reportHref}
+              data-testid="report-export-link"
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#c9a227] hover:bg-[#b28e1f] text-[#122f4a] text-xs font-black transition shadow-md"
+            >
+              <FileText className="w-4 h-4" />
+              <span>{AR.report.exportButton}</span>
+            </Link>
+          </div>
+        </section>
+
         <div className={`grid grid-cols-1 ${isDean ? '' : 'lg:grid-cols-3'} gap-6`}>
           <section className="glass-card rounded-3xl p-6 space-y-4 flex flex-col justify-between">
             <div className="space-y-3">
@@ -152,14 +260,6 @@ export function ImportExportPage() {
                 <Download className="w-4 h-4" />
                 <span>{exporting ? AR.importExport.exporting : AR.importExport.exportButton}</span>
               </button>
-
-              <Link
-                to="/reports/print?autoprint=1"
-                className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[#c9a227] hover:bg-[#b28e1f] text-[#122f4a] text-xs font-black transition shadow-md"
-              >
-                <FileText className="w-4 h-4" />
-                <span>{AR.report.exportButton}</span>
-              </Link>
             </div>
           </section>
 

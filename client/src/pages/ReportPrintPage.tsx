@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { AlertTriangle, ArrowRight, Printer, RefreshCw } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -44,6 +44,7 @@ function ReportSection({
 
 function KpiGrid({ report }: { report: VolunteeringReport }) {
   const { overview, summary } = report;
+  const periodApplied = Boolean(report.meta.from || report.meta.to);
   const cards = [
     {
       label: AR.report.kpis.volunteers,
@@ -56,7 +57,7 @@ function KpiGrid({ report }: { report: VolunteeringReport }) {
       note: `${AR.report.kpis.approvedActivities}: ${formatNumber(overview.approvedActivities)}`,
     },
     {
-      label: AR.report.kpis.certificates,
+      label: periodApplied ? AR.report.kpis.certificatesInPeriod : AR.report.kpis.certificates,
       value: formatNumber(overview.eligibleVolunteers),
       note: `${AR.report.kpis.certificateThresholdPrefix}: ${formatNumber(overview.certificateHours)} ${AR.common.hourUnit}`,
     },
@@ -285,11 +286,27 @@ function OpportunitiesTable({ report }: { report: VolunteeringReport }) {
   );
 }
 
+function buildPeriodLabel(report: VolunteeringReport): string {
+  const from = report.meta.from ?? null;
+  const to = report.meta.to ?? null;
+  if (from && to) {
+    return `${AR.report.periodFrom} ${formatDateAr(from)} ${AR.report.periodTo} ${formatDateAr(to)}`;
+  }
+  if (from) {
+    return `${AR.report.periodFrom} ${formatDateAr(from)}`;
+  }
+  if (to) {
+    return `${AR.report.periodUntil} ${formatDateAr(to)}`;
+  }
+  return AR.report.allPeriods;
+}
+
 function ReportBody({ report }: { report: VolunteeringReport }) {
   const isUniversity = report.meta.scope === 'university';
   const scopeLabel = isUniversity
     ? AR.report.universityScope
-    : `${AR.report.facultyScopePrefix} ${report.meta.faculty ?? ''}`;
+    : `${AR.report.facultyScopePrefix} ${report.meta.facultyName ?? report.meta.faculty ?? ''}`;
+  const periodLabel = buildPeriodLabel(report);
 
   return (
     <div className="report-sheet bg-white px-6 py-6 text-slate-800 shadow-xl print:shadow-none">
@@ -304,9 +321,17 @@ function ReportBody({ report }: { report: VolunteeringReport }) {
               <p className="text-xs font-bold text-[#d9c37a]">{AR.brand.subtitle}</p>
             </div>
           </div>
-          <span className="rounded-full bg-[#c9a227] px-3 py-1.5 text-[11px] font-black text-[#122f4a]">
-            {scopeLabel}
-          </span>
+          <div className="flex flex-col items-end gap-1.5">
+            <span className="rounded-full bg-[#c9a227] px-3 py-1.5 text-[11px] font-black text-[#122f4a]">
+              {scopeLabel}
+            </span>
+            <span
+              data-testid="report-period-badge"
+              className="rounded-full bg-white/15 px-3 py-1.5 text-[11px] font-black text-white"
+            >
+              {`${AR.report.periodLabel}: ${periodLabel}`}
+            </span>
+          </div>
         </div>
         <div className="border-t border-white/15 px-6 py-4">
           <h1 className="text-2xl font-black">{AR.report.title}</h1>
@@ -318,7 +343,9 @@ function ReportBody({ report }: { report: VolunteeringReport }) {
         <div className="rounded-xl bg-slate-50 px-3 py-2.5">
           <dt className="text-slate-500">{AR.report.facultyScopePrefix}</dt>
           <dd className="mt-0.5 text-[#122f4a]">
-            {isUniversity ? AR.report.allFacultiesTarget : report.meta.faculty}
+            {isUniversity
+              ? AR.report.allFacultiesTarget
+              : (report.meta.facultyName ?? report.meta.faculty)}
           </dd>
         </div>
         <div className="rounded-xl bg-slate-50 px-3 py-2.5">
@@ -367,8 +394,16 @@ function ReportBody({ report }: { report: VolunteeringReport }) {
  * which is how the PDF is saved — the same pattern as the certificate folio.
  */
 export function ReportPrintPage() {
-  const { report, loading, error, reload } = useVolunteeringReport();
   const [searchParams] = useSearchParams();
+  const reportParams = useMemo(
+    () => ({
+      faculty: searchParams.get('faculty') ?? undefined,
+      from: searchParams.get('from') ?? undefined,
+      to: searchParams.get('to') ?? undefined,
+    }),
+    [searchParams]
+  );
+  const { report, loading, error, reload } = useVolunteeringReport(reportParams);
   const printedRef = useRef(false);
 
   useEffect(() => {
