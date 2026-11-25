@@ -20,6 +20,12 @@ import { useToast } from '../context/toastContext';
 import type { ImportPreview, ImportResult, ImportSummary } from '../types';
 import { triggerCelebration } from '../utils/confetti';
 import { formatNumber } from '../utils/format';
+import {
+  matchReportPeriodPreset,
+  REPORT_PERIOD_PRESET_KEYS,
+  resolveReportPeriodPreset,
+} from '../utils/reportPeriodPresets';
+import type { ReportPeriodPresetKey } from '../utils/reportPeriodPresets';
 
 function triggerFileDownload(blob: Blob, filename: string) {
   const objectUrl = URL.createObjectURL(blob);
@@ -63,6 +69,25 @@ export function ImportExportPage() {
     reportParams.set('to', reportTo);
   }
   const reportHref = `/reports/print?${reportParams.toString()}`;
+
+  const presetLabels: Record<ReportPeriodPresetKey, string> = {
+    all: AR.report.allPeriods,
+    last7: AR.report.panel.presets.last7,
+    last30: AR.report.panel.presets.last30,
+    last3Months: AR.report.panel.presets.last3Months,
+    thisMonth: AR.report.panel.presets.thisMonth,
+    lastMonth: AR.report.panel.presets.lastMonth,
+  };
+  // The active chip is derived from the input values themselves: a preset is
+  // highlighted only while from/to still match its resolved range, so any
+  // manual edit naturally clears the highlight.
+  const activePreset = matchReportPeriodPreset(reportFrom, reportTo);
+
+  function applyReportPreset(key: ReportPeriodPresetKey) {
+    const range = resolveReportPeriodPreset(key);
+    setReportFrom(range.from);
+    setReportTo(range.to);
+  }
 
   async function handleExport() {
     setExporting(true);
@@ -149,6 +174,33 @@ export function ImportExportPage() {
               <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
                 {AR.report.panel.description}
               </p>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <span className="block text-xs font-bold text-slate-700">
+              {AR.report.panel.presetsLabel}
+            </span>
+            <div className="flex flex-wrap gap-1.5" data-testid="report-preset-row">
+              {REPORT_PERIOD_PRESET_KEYS.map((key) => {
+                const isActive = activePreset === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    data-testid={`report-preset-${key}`}
+                    aria-pressed={isActive}
+                    onClick={() => applyReportPreset(key)}
+                    className={
+                      isActive
+                        ? 'px-3 py-1.5 rounded-full bg-[#c9a227] text-[#122f4a] text-[11px] font-black shadow-sm transition cursor-pointer'
+                        : 'px-3 py-1.5 rounded-full bg-white border border-slate-200 text-slate-600 hover:border-[#c9a227]/70 hover:text-slate-800 text-[11px] font-bold transition cursor-pointer'
+                    }
+                  >
+                    {presetLabels[key]}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
