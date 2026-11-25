@@ -378,6 +378,10 @@ export const AR = {
     hourUnit: 'ساعة',
     volunteerUnit: 'متطوع',
     activityUnit: 'نشاط',
+    singleBreakdownTitle: 'توزيع الساعات داخل الكلية حسب فئة المتطوعين',
+    singleBreakdownSubtitle: 'الساعات والأنشطة المعتمدة لكل فئة داخل الكلية المحددة فقط',
+    activitiesSeries: 'الأنشطة المعتمدة',
+    singleBreakdownEmpty: 'لا توجد بيانات فئات متاحة لهذه الكلية حالياً',
   },
   leaderboard: {
     title: 'أبرز المتطوعين',

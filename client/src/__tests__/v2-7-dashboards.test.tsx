@@ -9,6 +9,7 @@ import { AR } from '../constants/ar';
 import { FACULTIES } from '../constants/enums';
 import type {
   AuthUser,
+  CategoryStatsResponse,
   EventStatsResponse,
   FacultyStatsResponse,
   LeaderboardVolunteer,
@@ -103,6 +104,68 @@ const POPULATED_FACULTIES: FacultyStatsResponse = {
     approvedActivities: 12,
     approvedHours: 145,
     avgHours: 14.5,
+  },
+};
+
+const SINGLE_FACULTY: FacultyStatsResponse = {
+  faculties: [
+    {
+      faculty: FACULTY_A,
+      volunteerCount: 6,
+      totalActivities: 8,
+      approvedActivities: 7,
+      approvedHours: 95,
+      avgHours: 15.83,
+      percentage: 100,
+      activeVolunteers: 5,
+      participationRate: 83.3,
+    },
+  ],
+  totals: {
+    volunteerCount: 6,
+    totalActivities: 8,
+    approvedActivities: 7,
+    approvedHours: 95,
+    avgHours: 15.83,
+  },
+};
+
+const POPULATED_CATEGORIES: CategoryStatsResponse = {
+  categories: [
+    {
+      category: 'student',
+      label: AR.categories.student,
+      volunteerCount: 4,
+      totalActivities: 6,
+      approvedActivities: 5,
+      approvedHours: 70,
+      avgHours: 17.5,
+    },
+    {
+      category: 'academic',
+      label: AR.categories.academic,
+      volunteerCount: 1,
+      totalActivities: 1,
+      approvedActivities: 1,
+      approvedHours: 15,
+      avgHours: 15,
+    },
+    {
+      category: 'admin',
+      label: AR.categories.admin,
+      volunteerCount: 1,
+      totalActivities: 1,
+      approvedActivities: 1,
+      approvedHours: 10,
+      avgHours: 10,
+    },
+  ],
+  totals: {
+    volunteerCount: 6,
+    totalActivities: 8,
+    approvedActivities: 7,
+    approvedHours: 95,
+    avgHours: 15.83,
   },
 };
 
@@ -209,11 +272,13 @@ const STUDENT_SUMMARY: StudentDashboardSummary = {
 let activeUser: AuthUser | null = null;
 let overviewPayload: OverviewStats = buildOverview();
 let facultiesPayload: FacultyStatsResponse = POPULATED_FACULTIES;
+let categoriesPayload: CategoryStatsResponse = POPULATED_CATEGORIES;
 let participationPayload: ParticipationStatsResponse = POPULATED_PARTICIPATION;
 let eventsPayload: EventStatsResponse = POPULATED_EVENTS;
 let monthlyPayload: MonthlyHoursResponse = POPULATED_MONTHLY;
 let capturedOverviewFaculties: Array<string | null> = [];
 let capturedParticipationFaculties: Array<string | null> = [];
+let capturedCategoryFaculties: Array<string | null> = [];
 
 const mswServer = setupServer(
   // The mobile dock asks for the pending-approvals count on staff pages.
@@ -231,8 +296,14 @@ const mswServer = setupServer(
     capturedOverviewFaculties.push(url.searchParams.get('faculty'));
     return HttpResponse.json(overviewPayload);
   }),
-  http.get(`${API_BASE}/stats/faculties`, () => {
-    return HttpResponse.json(facultiesPayload);
+  http.get(`${API_BASE}/stats/faculties`, ({ request }) => {
+    const url = new URL(request.url);
+    return HttpResponse.json(url.searchParams.get('faculty') ? SINGLE_FACULTY : facultiesPayload);
+  }),
+  http.get(`${API_BASE}/stats/categories`, ({ request }) => {
+    const url = new URL(request.url);
+    capturedCategoryFaculties.push(url.searchParams.get('faculty'));
+    return HttpResponse.json(categoriesPayload);
   }),
   http.get(`${API_BASE}/stats/leaderboard`, () => {
     return HttpResponse.json({
@@ -276,11 +347,13 @@ afterEach(() => {
   activeUser = null;
   overviewPayload = buildOverview();
   facultiesPayload = POPULATED_FACULTIES;
+  categoriesPayload = POPULATED_CATEGORIES;
   participationPayload = POPULATED_PARTICIPATION;
   eventsPayload = POPULATED_EVENTS;
   monthlyPayload = POPULATED_MONTHLY;
   capturedOverviewFaculties = [];
   capturedParticipationFaculties = [];
+  capturedCategoryFaculties = [];
   window.history.pushState({}, '', '/');
 });
 
@@ -301,6 +374,7 @@ describe('Phase V2-7 Role-Based Dashboards & Recharts Analytics', () => {
     expect(screen.getByTestId('certificate-buckets-card')).toBeInTheDocument();
     expect(screen.getByTestId('event-efficiency-card')).toBeInTheDocument();
     expect(screen.getByTestId('zero-hour-volunteers-card')).toBeInTheDocument();
+    expect(screen.queryByTestId('single-faculty-category-chart')).not.toBeInTheDocument();
 
     expect(
       within(screen.getByTestId('event-efficiency-card')).getAllByText('قافلة الكلية الطبية')
@@ -313,8 +387,19 @@ describe('Phase V2-7 Role-Based Dashboards & Recharts Analytics', () => {
     await waitFor(() => {
       expect(capturedOverviewFaculties).toContain(FACULTY_A);
       expect(capturedParticipationFaculties).toContain(FACULTY_A);
+      expect(capturedCategoryFaculties).toContain(FACULTY_A);
     });
     expect(screen.queryByTestId('faculty-comparison-card')).not.toBeInTheDocument();
+
+    // The single 100% faculty bar must not leave the card blank: the faculty's own
+    // category breakdown chart fills the space underneath it.
+    const breakdown = await screen.findByTestId('single-faculty-category-chart');
+    expect(within(breakdown).getByText(AR.facultyChart.singleBreakdownTitle)).toBeInTheDocument();
+    expect(within(breakdown).getByText(AR.categories.student)).toBeInTheDocument();
+    expect(within(breakdown).getByText(AR.categories.academic)).toBeInTheDocument();
+    expect(within(breakdown).getByText(AR.categories.admin)).toBeInTheDocument();
+    expect(screen.getAllByTestId('faculty-bar-row')).toHaveLength(1);
+    expect(screen.getByTestId('faculty-chart-card')).toHaveTextContent('١٠٠٪');
   });
 
   it('renders_dean_faculty_scoped_dashboard_without_faculty_dropdown_or_deans_link', async () => {

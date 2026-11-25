@@ -386,6 +386,7 @@ export type ImportResult = ImportPreviewResult | ImportCommitResult;
 export interface DashboardStatsBundle {
   overview: OverviewStats;
   faculties: FacultyStatsRow[];
+  categories: CategoryStatsRow[];
   leaderboard: LeaderboardVolunteer[];
   certificateHours: number;
   participation: ParticipationStatsResponse | null;

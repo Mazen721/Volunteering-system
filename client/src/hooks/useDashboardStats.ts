@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiClient, extractApiErrorMessage } from '../api/client';
 import type { Faculty, VolunteerCategory } from '../constants/enums';
 import type {
+  CategoryStatsResponse,
+  CategoryStatsRow,
   DashboardStatsBundle,
   EventStatsResponse,
   FacultyStatsResponse,
@@ -42,19 +44,25 @@ async function fetchStatsBundle(
     }),
   ]);
 
-  const [participationResult, eventsResult, monthlyResult] = await Promise.allSettled([
-    apiClient.get<ParticipationStatsResponse>('/stats/participation', { params: facultyParams }),
-    apiClient.get<EventStatsResponse>('/stats/events', { params: facultyParams }),
-    apiClient.get<MonthlyHoursResponse>('/stats/monthly-hours', { params: facultyParams }),
-  ]);
+  const [participationResult, eventsResult, monthlyResult, categoriesResult] =
+    await Promise.allSettled([
+      apiClient.get<ParticipationStatsResponse>('/stats/participation', {
+        params: facultyParams,
+      }),
+      apiClient.get<EventStatsResponse>('/stats/events', { params: facultyParams }),
+      apiClient.get<MonthlyHoursResponse>('/stats/monthly-hours', { params: facultyParams }),
+      apiClient.get<CategoryStatsResponse>('/stats/categories', { params: facultyParams }),
+    ]);
 
-  const rejectedResult = [participationResult, eventsResult, monthlyResult].find(
+  const rejectedResult = [participationResult, eventsResult, monthlyResult, categoriesResult].find(
     (entry): entry is PromiseRejectedResult => entry.status === 'rejected'
   );
 
   return {
     overview: overviewRes.data,
     faculties: facultiesRes.data.faculties,
+    categories:
+      categoriesResult.status === 'fulfilled' ? categoriesResult.value.data.categories : [],
     leaderboard: leaderboardRes.data.leaderboard,
     certificateHours: leaderboardRes.data.certificateHours ?? overviewRes.data.certificateHours,
     participation:
@@ -71,6 +79,7 @@ async function fetchStatsBundle(
 export function useDashboardStats() {
   const [overview, setOverview] = useState<OverviewStats | null>(null);
   const [faculties, setFaculties] = useState<FacultyStatsRow[]>([]);
+  const [categories, setCategories] = useState<CategoryStatsRow[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardVolunteer[]>([]);
   const [certificateHours, setCertificateHours] = useState(30);
   const [participation, setParticipation] = useState<ParticipationStatsResponse | null>(null);
@@ -94,6 +103,7 @@ export function useDashboardStats() {
   const applyStatsBundle = useCallback((bundle: DashboardStatsBundle) => {
     setOverview(bundle.overview);
     setFaculties(bundle.faculties);
+    setCategories(bundle.categories);
     setLeaderboard(bundle.leaderboard);
     setCertificateHours(bundle.certificateHours);
     setParticipation(bundle.participation);
@@ -192,6 +202,7 @@ export function useDashboardStats() {
   return {
     overview,
     faculties,
+    categories,
     leaderboard,
     certificateHours,
     participation,

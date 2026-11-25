@@ -231,6 +231,7 @@ export function DashboardPage() {
   const {
     overview,
     faculties,
+    categories,
     leaderboard,
     certificateHours,
     participation,
@@ -336,7 +337,7 @@ export function DashboardPage() {
               {isDean ? (
                 <DeanFacultyCard faculties={faculties} />
               ) : (
-                <FacultyChart faculties={faculties} />
+                <FacultyChart faculties={faculties} categories={categories} />
               )}
               <LeaderboardCard
                 volunteers={leaderboard}
