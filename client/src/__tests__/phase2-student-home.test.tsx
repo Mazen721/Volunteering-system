@@ -258,7 +258,7 @@ describe('Phase 2 Student Home Page', () => {
     const section = await screen.findByText(HOME.myUpcomingTitle).then(() => sectionByHeading(HOME.myUpcomingTitle));
     expect(within(section).getByText('ندوة بانتظار المراجعة')).toBeInTheDocument();
     expect(
-      within(section).getByText(AR.opportunities.applicationStatuses.pending),
+      within(section).getByText(AR.studentPortal.board.myStatusChips.pending),
     ).toBeInTheDocument();
     // Phase 5 fix: the hero never disappears for review-only students — with
     // no recommendations available it falls back to the welcome hero, and a

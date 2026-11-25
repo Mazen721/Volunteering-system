@@ -625,7 +625,14 @@ describe('Phase V2-5 Recommendations & Student Portal', () => {
     assert.equal(response.body.happeningNow[0].title, 'فرصة جارية الآن');
     assert.equal(response.body.upcomingAccepted.length, 1);
     assert.equal(response.body.upcomingAccepted[0].title, 'فرصة قادمة');
-    assert.equal(response.body.activeApplications.length, 4);
+    // The accepted application on the long-ended attended opportunity is
+    // history, not an active application, so it no longer counts here.
+    assert.equal(response.body.activeApplications.length, 3);
+    assert.ok(
+      response.body.activeApplications.every(
+        (application) => application.opportunity.title !== 'فرصة حضرها الطالب'
+      )
+    );
     assert.equal(response.body.recentActivities.length, 2);
     assert.equal(response.body.recentActivities[0].title, 'نشاط قيد الاعتماد');
 

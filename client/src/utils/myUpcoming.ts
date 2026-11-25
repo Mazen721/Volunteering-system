@@ -1,5 +1,6 @@
 import type { ApplicationStatus } from '../constants/enums';
 import type { Opportunity, StudentApplication } from '../types';
+import { isOpportunityEnded } from './opportunityPhase';
 
 export interface MyUpcomingItem {
   opportunity: Opportunity;
@@ -9,6 +10,9 @@ export interface MyUpcomingItem {
 /**
  * Merges accepted upcoming opportunities with pending or waitlisted
  * applications into one chronological list of the student's own work.
+ * Applications on opportunities that have already ended are dropped: a
+ * request nobody answered before its event passed is history, not upcoming
+ * work, and must not linger here forever.
  */
 export function buildMyUpcoming(summary: {
   upcomingAccepted: Opportunity[];
@@ -23,10 +27,11 @@ export function buildMyUpcoming(summary: {
     .filter(
       (application) =>
         (application.status === 'pending' || application.status === 'waitlisted') &&
-        !acceptedIds.has(application.opportunity._id),
+        !acceptedIds.has(application.opportunity._id) &&
+        !isOpportunityEnded(application.opportunity)
     )
     .map((application) => ({ opportunity: application.opportunity, status: application.status }));
   return [...accepted, ...reviewing].sort(
-    (a, b) => new Date(a.opportunity.startAt).getTime() - new Date(b.opportunity.startAt).getTime(),
+    (a, b) => new Date(a.opportunity.startAt).getTime() - new Date(b.opportunity.startAt).getTime()
   );
 }

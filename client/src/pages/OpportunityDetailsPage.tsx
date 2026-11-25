@@ -123,11 +123,15 @@ export function OpportunityDetailsPage() {
   const myApplication = opportunity?.myApplication;
   const activeApplication = hasActiveApplication(myApplication);
   const isPendingAccount = user?.status === 'pending';
+  // A rejected application is terminal: the server refuses re-application,
+  // so the page must say that instead of offering an apply button.
+  const isRejectedApplication = myApplication?.status === 'rejected';
   const canApply =
     opportunity !== null &&
     opportunity.status === 'published' &&
     opportunity.phase === 'upcoming' &&
     !activeApplication &&
+    !isRejectedApplication &&
     !isPendingAccount;
   const canWithdraw = opportunity !== null && opportunity.phase === 'upcoming' && activeApplication;
   const isFull = opportunity?.isFull ?? (opportunity?.remainingSlots.student ?? 0) <= 0;
@@ -222,9 +226,7 @@ export function OpportunityDetailsPage() {
                 <p className="inline-flex flex-wrap items-center gap-1.5 text-[11px] font-extrabold text-mnu-600">
                   <Sparkles className="w-3.5 h-3.5" />
                   {AR.studentPortal.board.matchBadgePrefix}{' '}
-                  {opportunity.matchedFields
-                    ?.map((field) => INTEREST_LABELS[field])
-                    .join('، ')}
+                  {opportunity.matchedFields?.map((field) => INTEREST_LABELS[field]).join('، ')}
                 </p>
               )}
 
@@ -251,6 +253,12 @@ export function OpportunityDetailsPage() {
               {isPendingAccount && opportunity.phase === 'upcoming' && !activeApplication && (
                 <p className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold">
                   {AR.studentPortal.details.applyLocked}
+                </p>
+              )}
+
+              {isRejectedApplication && (
+                <p className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold">
+                  {AR.studentPortal.details.rejectedNotice}
                 </p>
               )}
 

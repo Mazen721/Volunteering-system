@@ -245,7 +245,9 @@ describe('Phase V2-5 Student Portal & Recommendations', () => {
 
     renderAppAt('/opportunities', buildStudentUser());
 
-    expect(await screen.findByText(AR.studentPortal.board.pageTitle)).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: AR.studentPortal.board.pageTitle })
+    ).toBeInTheDocument();
     expect(await screen.findByText('قافلة طبية مجتمعية')).toBeInTheDocument();
 
     const cards = screen.getAllByRole('article');

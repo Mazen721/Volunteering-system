@@ -1,29 +1,56 @@
 import { useEffect, useState } from 'react';
-import { RefreshCw, Sparkles, XCircle } from 'lucide-react';
+import { Info, LayoutGrid, RefreshCw, XCircle } from 'lucide-react';
 import { apiClient, extractApiErrorMessage } from '../api/client';
 import { Navbar } from '../components/Navbar';
 import { OpportunityCard } from '../components/student/OpportunityCard';
 import { AR } from '../constants/ar';
 import type { Opportunity, OpportunityListResponse } from '../types';
+import { sortByPhasePriority } from '../utils/opportunityPhase';
+
+interface BoardItem {
+  opportunity: Opportunity;
+  suggested: boolean;
+}
 
 /**
- * Student opportunity board ranked by the server recommendation score.
+ * The student opportunity board: every opportunity visible to the student —
+ * general ones plus his faculty's, including the ones he already applied to
+ * (shown with their real application status) — with the server-recommended
+ * ones badged and listed first. Nothing he applied to silently disappears.
  */
 export function OpportunitiesBoardPage() {
-  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
+  const [items, setItems] = useState<BoardItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
-    apiClient
-      .get<OpportunityListResponse>('/opportunities', { params: { sort: 'recommended' } })
-      .then((response) => {
+    Promise.all([
+      apiClient.get<OpportunityListResponse>('/opportunities'),
+      apiClient.get<OpportunityListResponse>('/opportunities', {
+        params: { sort: 'recommended' },
+      }),
+    ])
+      .then(([allResponse, recommendedResponse]) => {
         if (cancelled) {
           return;
         }
-        setOpportunities(response.data.opportunities);
+        const all = allResponse.data.opportunities;
+        const recommended = recommendedResponse.data.opportunities;
+        const allById = new Map(all.map((opportunity) => [opportunity._id, opportunity]));
+        const recommendedIds = new Set(recommended.map((opportunity) => opportunity._id));
+        const suggestedItems: BoardItem[] = recommended.map((opportunity) => ({
+          opportunity: {
+            ...opportunity,
+            myApplication: allById.get(opportunity._id)?.myApplication ?? opportunity.myApplication,
+          },
+          suggested: true,
+        }));
+        const restItems: BoardItem[] = sortByPhasePriority(
+          all.filter((opportunity) => !recommendedIds.has(opportunity._id))
+        ).map((opportunity) => ({ opportunity, suggested: false }));
+        setItems([...suggestedItems, ...restItems]);
         setError('');
       })
       .catch((requestError: unknown) => {
@@ -54,11 +81,13 @@ export function OpportunitiesBoardPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-6">
         <header className="space-y-1">
           <h1 className="flex items-center gap-2 text-xl sm:text-2xl font-black text-slate-800">
-            <Sparkles className="w-6 h-6 text-mnu-gold" />
+            <LayoutGrid className="w-6 h-6 text-mnu-gold" />
             {AR.studentPortal.board.pageTitle}
           </h1>
-          <p className="text-xs sm:text-sm text-slate-600">
-            {AR.studentPortal.board.pageSubtitle}
+          <p className="text-xs sm:text-sm text-slate-600">{AR.studentPortal.board.pageSubtitle}</p>
+          <p className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 pt-0.5">
+            <Info className="w-3.5 h-3.5 text-mnu-500 shrink-0" />
+            {AR.studentPortal.board.visibilityHint}
           </p>
         </header>
 
@@ -86,16 +115,20 @@ export function OpportunitiesBoardPage() {
           </div>
         )}
 
-        {!loading && !error && opportunities.length === 0 && (
+        {!loading && !error && items.length === 0 && (
           <div className="glass-card rounded-3xl p-8 text-center text-sm text-slate-500">
             {AR.studentPortal.board.empty}
           </div>
         )}
 
-        {!loading && !error && opportunities.length > 0 && (
+        {!loading && !error && items.length > 0 && (
           <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {opportunities.map((opportunity) => (
-              <OpportunityCard key={opportunity._id} opportunity={opportunity} />
+            {items.map((item) => (
+              <OpportunityCard
+                key={item.opportunity._id}
+                opportunity={item.opportunity}
+                suggested={item.suggested}
+              />
             ))}
           </section>
         )}

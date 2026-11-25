@@ -2,9 +2,9 @@ import { Link } from 'react-router-dom';
 import { AR } from '../../constants/ar';
 import type { ApplicationStatus } from '../../constants/enums';
 import type { Opportunity } from '../../types';
-import { hasActiveApplication } from '../../utils/applications';
 import { resolveOpportunityCover } from '../../utils/covers';
 import { formatDateTimeAr, formatNumber } from '../../utils/format';
+import { MyApplicationChip, PhaseChip } from './OpportunityChips';
 
 interface OpportunityRowProps {
   opportunity: Opportunity;
@@ -18,8 +18,11 @@ interface OpportunityRowProps {
  * title, place and time, and one quiet apply/details action.
  */
 export function OpportunityRow({ opportunity, suggested = false, myStatus }: OpportunityRowProps) {
-  const isApplied = myStatus === 'accepted' || hasActiveApplication(opportunity.myApplication);
   const effectiveStatus = myStatus ?? opportunity.myApplication?.status;
+  const isApplied =
+    effectiveStatus === 'pending' ||
+    effectiveStatus === 'accepted' ||
+    effectiveStatus === 'waitlisted';
   const publisher = opportunity.faculty ?? AR.studentPortal.board.allFaculties;
 
   return (
@@ -54,19 +57,22 @@ export function OpportunityRow({ opportunity, suggested = false, myStatus }: Opp
           {opportunity.location.name} • {formatDateTimeAr(opportunity.startAt)} •{' '}
           {formatNumber(opportunity.hours)} {AR.studentPortal.common.hours}
         </p>
-        <div className="mt-auto pt-2">
-          {effectiveStatus === 'pending' ? (
-            <span className="inline-flex px-4 py-2 rounded-full bg-sky-50 text-sky-800 border border-sky-200 text-xs font-black">
-              {AR.opportunities.applicationStatuses.pending}
-            </span>
-          ) : effectiveStatus === 'waitlisted' ? (
-            <span className="inline-flex px-4 py-2 rounded-full bg-violet-50 text-violet-800 border border-violet-200 text-xs font-black">
-              {AR.studentPortal.board.waitlistBadge}
-            </span>
-          ) : isApplied ? (
-            <span className="inline-flex px-4 py-2 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-xs font-black">
-              {AR.studentPortal.board.appliedBadge} ✓
-            </span>
+        <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+          <PhaseChip phase={opportunity.phase} />
+        </div>
+        <div className="mt-auto pt-2 flex flex-wrap items-center gap-2">
+          {effectiveStatus ? (
+            <>
+              <MyApplicationChip status={effectiveStatus} size="lg" />
+              {effectiveStatus === 'cancelled' && (
+                <Link
+                  to={`/opportunities/${opportunity._id}`}
+                  className="inline-flex px-5 py-2.5 rounded-full bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs font-black transition active:scale-95"
+                >
+                  {AR.studentPortal.board.detailsButton}
+                </Link>
+              )}
+            </>
           ) : (
             <Link
               to={`/opportunities/${opportunity._id}`}

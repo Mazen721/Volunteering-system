@@ -74,12 +74,18 @@ describe('Phase 5 featured home selection', () => {
 
   it('never_returns_an_empty_hero_for_a_review_only_student', () => {
     const top = buildOpportunity({ _id: 'top' });
-    const application = { _id: 'app-1' } as unknown as StudentApplication;
+    const pendingOpportunity = buildOpportunity({ _id: 'op-pending', title: 'ندوة قيد المراجعة' });
+    const application = {
+      _id: 'app-1',
+      status: 'pending',
+      opportunity: pendingOpportunity,
+    } as unknown as StudentApplication;
     const featured = selectFeaturedHome({ ...emptySummary, activeApplications: [application] }, [
       top,
     ]);
     expect(featured.kind).toBe('suggested');
     expect(featured.reviewOnly).toBe(true);
+    expect(featured.pendingOpportunity?.title).toBe('ندوة قيد المراجعة');
 
     const noRecommendations = selectFeaturedHome(
       { ...emptySummary, activeApplications: [application] },
@@ -87,6 +93,29 @@ describe('Phase 5 featured home selection', () => {
     );
     expect(noRecommendations.kind).toBe('welcome');
     expect(noRecommendations.reviewOnly).toBe(true);
+  });
+
+  it('does_not_flag_review_only_for_history_on_ended_opportunities', () => {
+    const top = buildOpportunity({ _id: 'top' });
+    const endedOpportunity = buildOpportunity({ _id: 'op-ended', phase: 'ended' });
+    const pendingOnEnded = {
+      _id: 'app-old',
+      status: 'pending',
+      opportunity: endedOpportunity,
+    } as unknown as StudentApplication;
+    const acceptedOnEnded = {
+      _id: 'app-done',
+      status: 'accepted',
+      opportunity: endedOpportunity,
+    } as unknown as StudentApplication;
+
+    for (const application of [pendingOnEnded, acceptedOnEnded]) {
+      const featured = selectFeaturedHome({ ...emptySummary, activeApplications: [application] }, [
+        top,
+      ]);
+      expect(featured.reviewOnly).toBe(false);
+      expect(featured.pendingOpportunity).toBeNull();
+    }
   });
 
   it('falls_back_to_a_welcome_hero_when_there_are_no_opportunities', () => {

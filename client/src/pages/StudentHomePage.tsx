@@ -90,11 +90,12 @@ export function StudentHomePage() {
           <>
             <StudentHomeHero featured={featured} isPending={isPendingAccount} />
 
-            {featured.reviewOnly && (
+            {featured.reviewOnly && featured.pendingOpportunity && (
               <div className="flex items-start gap-2.5 px-1 sm:px-2 text-slate-600">
                 <Info className="w-4.5 h-4.5 shrink-0 mt-0.5 text-mnu-500" />
                 <p className="text-xs sm:text-sm font-semibold leading-relaxed">
-                  <b className="text-slate-800">{HOME.reviewNoteTitle}:</b> {HOME.reviewNoteText}
+                  <b className="text-slate-800">{HOME.reviewNoteTitle}:</b>{' '}
+                  {HOME.reviewNoteText.replace('{title}', featured.pendingOpportunity.title)}
                 </p>
               </div>
             )}
@@ -149,6 +150,10 @@ export function StudentHomePage() {
                 <LayoutGrid className="w-5 h-5 text-mnu-500" />
                 {HOME.allWorkTitle}
               </h2>
+              <p className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 -mt-1.5">
+                <Info className="w-3.5 h-3.5 text-mnu-500 shrink-0" />
+                {AR.studentPortal.board.visibilityHint}
+              </p>
               {allOpportunities.length === 0 ? (
                 <p className="text-xs text-slate-500">{HOME.allWorkEmpty}</p>
               ) : (

@@ -5,6 +5,7 @@ import type {
   OpportunityListResponse,
   StudentDashboardSummary,
 } from '../types';
+import { sortByPhasePriority } from '../utils/opportunityPhase';
 
 const HOME_OPPORTUNITIES_PREVIEW = 3;
 
@@ -39,7 +40,11 @@ export function useStudentHome() {
         setRecommendations(
           recommendedResponse.data.opportunities.slice(0, HOME_OPPORTUNITIES_PREVIEW),
         );
-        setAllOpportunities(allResponse.data.opportunities.slice(0, HOME_OPPORTUNITIES_PREVIEW));
+        // The plain list arrives oldest-first, which would fill the preview
+        // with ended work; surface registration-open opportunities first.
+        setAllOpportunities(
+          sortByPhasePriority(allResponse.data.opportunities).slice(0, HOME_OPPORTUNITIES_PREVIEW),
+        );
         setError('');
       })
       .catch((requestError: unknown) => {

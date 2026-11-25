@@ -749,8 +749,14 @@ export async function getStudentDashboardSummary(
           application.opportunity.phase === 'upcoming'
       )
       .map((application) => application.opportunity),
-    activeApplications: decoratedApplications.filter((application) =>
-      ACTIVE_APPLICATION_STATUSES.includes(application.status)
+    // "Active" means the application still concerns upcoming work: an
+    // accepted or pending application on an opportunity that has already
+    // ended is history (it lives in recent activities / my applications),
+    // not something active, and must not drive "under review" surfaces.
+    activeApplications: decoratedApplications.filter(
+      (application) =>
+        ACTIVE_APPLICATION_STATUSES.includes(application.status) &&
+        application.opportunity.phase !== 'ended'
     ),
     recentActivities,
   };

@@ -2,9 +2,9 @@ import { Link } from 'react-router-dom';
 import { CalendarDays, Clock3, MapPin, Sparkles, Users } from 'lucide-react';
 import { AR, INTEREST_LABELS } from '../../constants/ar';
 import type { Opportunity } from '../../types';
-import { hasActiveApplication } from '../../utils/applications';
 import { resolveOpportunityCover } from '../../utils/covers';
 import { formatDateTimeAr, formatNumber } from '../../utils/format';
+import { MyApplicationChip, PhaseChip } from './OpportunityChips';
 
 interface OpportunityCardProps {
   opportunity: Opportunity;
@@ -17,7 +17,7 @@ interface OpportunityCardProps {
  */
 export function OpportunityCard({ opportunity, suggested = false }: OpportunityCardProps) {
   const matchedFields = opportunity.matchedFields ?? [];
-  const isApplied = hasActiveApplication(opportunity.myApplication);
+  const myStatus = opportunity.myApplication?.status;
   const isFull = opportunity.isFull ?? opportunity.remainingSlots.student <= 0;
   const isWaitlistAvailable = opportunity.waitlistAvailable ?? isFull;
 
@@ -58,17 +58,14 @@ export function OpportunityCard({ opportunity, suggested = false }: OpportunityC
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
-          {isApplied && (
-            <span className="px-2.5 py-1 rounded-full bg-sky-50 text-sky-700 border border-sky-200 text-[11px] font-bold">
-              {AR.studentPortal.board.appliedBadge}
-            </span>
-          )}
+          <PhaseChip phase={opportunity.phase} />
+          {myStatus && <MyApplicationChip status={myStatus} />}
           {isFull && (
             <span className="px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[11px] font-bold">
               {AR.studentPortal.board.fullBadge}
             </span>
           )}
-          {isWaitlistAvailable && (
+          {isWaitlistAvailable && myStatus !== 'waitlisted' && (
             <span className="px-2.5 py-1 rounded-full bg-violet-50 text-violet-700 border border-violet-200 text-[11px] font-bold">
               {AR.studentPortal.board.waitlistBadge}
             </span>
