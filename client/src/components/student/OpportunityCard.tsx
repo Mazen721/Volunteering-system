@@ -27,6 +27,9 @@ export function OpportunityCard({ opportunity, suggested = false }: OpportunityC
       : AR.studentPortal.board.detailsButton;
   const isFull = opportunity.isFull ?? opportunity.remainingSlots.student <= 0;
   const isWaitlistAvailable = opportunity.waitlistAvailable ?? isFull;
+  // An ended opportunity has no seats to count down: never render the
+  // remaining-slots line for one, wherever this card is reused.
+  const isEnded = opportunity.phase === 'ended';
 
   return (
     <article
@@ -110,11 +113,13 @@ export function OpportunityCard({ opportunity, suggested = false }: OpportunityC
           <Clock3 className="w-3.5 h-3.5 text-mnu-500" />
           {formatNumber(opportunity.hours)} {AR.studentPortal.common.hours}
         </span>
-        <span className="flex items-center gap-1.5">
-          <Users className="w-3.5 h-3.5 text-mnu-500" />
-          {AR.studentPortal.board.remainingSlotsLabel}:{' '}
-          {formatNumber(opportunity.remainingSlots.student)}
-        </span>
+        {!isEnded && (
+          <span className="flex items-center gap-1.5">
+            <Users className="w-3.5 h-3.5 text-mnu-500" />
+            {AR.studentPortal.board.remainingSlotsLabel}:{' '}
+            {formatNumber(opportunity.remainingSlots.student)}
+          </span>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2 pt-1">

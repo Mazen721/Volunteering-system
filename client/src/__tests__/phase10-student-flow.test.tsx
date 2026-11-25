@@ -365,11 +365,13 @@ describe('Phase 10 true board and honest application states', () => {
     const section = heading.closest('section');
     expect(section).not.toBeNull();
     const rows = within(section!).getAllByRole('article');
-    expect(rows).toHaveLength(3);
+    // Round A+B ruling: the ended opportunity is history and must not appear
+    // in the home preview at all — only the open and the closed rows remain.
+    expect(rows).toHaveLength(2);
     expect(within(rows[0]).getByText('نشاط تسجيله مفتوح')).toBeInTheDocument();
     expect(within(rows[0]).getByText(BOARD.phaseLabels.upcoming)).toBeInTheDocument();
-    expect(within(rows[2]).getByText('نشاط منتهي قديم')).toBeInTheDocument();
-    expect(within(rows[2]).getByText(BOARD.phaseLabels.ended)).toBeInTheDocument();
+    expect(within(rows[1]).getByText('نشاط تسجيله قفل')).toBeInTheDocument();
+    expect(within(section!).queryByText('نشاط منتهي قديم')).not.toBeInTheDocument();
     expect(screen.getByText(BOARD.visibilityHint)).toBeInTheDocument();
   });
 });

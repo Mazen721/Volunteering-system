@@ -5,7 +5,7 @@ import type {
   OpportunityListResponse,
   StudentDashboardSummary,
 } from '../types';
-import { sortByPhasePriority } from '../utils/opportunityPhase';
+import { isStudentDiscoverable, sortByPhasePriority } from '../utils/opportunityPhase';
 
 const HOME_OPPORTUNITIES_PREVIEW = 3;
 
@@ -37,13 +37,21 @@ export function useStudentHome() {
           return;
         }
         setSummary(summaryResponse.data);
+        // Home surfaces follow the board rule: ended (and completed or
+        // cancelled) opportunities never appear — they are history, so the
+        // hero's recommendation pool and both row sections stay actionable.
         setRecommendations(
-          recommendedResponse.data.opportunities.slice(0, HOME_OPPORTUNITIES_PREVIEW),
+          recommendedResponse.data.opportunities
+            .filter(isStudentDiscoverable)
+            .slice(0, HOME_OPPORTUNITIES_PREVIEW),
         );
-        // The plain list arrives oldest-first, which would fill the preview
-        // with ended work; surface registration-open opportunities first.
+        // The plain list arrives oldest-first; after dropping ended work,
+        // surface registration-open opportunities first in the preview.
         setAllOpportunities(
-          sortByPhasePriority(allResponse.data.opportunities).slice(0, HOME_OPPORTUNITIES_PREVIEW),
+          sortByPhasePriority(allResponse.data.opportunities.filter(isStudentDiscoverable)).slice(
+            0,
+            HOME_OPPORTUNITIES_PREVIEW,
+          ),
         );
         setError('');
       })

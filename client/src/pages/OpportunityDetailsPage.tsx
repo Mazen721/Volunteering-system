@@ -22,7 +22,7 @@ import { AR, INTEREST_LABELS } from '../constants/ar';
 import { useAuth } from '../context/authContext';
 import { useToast } from '../context/toastContext';
 import type { Application, Opportunity, OpportunityResponse } from '../types';
-import { hasActiveApplication } from '../utils/applications';
+import { hasActiveApplication, isLapsedApplication } from '../utils/applications';
 import { resolveOpportunityCover } from '../utils/covers';
 import { formatDateTimeAr, formatNumber } from '../utils/format';
 
@@ -122,6 +122,14 @@ export function OpportunityDetailsPage() {
 
   const myApplication = opportunity?.myApplication;
   const activeApplication = hasActiveApplication(myApplication);
+  // A pending or waitlisted application on an opportunity that has already
+  // ended lapsed undecided — the banner must say so instead of «قيد المراجعة»,
+  // and withdrawing from a dead opportunity is meaningless (canWithdraw
+  // already requires the upcoming phase, so no withdraw is offered here).
+  const lapsedApplication = Boolean(
+    opportunity && myApplication && isLapsedApplication(myApplication, opportunity)
+  );
+  const isEnded = opportunity?.phase === 'ended';
   const isPendingAccount = user?.status === 'pending';
   // A rejected application is terminal: the server refuses re-application,
   // so the page must say that instead of offering an apply button.
@@ -234,7 +242,9 @@ export function OpportunityDetailsPage() {
                 <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-2xl bg-sky-50 border border-sky-200 text-sky-800 text-xs font-bold">
                   <span>
                     {AR.studentPortal.details.applicationStatusLabel}:{' '}
-                    {AR.opportunities.applicationStatuses[myApplication.status]}
+                    {lapsedApplication
+                      ? AR.studentPortal.applications.lapsedLabel
+                      : AR.opportunities.applicationStatuses[myApplication.status]}
                   </span>
                   {myApplication.attended && (
                     <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-black">
@@ -372,11 +382,13 @@ export function OpportunityDetailsPage() {
                   <Clock3 className="w-4 h-4 text-mnu-500" />
                   {formatNumber(opportunity.hours)} {AR.studentPortal.common.hours}
                 </p>
-                <p className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-mnu-500" />
-                  {AR.studentPortal.details.slotsLabel}:{' '}
-                  {formatNumber(opportunity.remainingSlots.student)}
-                </p>
+                {!isEnded && (
+                  <p className="flex items-center gap-2">
+                    <Users className="w-4 h-4 text-mnu-500" />
+                    {AR.studentPortal.details.slotsLabel}:{' '}
+                    {formatNumber(opportunity.remainingSlots.student)}
+                  </p>
+                )}
                 <p className="flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-mnu-500" />
                   {opportunity.location.address}

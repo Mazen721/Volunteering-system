@@ -5,7 +5,7 @@ import { Navbar } from '../components/Navbar';
 import { OpportunityCard } from '../components/student/OpportunityCard';
 import { AR } from '../constants/ar';
 import type { Opportunity, OpportunityListResponse } from '../types';
-import { sortByPhasePriority } from '../utils/opportunityPhase';
+import { isStudentDiscoverable, sortByPhasePriority } from '../utils/opportunityPhase';
 
 interface BoardItem {
   opportunity: Opportunity;
@@ -13,10 +13,12 @@ interface BoardItem {
 }
 
 /**
- * The student opportunity board: every opportunity visible to the student —
- * general ones plus his faculty's, including the ones he already applied to
- * (shown with their real application status) — with the server-recommended
- * ones badged and listed first. Nothing he applied to silently disappears.
+ * The student opportunity board: every actionable opportunity visible to the
+ * student — general ones plus his faculty's, including the ones he already
+ * applied to (shown with their real application status) — with the
+ * server-recommended ones badged and listed first. Nothing he applied to
+ * silently disappears, and ended work never appears here: it is history and
+ * lives in «طلباتي».
  */
 export function OpportunitiesBoardPage() {
   const [items, setItems] = useState<BoardItem[]>([]);
@@ -36,8 +38,11 @@ export function OpportunitiesBoardPage() {
         if (cancelled) {
           return;
         }
-        const all = allResponse.data.opportunities;
-        const recommended = recommendedResponse.data.opportunities;
+        // Discovery shows actionable work only: ended (and completed or
+        // cancelled) opportunities are filtered out of both lists, even the
+        // ones he applied to — their history lives in «طلباتي».
+        const all = allResponse.data.opportunities.filter(isStudentDiscoverable);
+        const recommended = recommendedResponse.data.opportunities.filter(isStudentDiscoverable);
         const allById = new Map(all.map((opportunity) => [opportunity._id, opportunity]));
         const recommendedIds = new Set(recommended.map((opportunity) => opportunity._id));
         const suggestedItems: BoardItem[] = recommended.map((opportunity) => ({

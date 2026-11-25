@@ -1,7 +1,7 @@
 import type { ApplicationStatus } from '../constants/enums';
 import type { Opportunity, StudentDashboardSummary } from '../types';
 import { buildMyUpcoming } from './myUpcoming';
-import { isOpportunityEnded } from './opportunityPhase';
+import { isOpportunityEnded, isStudentDiscoverable } from './opportunityPhase';
 
 export type FeaturedHomeKind = 'live' | 'next' | 'suggested' | 'welcome';
 
@@ -119,6 +119,11 @@ export function selectFeaturedHome(
   }
   const nextCandidates = [...nextById.values()].sort(byStartAt);
 
+  // The recommendation fallback honours the discovery rule too: an ended
+  // (or completed/cancelled) opportunity is history and never headlines the
+  // home page, whatever list it arrived in.
+  const topRecommendation = recommendations.find(isStudentDiscoverable) ?? null;
+
   let kind: FeaturedHomeKind;
   let opportunity: Opportunity | null = null;
   let myStatus: ApplicationStatus | null = null;
@@ -130,9 +135,9 @@ export function selectFeaturedHome(
     kind = 'next';
     opportunity = nextCandidates[0].opportunity;
     myStatus = nextCandidates[0].status;
-  } else if (recommendations.length > 0) {
+  } else if (topRecommendation) {
     kind = 'suggested';
-    opportunity = recommendations[0];
+    opportunity = topRecommendation;
   } else {
     kind = 'welcome';
   }

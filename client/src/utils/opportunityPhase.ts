@@ -1,4 +1,4 @@
-import type { OpportunityPhase } from '../constants/enums';
+import type { OpportunityPhase, OpportunityStatus } from '../constants/enums';
 
 /**
  * Display priority for opportunity phases: work the student can still apply
@@ -37,4 +37,20 @@ export function sortByPhasePriority<T extends PhaseSortable>(items: readonly T[]
  */
 export function isOpportunityEnded(opportunity: PhaseSortable): boolean {
   return opportunity.phase === 'ended';
+}
+
+export interface DiscoverableOpportunity {
+  status: OpportunityStatus;
+  phase: OpportunityPhase;
+}
+
+/**
+ * Whether the opportunity belongs on student discovery surfaces (the board
+ * and the home page). Discovery is for actionable work only: published and
+ * not yet ended. Ended opportunities — and completed or cancelled ones — are
+ * history; the student finds them in «طلباتي», never dressed up as fresh
+ * work with live seats and apply CTAs.
+ */
+export function isStudentDiscoverable(opportunity: DiscoverableOpportunity): boolean {
+  return opportunity.status === 'published' && opportunity.phase !== 'ended';
 }

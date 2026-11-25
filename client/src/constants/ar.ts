@@ -1103,6 +1103,7 @@ export const AR = {
       hoursGrantedLabel: 'الساعات الممنوحة',
       viewOpportunity: 'عرض الفرصة',
       noteLabel: 'ملاحظتك',
+      lapsedLabel: 'انتهت دون اعتماد',
     },
     profile: {
       pageTitle: 'ملفي الشخصي',
