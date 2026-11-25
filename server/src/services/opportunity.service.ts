@@ -342,6 +342,25 @@ export function assertCanManageOpportunity(opportunity: OpportunityLean, user: P
   throw new AppError(404, 'الفرصة التطوعية غير موجودة');
 }
 
+/**
+ * Mongo filter equivalent of {@link assertCanManageOpportunity}: admins manage every
+ * opportunity, while a dean manages only opportunities of his own faculty that he
+ * created himself. Used by list queries that must surface exactly the items the
+ * caller is authorized to act on (completion, application decisions).
+ */
+export function buildManageScopeFilter(user: PublicUser): Record<string, unknown> {
+  if (user.role === 'admin') {
+    return {};
+  }
+  if (user.role === 'dean' && user.faculty) {
+    return {
+      faculty: user.faculty,
+      createdBy: new mongoose.Types.ObjectId(user.id),
+    };
+  }
+  return { _id: { $in: [] as mongoose.Types.ObjectId[] } };
+}
+
 function assertOpportunityReadable(opportunity: OpportunityLean, user: PublicUser): void {
   if (user.role === 'admin') {
     return;

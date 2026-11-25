@@ -6,6 +6,7 @@ import type { ScopeFilter } from '../middleware/auth.js';
 import { buildScope, requireRole } from '../middleware/auth.js';
 import { getVolunteeringReport } from '../services/report.service.js';
 import {
+  getActionItems,
   getCategoryStats,
   getEventStats,
   getFacultyStats,
@@ -46,6 +47,11 @@ export function createStatsRouter(): express.Router {
   router.get('/overview', async (req, res) => {
     const overview = await getOverviewStats(resolveStatsScope(req));
     res.json(overview);
+  });
+
+  router.get('/action-items', async (req, res) => {
+    const actionItems = await getActionItems(req.user!);
+    res.json(actionItems);
   });
 
   router.get('/report', async (req, res) => {

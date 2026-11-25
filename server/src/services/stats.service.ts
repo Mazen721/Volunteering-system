@@ -3,6 +3,7 @@ import type { PipelineStage } from 'mongoose';
 import type {
   ActivityStatus,
   Faculty,
+  OpportunityPhase,
   OpportunityStatus,
   VolunteerCategory,
 } from '../constants/enums.js';
@@ -16,7 +17,12 @@ import type { OpportunityLean } from '../models/Opportunity.js';
 import { User } from '../models/User.js';
 import type { VolunteerFilter, VolunteerLean } from '../models/Volunteer.js';
 import { Volunteer } from '../models/Volunteer.js';
-import { CAIRO_TIME_ZONE, cairoLocalToUtc, getCairoDateTimeParts } from '../utils/cairoTime.js';
+import {
+  CAIRO_TIME_ZONE,
+  cairoLocalToUtc,
+  evaluateOpportunityPhase,
+  getCairoDateTimeParts,
+} from '../utils/cairoTime.js';
 import { AppError } from '../utils/errors.js';
 import { getCertificateHours } from '../utils/volunteerLookup.js';
 import { scopeActivities } from './activity.service.js';
@@ -26,7 +32,7 @@ import type {
 } from './application.service.js';
 import { ACTIVE_APPLICATION_STATUSES, findStudentVolunteer } from './application.service.js';
 import type { OpportunityDTO } from './opportunity.service.js';
-import { decorateOpportunity } from './opportunity.service.js';
+import { buildManageScopeFilter, decorateOpportunity } from './opportunity.service.js';
 import type { PublicUser } from './auth.service.js';
 
 export interface VolunteerStatsRow {
@@ -1105,4 +1111,142 @@ async function computeMonthlyHoursStats(scope: ScopeFilter = {}): Promise<Monthl
       approvedActivities: row.approvedActivities,
     })),
   };
+}
+
+export interface AwaitingCompletionItem {
+  opportunityId: string;
+  title: string;
+  faculty: Faculty | null;
+  startAt: Date;
+  endAt: Date;
+  hours: number;
+  acceptedCount: number;
+  attendedCount: number;
+}
+
+export interface PendingUrgentItem {
+  opportunityId: string;
+  title: string;
+  faculty: Faculty | null;
+  startAt: Date;
+  phase: OpportunityPhase;
+  pendingCount: number;
+}
+
+export interface ActionItemsResponse {
+  awaitingCompletion: AwaitingCompletionItem[];
+  pendingUrgent: PendingUrgentItem[];
+}
+
+/** Pending applications become urgent once the opportunity starts within this window. */
+export const PENDING_URGENT_WINDOW_MS = 72 * 60 * 60 * 1000;
+
+interface ApplicationCountRow {
+  _id: mongoose.Types.ObjectId;
+  acceptedCount: number;
+  attendedCount: number;
+}
+
+interface PendingCountRow {
+  _id: mongoose.Types.ObjectId;
+  pendingCount: number;
+}
+
+/**
+ * Lists the staff action items that must never be missed, scoped to exactly the
+ * opportunities the caller may act on (the same manage rule the completion and
+ * application-decision endpoints enforce via assertCanManageOpportunity):
+ * published opportunities that already ended and still await «إتمام الفرصة», and
+ * published opportunities with pending applications whose start is imminent
+ * (registration closed, already running, or starting within 72 hours).
+ */
+export async function getActionItems(user: PublicUser): Promise<ActionItemsResponse> {
+  const now = new Date();
+  const scope = buildManageScopeFilter(user);
+
+  const endedPublished = await Opportunity.find({
+    ...scope,
+    status: 'published',
+    endAt: { $lt: now },
+  })
+    .sort({ endAt: -1 })
+    .lean<OpportunityLean[]>();
+
+  const countRows =
+    endedPublished.length > 0
+      ? await Application.aggregate<ApplicationCountRow>([
+          {
+            $match: {
+              opportunity: { $in: endedPublished.map((opportunity) => opportunity._id) },
+              status: 'accepted',
+            },
+          },
+          {
+            $group: {
+              _id: '$opportunity',
+              acceptedCount: { $sum: 1 },
+              attendedCount: {
+                $sum: { $cond: [{ $eq: ['$attended', true] }, 1, 0] },
+              },
+            },
+          },
+        ])
+      : [];
+  const countsByOpportunity = new Map(countRows.map((row) => [row._id.toString(), row] as const));
+
+  const awaitingCompletion: AwaitingCompletionItem[] = endedPublished.map((opportunity) => {
+    const counts = countsByOpportunity.get(opportunity._id.toString());
+    return {
+      opportunityId: opportunity._id.toString(),
+      title: opportunity.title,
+      faculty: opportunity.faculty,
+      startAt: opportunity.startAt,
+      endAt: opportunity.endAt,
+      hours: opportunity.hours,
+      acceptedCount: counts?.acceptedCount ?? 0,
+      attendedCount: counts?.attendedCount ?? 0,
+    };
+  });
+
+  const pendingRows = await Application.aggregate<PendingCountRow>([
+    { $match: { status: 'pending' } },
+    { $group: { _id: '$opportunity', pendingCount: { $sum: 1 } } },
+  ]);
+  const pendingByOpportunity = new Map(
+    pendingRows.map((row) => [row._id.toString(), row.pendingCount] as const)
+  );
+
+  const pendingCandidates =
+    pendingRows.length > 0
+      ? await Opportunity.find({
+          ...scope,
+          status: 'published',
+          endAt: { $gte: now },
+          _id: { $in: pendingRows.map((row) => row._id) },
+        })
+          .sort({ startAt: 1 })
+          .lean<OpportunityLean[]>()
+      : [];
+
+  const pendingUrgent: PendingUrgentItem[] = pendingCandidates
+    .map((opportunity) => ({
+      opportunity,
+      phase: evaluateOpportunityPhase(opportunity, now),
+    }))
+    .filter(
+      ({ opportunity, phase }) =>
+        phase === 'registration_closed' ||
+        phase === 'in_progress' ||
+        opportunity.startAt.getTime() - now.getTime() <= PENDING_URGENT_WINDOW_MS
+    )
+    .map(({ opportunity, phase }) => ({
+      opportunityId: opportunity._id.toString(),
+      title: opportunity.title,
+      faculty: opportunity.faculty,
+      startAt: opportunity.startAt,
+      phase,
+      pendingCount: pendingByOpportunity.get(opportunity._id.toString()) ?? 0,
+    }));
+
+  return { awaitingCompletion, pendingUrgent };
 }
