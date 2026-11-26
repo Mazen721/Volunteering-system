@@ -98,7 +98,7 @@ export function ActionItemsBlocks({ actionItems }: ActionItemsBlocksProps) {
             {awaitingCompletion.slice(0, MAX_VISIBLE_ROWS).map((item) => (
               <li key={item.opportunityId}>
                 <Link
-                  to="/opportunities/manage"
+                  to={`/opportunities/manage?complete=${encodeURIComponent(item.opportunityId)}`}
                   className="flex flex-wrap items-center justify-between gap-2 p-3.5 rounded-2xl bg-white/85 border border-[#c9a227]/30 hover:border-[#c9a227] hover:bg-white transition"
                 >
                   <div className="min-w-0">

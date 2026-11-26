@@ -4,10 +4,12 @@ import { apiClient, extractApiErrorMessage } from '../../api/client';
 import { AR } from '../../constants/ar';
 import { useToast } from '../../context/toastContext';
 import type {
+  Application,
   CompleteOpportunityResponse,
   LiveCounters,
   LiveOpportunityResponse,
   Opportunity,
+  VolunteerBase,
 } from '../../types';
 import { formatDateTimeAr, formatNumber } from '../../utils/format';
 import { ModalFrame } from '../ModalFrame';
@@ -27,6 +29,18 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+function getVolunteerInfo(application: Application): VolunteerBase | null {
+  return application.volunteer && typeof application.volunteer !== 'string'
+    ? application.volunteer
+    : null;
+}
+
+function byCheckInTime(first: Application, second: Application): number {
+  const firstTime = first.checkedInAt ? new Date(first.checkedInAt).getTime() : Number.MAX_VALUE;
+  const secondTime = second.checkedInAt ? new Date(second.checkedInAt).getTime() : Number.MAX_VALUE;
+  return firstTime - secondTime;
+}
+
 /**
  * Confirmation dialog for completing an ended opportunity directly from the
  * management table. Shows the attendance details and the exact hours that the
@@ -38,9 +52,10 @@ export function CompleteOpportunityDialog({
   onCompleted,
 }: CompleteOpportunityDialogProps) {
   const { showToast } = useToast();
-  const [countersState, setCountersState] = useState<{
+  const [liveState, setLiveState] = useState<{
     opportunityId: string;
     counters: LiveCounters;
+    attendees: Application[];
   } | null>(null);
   const [completing, setCompleting] = useState(false);
 
@@ -55,7 +70,11 @@ export function CompleteOpportunityDialog({
       .get<LiveOpportunityResponse>(`/opportunities/${encodeURIComponent(opportunityId)}/live`)
       .then((response) => {
         if (!cancelled) {
-          setCountersState({ opportunityId, counters: response.data.counters });
+          setLiveState({
+            opportunityId,
+            counters: response.data.counters,
+            attendees: response.data.attendees,
+          });
         }
       })
       .catch((requestError: unknown) => {
@@ -69,11 +88,16 @@ export function CompleteOpportunityDialog({
     };
   }, [opportunityId, onClose, showToast]);
 
-  const counters =
-    countersState && opportunity && countersState.opportunityId === opportunity._id
-      ? countersState.counters
-      : null;
+  const live =
+    liveState && opportunity && liveState.opportunityId === opportunity._id ? liveState : null;
+  const counters = live ? live.counters : null;
   const loadingDetails = opportunity !== null && counters === null;
+  // The live endpoint builds its counters from this same attendees array, so
+  // the attended list below always matches the «الحاضرون» counter exactly.
+  const attendedList = live
+    ? live.attendees.filter((application) => application.attended).sort(byCheckInTime)
+    : [];
+  const absentCount = counters ? counters.notArrived : 0;
 
   async function handleConfirm() {
     if (!opportunityId) return;
@@ -117,36 +141,82 @@ export function CompleteOpportunityDialog({
               {AR.opportunities.completeLoadingDetails}
             </p>
           ) : (
-            <dl className="rounded-2xl bg-slate-50/80 border border-slate-100 px-4 py-2">
-              <DetailRow
-                label={AR.opportunities.columns.faculty}
-                value={opportunity.faculty ?? AR.opportunities.allFaculties}
-              />
-              <DetailRow
-                label={AR.opportunities.columns.schedule}
-                value={`${formatDateTimeAr(opportunity.startAt)} ← ${formatDateTimeAr(opportunity.endAt)}`}
-              />
-              <DetailRow
-                label={AR.opportunities.completePlaceLabel}
-                value={opportunity.location.name}
-              />
-              <DetailRow
-                label={AR.opportunities.completeAcceptedLabel}
-                value={formatNumber(counters.accepted)}
-              />
-              <DetailRow
-                label={AR.opportunities.completeAttendedLabel}
-                value={formatNumber(counters.checkedIn)}
-              />
-              <DetailRow
-                label={AR.opportunities.completeHoursLabel}
-                value={`${formatNumber(opportunity.hours)} ${AR.common.hourUnit}`}
-              />
-              <DetailRow
-                label={AR.opportunities.completeCreditLabel}
-                value={`${formatNumber(creditedHours ?? 0)} ${AR.common.hourUnit}`}
-              />
-            </dl>
+            <>
+              <dl className="rounded-2xl bg-slate-50/80 border border-slate-100 px-4 py-2">
+                <DetailRow
+                  label={AR.opportunities.columns.faculty}
+                  value={opportunity.faculty ?? AR.opportunities.allFaculties}
+                />
+                <DetailRow
+                  label={AR.opportunities.columns.schedule}
+                  value={`${formatDateTimeAr(opportunity.startAt)} ← ${formatDateTimeAr(opportunity.endAt)}`}
+                />
+                <DetailRow
+                  label={AR.opportunities.completePlaceLabel}
+                  value={opportunity.location.name}
+                />
+                <DetailRow
+                  label={AR.opportunities.completeAcceptedLabel}
+                  value={formatNumber(counters.accepted)}
+                />
+                <DetailRow
+                  label={AR.opportunities.completeAttendedLabel}
+                  value={formatNumber(counters.checkedIn)}
+                />
+                <DetailRow
+                  label={AR.opportunities.completeHoursLabel}
+                  value={`${formatNumber(opportunity.hours)} ${AR.common.hourUnit}`}
+                />
+                <DetailRow
+                  label={AR.opportunities.completeCreditLabel}
+                  value={`${formatNumber(creditedHours ?? 0)} ${AR.common.hourUnit}`}
+                />
+              </dl>
+
+              <div className="space-y-2">
+                <h4 className="text-xs font-black text-slate-800">
+                  {AR.opportunities.completeAttendeesTitle} ({formatNumber(attendedList.length)})
+                </h4>
+                {attendedList.length === 0 ? (
+                  <p className="text-[11px] font-bold text-slate-500 rounded-2xl bg-slate-50/80 border border-slate-100 px-4 py-3 text-center">
+                    {AR.opportunities.completeAttendeesEmpty}
+                  </p>
+                ) : (
+                  <ul
+                    data-testid="complete-attendees-list"
+                    className="max-h-56 overflow-y-auto rounded-2xl border border-slate-100 bg-white/70 divide-y divide-slate-100"
+                  >
+                    {attendedList.map((application) => {
+                      const volunteer = getVolunteerInfo(application);
+                      return (
+                        <li
+                          key={application._id}
+                          className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5"
+                        >
+                          <div className="min-w-0">
+                            <p className="text-xs font-black text-slate-800">
+                              {volunteer?.fullName ?? AR.opportunities.live.unknownVolunteer}
+                            </p>
+                            <p className="text-[11px] font-bold text-slate-500 mt-0.5">
+                              {AR.categories[application.category]}
+                            </p>
+                          </div>
+                          <p className="text-[11px] font-bold text-slate-600 shrink-0">
+                            {AR.opportunities.completeCheckedInAtLabel}:{' '}
+                            {application.checkedInAt
+                              ? formatDateTimeAr(application.checkedInAt)
+                              : '—'}
+                          </p>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+                <p className="text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                  {AR.opportunities.completeAbsentLabel}: {formatNumber(absentCount)}
+                </p>
+              </div>
+            </>
           )}
 
           <div className="flex items-center justify-end gap-3 pt-2">

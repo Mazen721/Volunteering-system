@@ -169,6 +169,40 @@ export function OpportunitiesManagePage() {
     }
   }
 
+  // The dashboard «بانتظار الإتمام» block deep-links here with ?complete=<id>
+  // to open the completion dialog of that exact opportunity directly. The
+  // deep link only takes effect when the opportunity is completable by the
+  // current user (same conditions as its «إتمام الفرصة» button); a stale or
+  // foreign id simply leaves the normal manage page untouched.
+  const completeParam = searchParams.get('complete');
+  const deepLinkedCompleteCandidate =
+    completeParam && !loading
+      ? (opportunities.find((opportunity) => opportunity._id === completeParam) ?? null)
+      : null;
+  const deepLinkedCompleteTarget =
+    deepLinkedCompleteCandidate &&
+    user &&
+    canManageOpportunity(deepLinkedCompleteCandidate, user) &&
+    deepLinkedCompleteCandidate.status === 'published' &&
+    deepLinkedCompleteCandidate.phase === 'ended'
+      ? deepLinkedCompleteCandidate
+      : null;
+  const effectiveCompleteTarget = completeTarget ?? deepLinkedCompleteTarget;
+
+  function handleCompleteClose() {
+    setCompleteTarget(null);
+    if (completeParam) {
+      setSearchParams(
+        (previous) => {
+          const next = new URLSearchParams(previous);
+          next.delete('complete');
+          return next;
+        },
+        { replace: true }
+      );
+    }
+  }
+
   async function handleRefresh() {
     setLoading(true);
     setError('');
@@ -553,8 +587,8 @@ export function OpportunitiesManagePage() {
       />
 
       <CompleteOpportunityDialog
-        opportunity={completeTarget}
-        onClose={() => setCompleteTarget(null)}
+        opportunity={effectiveCompleteTarget}
+        onClose={handleCompleteClose}
         onCompleted={handleCompleted}
       />
 
