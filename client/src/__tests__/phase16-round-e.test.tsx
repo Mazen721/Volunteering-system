@@ -136,7 +136,7 @@ function renderAppAt(route: string, user: AuthUser) {
 }
 
 beforeAll(() => {
-  mswServer.listen({ onUnhandledRequest: 'error' });
+  mswServer.listen({ onUnhandledFrame: 'error' });
 });
 
 afterEach(() => {
