@@ -4,6 +4,7 @@ import { AR } from '../constants/ar';
 import { useAuth } from '../context/authContext';
 import { getNavLinks } from './navLinks';
 import { MobileBottomNav } from './MobileBottomNav';
+import { NotificationsBell } from './NotificationsBell';
 import { UniversityLogo } from './UniversityLogo';
 
 /**
@@ -40,14 +41,17 @@ export function Navbar() {
           </div>
 
           {/* Mobile keeps logout one tap away; the links move to the bottom dock. */}
-          <button
-            type="button"
-            onClick={handleLogout}
-            aria-label={AR.nav.logout}
-            className="flex items-center justify-center bg-white/10 hover:bg-rose-500/80 text-white p-2.5 rounded-xl border border-white/20 transition active:scale-95 cursor-pointer lg:hidden"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-2 ms-auto lg:ms-0">
+            <NotificationsBell />
+            <button
+              type="button"
+              onClick={handleLogout}
+              aria-label={AR.nav.logout}
+              className="flex items-center justify-center bg-white/10 hover:bg-rose-500/80 text-white p-2.5 rounded-xl border border-white/20 transition active:scale-95 cursor-pointer lg:hidden"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
 
           <nav className="hidden lg:flex flex-wrap items-center gap-1.5 sm:gap-2.5">
             {navLinks.map(({ to, label, Icon, end }) => (

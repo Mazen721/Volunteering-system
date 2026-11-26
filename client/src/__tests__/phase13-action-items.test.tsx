@@ -539,6 +539,7 @@ describe('Phase 13 Manage Page Completion', () => {
         _id: 'app-absent',
         attended: false,
         checkedInAt: null,
+        absenceCount: 1,
         volunteer: {
           volunteerId: 'V-1003',
           fullName: 'متطوع لم يحضر',
@@ -551,11 +552,17 @@ describe('Phase 13 Manage Page Completion', () => {
 
     const dialog = await screen.findByRole('dialog');
     // Both attendees are listed by name with their category and exact
-    // check-in time; the absent accepted volunteer is NOT listed.
+    // check-in time; the absent accepted volunteer is NOT in the attendees
+    // list — since Phase 19 he appears in the absent section instead.
     expect(await within(dialog).findByText('متطوع حاضر أول')).toBeInTheDocument();
     expect(within(dialog).getByText('متطوعة حاضرة ثانية')).toBeInTheDocument();
-    expect(within(dialog).queryByText('متطوع لم يحضر')).not.toBeInTheDocument();
-    expect(within(dialog).getByText(AR.categories.student)).toBeInTheDocument();
+    expect(
+      within(within(dialog).getByTestId('complete-attendees-list')).queryByText('متطوع لم يحضر')
+    ).not.toBeInTheDocument();
+    expect(
+      within(within(dialog).getByTestId('complete-absent-list')).getByText('متطوع لم يحضر')
+    ).toBeInTheDocument();
+    expect(within(dialog).getAllByText(AR.categories.student).length).toBeGreaterThan(0);
     expect(within(dialog).getByText(AR.categories.academic)).toBeInTheDocument();
     expect(
       within(dialog).getByText(new RegExp(formatDateTimeAr('2026-11-20T07:05:00.000Z')))
@@ -564,12 +571,12 @@ describe('Phase 13 Manage Page Completion', () => {
       within(dialog).getByText(new RegExp(formatDateTimeAr('2026-11-20T07:20:00.000Z')))
     ).toBeInTheDocument();
     // The attended list length equals the attended counter (2), and the
-    // absent summary line reports the one accepted volunteer who never came.
+    // absent section header reports the one accepted volunteer who never came.
     const list = within(dialog).getByTestId('complete-attendees-list');
     expect(list.querySelectorAll('li')).toHaveLength(2);
     expect(
       within(dialog).getByText(
-        new RegExp(`${AR.opportunities.completeAbsentLabel}: ${formatNumber(1)}`)
+        new RegExp(`${AR.opportunities.completeAbsentLabel} \\(${formatNumber(1)}\\)`)
       )
     ).toBeInTheDocument();
   });

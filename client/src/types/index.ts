@@ -585,6 +585,8 @@ export interface Application {
   appliedAt: string;
   createdAt: string;
   updatedAt: string;
+  /** Live payload only: the volunteer's total absences on ended opportunities. */
+  absenceCount?: number;
 }
 
 export interface OpportunityListResponse {
@@ -686,6 +688,26 @@ export interface CompleteOpportunityResponse {
   opportunity: Opportunity;
   creditedCount: number;
   noShowCount: number;
+}
+
+export interface WarnAbsentResponse {
+  sent: number;
+}
+
+export interface AppNotification {
+  _id: string;
+  type: string;
+  title: string;
+  body: string;
+  link: string | null;
+  opportunity: string | null;
+  read: boolean;
+  createdAt: string;
+}
+
+export interface NotificationsResponse {
+  notifications: AppNotification[];
+  unreadCount: number;
 }
 
 export interface AwaitingCompletionItem {

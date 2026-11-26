@@ -9,6 +9,7 @@ import { createActivitiesRouter } from './routes/activities.routes.js';
 import { createApplicationsRouter } from './routes/applications.routes.js';
 import { createProtectedAuthRouter, createPublicAuthRouter } from './routes/auth.routes.js';
 import { createExcelRouter } from './routes/excel.routes.js';
+import { createNotificationsRouter } from './routes/notifications.routes.js';
 import { createOpportunitiesRouter } from './routes/opportunities.routes.js';
 import { createRegistrationsRouter } from './routes/registrations.routes.js';
 import { createSettingsRouter } from './routes/settings.routes.js';
@@ -75,6 +76,7 @@ export function createApp({
   app.use('/api/opportunities', createOpportunitiesRouter(jwtSecret, rateLimiters.checkIn));
   app.use('/api/applications', createApplicationsRouter());
   app.use('/api/stats', createStatsRouter());
+  app.use('/api/notifications', createNotificationsRouter());
   app.use('/api/settings', createSettingsRouter());
   app.use('/api/excel', createExcelRouter());
 

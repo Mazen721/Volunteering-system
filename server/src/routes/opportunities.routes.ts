@@ -14,6 +14,7 @@ import {
   updateOpportunity,
 } from '../services/opportunity.service.js';
 import { applyToOpportunity, withdrawApplication } from '../services/application.service.js';
+import { warnAbsentVolunteers } from '../services/notification.service.js';
 import {
   completeOpportunity,
   generateCheckInToken,
@@ -180,6 +181,11 @@ export function createOpportunitiesRouter(
 
   router.post('/:id/complete', requireRole('admin', 'dean'), async (req, res) => {
     const result = await completeOpportunity(getRouteId(req), req.user!);
+    res.json(result);
+  });
+
+  router.post('/:id/warn-absent', requireRole('admin', 'dean'), async (req, res) => {
+    const result = await warnAbsentVolunteers(getRouteId(req), req.user!);
     res.json(result);
   });
 

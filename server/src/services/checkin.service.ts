@@ -28,10 +28,20 @@ export interface LiveCounters {
   notArrived: number;
 }
 
+/** An accepted application in the live payload, enriched with the volunteer's absence total. */
+export interface LiveAttendee extends ApplicationWithVolunteerLean {
+  /**
+   * How many times this volunteer has been absent overall: applications with
+   * status accepted and attended=false on opportunities that already ended
+   * (endAt in the past). Computed server-side so the client never guesses.
+   */
+  absenceCount: number;
+}
+
 export interface LiveOpportunityState {
   opportunity: OpportunityDTO;
   counters: LiveCounters;
-  attendees: ApplicationWithVolunteerLean[];
+  attendees: LiveAttendee[];
 }
 
 export interface CompleteOpportunityResult {
@@ -291,13 +301,48 @@ export async function getLiveOpportunityState(
   user: PublicUser
 ): Promise<LiveOpportunityState> {
   const opportunity = await findLiveOpportunity(opportunityId, user);
-  const attendees = await Application.find({
+  const accepted = await Application.find({
     opportunity: opportunity._id,
     status: 'accepted',
   })
     .sort({ appliedAt: 1, createdAt: 1 })
     .populate('volunteer')
     .lean<ApplicationWithVolunteerLean[]>();
+
+  // Per-volunteer absence totals across every opportunity that already
+  // ended: accepted but never attended. Attended applications never count,
+  // and neither do absences on opportunities that have not taken place yet.
+  const absenceByVolunteer = new Map<string, number>();
+  if (accepted.length > 0) {
+    const volunteerIds = [...new Set(accepted.map((attendee) => attendee.volunteer._id))];
+    const rows = await Application.aggregate<{ _id: mongoose.Types.ObjectId; count: number }>([
+      {
+        $match: {
+          volunteer: { $in: volunteerIds },
+          status: 'accepted',
+          attended: false,
+        },
+      },
+      {
+        $lookup: {
+          from: 'opportunities',
+          localField: 'opportunity',
+          foreignField: '_id',
+          as: 'absenceOpportunity',
+        },
+      },
+      { $unwind: '$absenceOpportunity' },
+      { $match: { 'absenceOpportunity.endAt': { $lt: new Date() } } },
+      { $group: { _id: '$volunteer', count: { $sum: 1 } } },
+    ]);
+    for (const row of rows) {
+      absenceByVolunteer.set(row._id.toString(), row.count);
+    }
+  }
+  const attendees: LiveAttendee[] = accepted.map((attendee) => ({
+    ...attendee,
+    absenceCount: absenceByVolunteer.get(attendee.volunteer._id.toString()) ?? 0,
+  }));
 
   const checkedIn = attendees.filter((attendee) => attendee.attended).length;
   return {
