@@ -6,12 +6,14 @@ import {
   ArrowRight,
   CalendarClock,
   ImagePlus,
+  Images,
   Lock,
   RefreshCw,
   Save,
   X,
 } from 'lucide-react';
 import { apiClient, extractApiErrorMessage } from '../api/client';
+import { ModalFrame } from '../components/ModalFrame';
 import { Navbar } from '../components/Navbar';
 import { AR } from '../constants/ar';
 import type { ActivityType, Faculty, InterestKey } from '../constants/enums';
@@ -268,10 +270,21 @@ export function OpportunityFormPage() {
   const [fieldErrors, setFieldErrors] = useState<OpportunityFieldErrors>({});
   const [submitError, setSubmitError] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [showAllCovers, setShowAllCovers] = useState(false);
+  const [coverGalleryOpen, setCoverGalleryOpen] = useState(false);
   const [coverUploadError, setCoverUploadError] = useState('');
   const [coverProcessing, setCoverProcessing] = useState(false);
   const effectiveCoverKey = form.coverPreset || defaultCoverKeyForFields(form.fields);
+  // Compact picker: at most 8 field-relevant thumbnails inline (the first 8
+  // catalogue presets when no field is chosen yet). The selected preset is
+  // always among them so the current choice never hides behind the gallery.
+  const compactCoverPresets = (() => {
+    const relevant = coverPresetsForFields(form.fields).slice(0, 8);
+    if (relevant.some((preset) => preset.key === effectiveCoverKey)) {
+      return relevant;
+    }
+    const selectedPreset = COVER_PRESETS.find((preset) => preset.key === effectiveCoverKey);
+    return selectedPreset ? [selectedPreset, ...relevant.slice(0, 7)] : relevant;
+  })();
 
   const isDean = user?.role === 'dean';
 
@@ -681,47 +694,61 @@ export function OpportunityFormPage() {
                 <p className="text-[11px] font-semibold text-slate-500 mb-2">
                   {AR.opportunities.form.coverHint}
                 </p>
-                <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2">
-                  {(showAllCovers ? COVER_PRESETS : coverPresetsForFields(form.fields)).map(
-                    (preset) => {
-                      const selected = effectiveCoverKey === preset.key;
-                      return (
-                        <button
-                          key={preset.key}
-                          type="button"
-                          disabled={formDisabled}
-                          onClick={() => updateField('coverPreset', preset.key)}
-                          aria-pressed={selected}
-                          className={`relative rounded-2xl overflow-hidden border-2 transition ${
-                            selected
-                              ? 'border-mnu-gold ring-2 ring-mnu-gold/40'
-                              : 'border-transparent opacity-80 hover:opacity-100'
-                          }`}
-                        >
-                          <img
-                            src={coverUrlForKey(preset.key)}
-                            alt=""
-                            className="w-full h-20 object-cover"
-                            loading="lazy"
-                          />
-                          {selected && (
-                            <span className="absolute top-1.5 inset-inline-start-1.5 px-2 py-0.5 rounded-full bg-mnu-gold text-[#231a00] text-[10px] font-black">
-                              ✓
-                            </span>
-                          )}
-                        </button>
-                      );
-                    }
-                  )}
+                <div
+                  data-testid="cover-selected-preview"
+                  className="relative rounded-2xl overflow-hidden border-2 border-mnu-gold ring-2 ring-mnu-gold/40 max-w-md mb-3"
+                >
+                  <img
+                    src={coverUrlForKey(effectiveCoverKey)}
+                    alt=""
+                    className="w-full h-44 object-cover"
+                  />
+                  <span className="absolute top-2 inset-inline-start-2 px-2 py-0.5 rounded-full bg-mnu-gold text-[#231a00] text-[10px] font-black">
+                    ✓
+                  </span>
+                </div>
+                <div
+                  data-testid="cover-compact-grid"
+                  className="grid grid-cols-4 md:grid-cols-8 gap-2 max-w-2xl"
+                >
+                  {compactCoverPresets.map((preset) => {
+                    const selected = effectiveCoverKey === preset.key;
+                    return (
+                      <button
+                        key={preset.key}
+                        type="button"
+                        disabled={formDisabled}
+                        onClick={() => updateField('coverPreset', preset.key)}
+                        aria-pressed={selected}
+                        className={`relative rounded-2xl overflow-hidden border-2 transition ${
+                          selected
+                            ? 'border-mnu-gold ring-2 ring-mnu-gold/40'
+                            : 'border-transparent opacity-80 hover:opacity-100'
+                        }`}
+                      >
+                        <img
+                          src={coverUrlForKey(preset.key)}
+                          alt=""
+                          className="w-full h-16 object-cover"
+                          loading="lazy"
+                        />
+                        {selected && (
+                          <span className="absolute top-1.5 inset-inline-start-1.5 px-2 py-0.5 rounded-full bg-mnu-gold text-[#231a00] text-[10px] font-black">
+                            ✓
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
                 <button
                   type="button"
-                  onClick={() => setShowAllCovers((value) => !value)}
-                  className="mt-2 text-[11px] font-bold text-mnu-600 hover:text-mnu-700"
+                  disabled={formDisabled}
+                  onClick={() => setCoverGalleryOpen(true)}
+                  className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-[11px] font-bold hover:border-mnu-300 hover:text-mnu-600 transition disabled:opacity-60"
                 >
-                  {showAllCovers
-                    ? AR.opportunities.form.coverShowRelevant
-                    : AR.opportunities.form.coverShowAll}
+                  <Images className="w-4 h-4" />
+                  <span>{AR.opportunities.form.coverShowMore}</span>
                 </button>
 
                 <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50/60 p-3">
@@ -1011,6 +1038,55 @@ export function OpportunityFormPage() {
           </form>
         </section>
       </main>
+
+      <ModalFrame
+        isOpen={coverGalleryOpen}
+        onClose={() => setCoverGalleryOpen(false)}
+        title={AR.opportunities.form.coverGalleryTitle}
+        maxWidthClass="max-w-3xl"
+        icon={
+          <div className="w-11 h-11 rounded-2xl bg-[#c9a227]/15 text-[#b28e1f] flex items-center justify-center shrink-0">
+            <Images className="w-6 h-6" />
+          </div>
+        }
+      >
+        <div className="max-h-[62vh] overflow-y-auto">
+          <div data-testid="cover-gallery-grid" className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+            {COVER_PRESETS.map((preset) => {
+              const selected = effectiveCoverKey === preset.key;
+              return (
+                <button
+                  key={preset.key}
+                  type="button"
+                  disabled={formDisabled}
+                  onClick={() => {
+                    updateField('coverPreset', preset.key);
+                    setCoverGalleryOpen(false);
+                  }}
+                  aria-pressed={selected}
+                  className={`relative rounded-2xl overflow-hidden border-2 transition ${
+                    selected
+                      ? 'border-mnu-gold ring-2 ring-mnu-gold/40'
+                      : 'border-transparent opacity-80 hover:opacity-100'
+                  }`}
+                >
+                  <img
+                    src={coverUrlForKey(preset.key)}
+                    alt=""
+                    className="w-full h-20 object-cover"
+                    loading="lazy"
+                  />
+                  {selected && (
+                    <span className="absolute top-1.5 inset-inline-start-1.5 px-2 py-0.5 rounded-full bg-mnu-gold text-[#231a00] text-[10px] font-black">
+                      ✓
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </ModalFrame>
     </div>
   );
 }

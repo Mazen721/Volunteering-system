@@ -877,8 +877,8 @@ export const AR = {
       fieldsLabel: 'مجالات الاهتمام',
       coverLabel: 'صورة الغلاف',
       coverHint: 'اختر صورة من صور التصنيف الجاهزة — هتظهر للطلاب في الصفحة الرئيسية وكروت الفرص',
-      coverShowAll: 'عرض كل الصور',
-      coverShowRelevant: 'عرض صور مجالات الفرصة فقط',
+      coverShowMore: 'عرض المزيد',
+      coverGalleryTitle: 'اختر صورة الغلاف',
       coverUploadLabel: 'أو ارفع صورة من عندك',
       coverUploadHint:
         'صورة من جهازك هتتظبط تلقائياً لحجم مناسب — ولو رفعت صورة هتظهر بدل الصورة الجاهزة',
