@@ -10,6 +10,9 @@
  *  2. strict + noImplicitAny enabled in both tsconfig files.
  *  3. Root typecheck script covers server + client; each package's
  *     typecheck script runs `tsc --noEmit`.
+ *  4. The server test script runs through tsx (`node --import tsx --test`)
+ *     and the client entry HTML boots from /src/main.tsx (the client suite's
+ *     fourth assertion, which the server twin never had).
  *
  * Run: npm run check:toolchain (root, server, or client package).
  */
@@ -71,6 +74,15 @@ for (const packageName of ['server', 'client']) {
   if (!/tsc --noEmit/.test(packageJson.scripts?.typecheck ?? '')) {
     failures.push(`${packageName} typecheck script does not run tsc --noEmit`);
   }
+}
+
+const serverPackage = await readJsonFile(path.join(REPO_ROOT, 'server', 'package.json'));
+if (!/node --import tsx --test/.test(serverPackage.scripts?.test ?? '')) {
+  failures.push('server test script does not run through tsx');
+}
+const indexHtml = await fs.readFile(path.join(REPO_ROOT, 'client', 'index.html'), 'utf8');
+if (!indexHtml.includes('/src/main.tsx')) {
+  failures.push('client index.html does not boot from /src/main.tsx');
 }
 
 if (failures.length > 0) {
