@@ -109,5 +109,9 @@ applicationSchema.index({ opportunity: 1, volunteer: 1 }, { unique: true });
 applicationSchema.index({ opportunity: 1, status: 1, category: 1, appliedAt: 1 });
 applicationSchema.index({ faculty: 1, status: 1 });
 applicationSchema.index({ volunteer: 1, status: 1 });
+// Serves every per-student lookup sorted by application time: /stats/me,
+// «طلباتي», the board's applied-IDs distinct, and recommendation history —
+// without this compound those hot paths collection-scan the whole table.
+applicationSchema.index({ user: 1, appliedAt: -1 });
 
 export const Application = mongoose.model<ApplicationDoc>('Application', applicationSchema);

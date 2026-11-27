@@ -273,5 +273,13 @@ const opportunitySchema = new mongoose.Schema<OpportunityDoc>(
 
 opportunitySchema.index({ status: 1, faculty: 1, startAt: 1 });
 opportunitySchema.index({ createdBy: 1, status: 1 });
+// Action-items scan published opportunities by endAt (ended backlog and the
+// not-yet-ended pending candidates) and sort on it.
+opportunitySchema.index({ status: 1, endAt: -1 });
+// The board's interest filter (?field=) matches inside the fields array.
+opportunitySchema.index({ fields: 1 });
+// "Opportunities where I am the attendance deputy" lookups (sparse: most
+// opportunities never appoint one, so the index stays tiny).
+opportunitySchema.index({ attendanceDeputy: 1 }, { sparse: true });
 
 export const Opportunity = mongoose.model<OpportunityDoc>('Opportunity', opportunitySchema);
