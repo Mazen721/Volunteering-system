@@ -9,6 +9,7 @@
     "seed": "npm --prefix server run seed",
     "test": "npm --prefix server test && npm --prefix client test",
     "typecheck": "npm --prefix server run typecheck && npm --prefix client run typecheck",
+    "check:toolchain": "node scripts/check-toolchain.mjs",
     "lint": "npm --prefix server run lint && npm --prefix client run lint"
   }
 }

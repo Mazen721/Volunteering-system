@@ -253,49 +253,54 @@ describe('Phase 16 details page — per-category seats', () => {
 });
 
 describe('Phase 16 details page — honest closed reasons', () => {
-  it('says_the_activity_started_instead_of_the_generic_message', async () => {
-    detailsOpportunity = buildOpportunity({ phase: 'in_progress', checkInOpen: true });
+  // Table-driven (test-guard Rule 3): the four closed-reason scenarios share
+  // one shape — a specific honest reason instead of the generic message —
+  // and differ only in setup, expected text, and whether the apply button
+  // must also be gone.
+  const closedReasonCases: {
+    name: string;
+    overrides: Parameters<typeof buildOpportunity>[0];
+    reason: string;
+    expectNoApplyButton: boolean;
+  }[] = [
+    {
+      name: 'says_the_activity_started_instead_of_the_generic_message',
+      overrides: { phase: 'in_progress', checkInOpen: true },
+      reason: DETAILS.unavailableReasons.started,
+      expectNoApplyButton: true,
+    },
+    {
+      name: 'says_the_deadline_passed_when_registration_closed',
+      overrides: { phase: 'registration_closed' },
+      reason: DETAILS.unavailableReasons.deadlinePassed,
+      expectNoApplyButton: false,
+    },
+    {
+      name: 'says_the_opportunity_ended_when_it_is_over',
+      overrides: { phase: 'ended' },
+      reason: DETAILS.unavailableReasons.ended,
+      expectNoApplyButton: false,
+    },
+    {
+      name: 'names_the_faculty_when_the_opportunity_is_restricted_to_another_one',
+      overrides: { faculty: FACULTY_B },
+      reason: DETAILS.unavailableReasons.facultyRestricted.replace('{faculty}', FACULTY_B),
+      expectNoApplyButton: true,
+    },
+  ];
+
+  it.each(closedReasonCases)('$name', async ({ overrides, reason, expectNoApplyButton }) => {
+    detailsOpportunity = buildOpportunity(overrides);
 
     renderAppAt('/opportunities/op-1', buildStudentUser());
 
-    expect(await screen.findByText(DETAILS.unavailableReasons.started)).toBeInTheDocument();
+    expect(await screen.findByText(reason)).toBeInTheDocument();
     expect(screen.queryByText(DETAILS.applyUnavailable)).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: DETAILS.applyButton })
-    ).not.toBeInTheDocument();
-  });
-
-  it('says_the_deadline_passed_when_registration_closed', async () => {
-    detailsOpportunity = buildOpportunity({ phase: 'registration_closed' });
-
-    renderAppAt('/opportunities/op-1', buildStudentUser());
-
-    expect(await screen.findByText(DETAILS.unavailableReasons.deadlinePassed)).toBeInTheDocument();
-    expect(screen.queryByText(DETAILS.applyUnavailable)).not.toBeInTheDocument();
-  });
-
-  it('says_the_opportunity_ended_when_it_is_over', async () => {
-    detailsOpportunity = buildOpportunity({ phase: 'ended' });
-
-    renderAppAt('/opportunities/op-1', buildStudentUser());
-
-    expect(await screen.findByText(DETAILS.unavailableReasons.ended)).toBeInTheDocument();
-    expect(screen.queryByText(DETAILS.applyUnavailable)).not.toBeInTheDocument();
-  });
-
-  it('names_the_faculty_when_the_opportunity_is_restricted_to_another_one', async () => {
-    detailsOpportunity = buildOpportunity({ faculty: FACULTY_B });
-
-    renderAppAt('/opportunities/op-1', buildStudentUser());
-
-    const expected = DETAILS.unavailableReasons.facultyRestricted.replace(
-      '{faculty}',
-      FACULTY_B
-    );
-    expect(await screen.findByText(expected)).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: DETAILS.applyButton })
-    ).not.toBeInTheDocument();
+    if (expectNoApplyButton) {
+      expect(
+        screen.queryByRole('button', { name: DETAILS.applyButton })
+      ).not.toBeInTheDocument();
+    }
   });
 
   it('explains_when_his_category_has_no_quota_and_hides_the_apply_button', async () => {

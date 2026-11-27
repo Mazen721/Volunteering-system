@@ -88,49 +88,61 @@ describe('Phase 8 cover presets', () => {
 const SMALL_JPEG_DATA_URL = `data:image/jpeg;base64,${Buffer.from('fake-jpeg-bytes').toString('base64')}`;
 
 describe('Problem 2 custom cover uploads', () => {
-  it('accepts_a_valid_custom_cover_data_url', () => {
-    const parsed = opportunitySchema.safeParse({
-      ...basePayload,
+  // Table-driven (test-guard Rule 3): each row is one validator case with
+  // its expected outcome; 'value' asserts the parsed cover round-trips,
+  // 'missing' asserts an absent cover parses to undefined, 'accepted'
+  // asserts success only.
+  const customCoverCases: {
+    name: string;
+    customCover?: string;
+    expected: 'value' | 'accepted' | 'missing' | 'rejected';
+  }[] = [
+    {
+      name: 'accepts_a_valid_custom_cover_data_url',
       customCover: SMALL_JPEG_DATA_URL,
-    });
-    assert.equal(parsed.success, true);
-    if (parsed.success) {
-      assert.equal(parsed.data.customCover, SMALL_JPEG_DATA_URL);
-    }
-  });
-
-  it('accepts_an_empty_custom_cover_so_an_upload_can_be_cleared', () => {
-    const parsed = opportunitySchema.safeParse({ ...basePayload, customCover: '' });
-    assert.equal(parsed.success, true);
-  });
-
-  it('accepts_a_missing_custom_cover', () => {
-    const parsed = opportunitySchema.safeParse(basePayload);
-    assert.equal(parsed.success, true);
-    if (parsed.success) {
-      assert.equal(parsed.data.customCover, undefined);
-    }
-  });
-
-  it('rejects_a_non_image_data_url', () => {
-    const parsed = opportunitySchema.safeParse({
-      ...basePayload,
+      expected: 'value',
+    },
+    {
+      name: 'accepts_an_empty_custom_cover_so_an_upload_can_be_cleared',
+      customCover: '',
+      expected: 'accepted',
+    },
+    { name: 'accepts_a_missing_custom_cover', expected: 'missing' },
+    {
+      name: 'rejects_a_non_image_data_url',
       customCover: 'data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==',
-    });
-    assert.equal(parsed.success, false);
-  });
-
-  it('rejects_a_remote_url_instead_of_a_data_url', () => {
-    const parsed = opportunitySchema.safeParse({
-      ...basePayload,
+      expected: 'rejected',
+    },
+    {
+      name: 'rejects_a_remote_url_instead_of_a_data_url',
       customCover: 'https://example.com/cover.jpg',
-    });
-    assert.equal(parsed.success, false);
-  });
+      expected: 'rejected',
+    },
+    {
+      name: 'rejects_an_oversize_custom_cover',
+      customCover: `data:image/jpeg;base64,${'A'.repeat(1_400_000)}`,
+      expected: 'rejected',
+    },
+  ];
 
-  it('rejects_an_oversize_custom_cover', () => {
-    const oversized = `data:image/jpeg;base64,${'A'.repeat(1_400_000)}`;
-    const parsed = opportunitySchema.safeParse({ ...basePayload, customCover: oversized });
-    assert.equal(parsed.success, false);
-  });
+  for (const testCase of customCoverCases) {
+    it(testCase.name, () => {
+      const payload =
+        testCase.customCover === undefined
+          ? basePayload
+          : { ...basePayload, customCover: testCase.customCover };
+      const parsed = opportunitySchema.safeParse(payload);
+      if (testCase.expected === 'rejected') {
+        assert.equal(parsed.success, false);
+        return;
+      }
+      assert.equal(parsed.success, true);
+      if (parsed.success && testCase.expected === 'value') {
+        assert.equal(parsed.data.customCover, testCase.customCover);
+      }
+      if (parsed.success && testCase.expected === 'missing') {
+        assert.equal(parsed.data.customCover, undefined);
+      }
+    });
+  }
 });
