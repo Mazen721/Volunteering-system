@@ -95,58 +95,129 @@ export function computeEligibility(
   };
 }
 
-export function buildVolunteerStatsStages(
-  matchStage: VolunteerFilter,
-  certificateHours: number,
-  activityStatus?: ActivityStatus
-): PipelineStage[] {
-  const stages: PipelineStage[] = [];
-  if (matchStage && Object.keys(matchStage).length > 0) {
-    stages.push({ $match: matchStage });
+export interface VolunteerActivityTotals {
+  totalActivities: number;
+  approvedActivities: number;
+  approvedHours: number;
+  /** Activities whose status equals the requested filter status (0 when none was requested). */
+  matchingStatusCount: number;
+}
+
+export const EMPTY_VOLUNTEER_TOTALS: VolunteerActivityTotals = {
+  totalActivities: 0,
+  approvedActivities: 0,
+  approvedHours: 0,
+  matchingStatusCount: 0,
+};
+
+/**
+ * Group-first per-volunteer activity totals: ONE aggregation over Activities
+ * grouped by volunteer (served by the {status, volunteer} / {volunteer, …}
+ * indexes), instead of the old pipeline that $lookup-joined the entire
+ * Activities collection onto every volunteer and matched/sorted on computed
+ * fields. `activityMatch` narrows which activities count (e.g. a report
+ * period's opportunity set); `activityStatus` only feeds matchingStatusCount,
+ * which callers use to keep volunteers having at least one such activity.
+ */
+export async function aggregateVolunteerActivityTotals(
+  volunteerIds: mongoose.Types.ObjectId[],
+  options: {
+    activityMatch?: Record<string, unknown>;
+    activityStatus?: ActivityStatus;
+  } = {}
+): Promise<Map<string, VolunteerActivityTotals>> {
+  const totals = new Map<string, VolunteerActivityTotals>();
+  if (volunteerIds.length === 0) {
+    return totals;
   }
 
-  stages.push({
-    $lookup: {
-      from: 'activities',
-      localField: '_id',
-      foreignField: 'volunteer',
-      as: 'activities',
-    },
-  });
-
-  if (activityStatus) {
-    stages.push({ $match: { 'activities.status': activityStatus } });
-  }
-
-  stages.push(
+  const rows = await Activity.aggregate<{
+    _id: mongoose.Types.ObjectId;
+    totalActivities: number;
+    approvedActivities: number;
+    approvedHours: number;
+    matchingStatusCount: number;
+  }>([
+    { $match: { volunteer: { $in: volunteerIds }, ...(options.activityMatch ?? {}) } },
     {
-      $addFields: {
-        totalActivities: { $size: '$activities' },
-        approvedActivitiesList: {
-          $filter: {
-            input: '$activities',
-            as: 'act',
-            cond: { $eq: ['$$act.status', 'approved'] },
+      $group: {
+        _id: '$volunteer',
+        totalActivities: { $sum: 1 },
+        approvedActivities: {
+          $sum: { $cond: [{ $eq: ['$status', 'approved'] }, 1, 0] },
+        },
+        approvedHours: {
+          $sum: { $cond: [{ $eq: ['$status', 'approved'] }, '$hours', 0] },
+        },
+        matchingStatusCount: {
+          $sum: {
+            $cond: [{ $eq: ['$status', options.activityStatus ?? '__no_status__'] }, 1, 0],
           },
         },
       },
     },
-    {
-      $addFields: {
-        approvedActivities: { $size: '$approvedActivitiesList' },
-        approvedHours: { $sum: '$approvedActivitiesList.hours' },
-      },
-    },
-    {
-      $addFields: {
-        remainingHours: { $max: [0, { $subtract: [certificateHours, '$approvedHours'] }] },
-        eligible: { $gte: ['$approvedHours', certificateHours] },
-      },
-    },
-    { $project: { activities: 0, approvedActivitiesList: 0, __v: 0 } }
+  ]);
+
+  for (const row of rows) {
+    totals.set(row._id.toString(), {
+      totalActivities: row.totalActivities,
+      approvedActivities: row.approvedActivities,
+      approvedHours: row.approvedHours,
+      matchingStatusCount: row.matchingStatusCount,
+    });
+  }
+  return totals;
+}
+
+/** Assembles one stats row from a volunteer document and its activity totals. */
+export function toVolunteerStatsRow(
+  volunteer: VolunteerLean & { __v?: number },
+  totals: VolunteerActivityTotals,
+  certificateHours: number
+): VolunteerStatsRow {
+  const { __v: _versionKey, ...volunteerFields } = volunteer;
+  void _versionKey;
+  const { remainingHours, eligible } = computeEligibility(totals.approvedHours, certificateHours);
+  return {
+    ...volunteerFields,
+    totalActivities: totals.totalActivities,
+    approvedActivities: totals.approvedActivities,
+    approvedHours: totals.approvedHours,
+    remainingHours,
+    eligible,
+  };
+}
+
+/**
+ * Stats rows for every volunteer matching `matchStage`, computed group-first
+ * (see aggregateVolunteerActivityTotals). Output is identical to the retired
+ * $lookup pipeline: volunteers with no activities appear with zeroed totals,
+ * and when `activityStatus` is given only volunteers having at least one
+ * activity in that status are kept (their totals still count ALL statuses).
+ */
+export async function computeVolunteerStatsRows(
+  matchStage: VolunteerFilter,
+  certificateHours: number,
+  activityStatus?: ActivityStatus
+): Promise<VolunteerStatsRow[]> {
+  const volunteers = await Volunteer.find(matchStage).lean<VolunteerLean[]>();
+  if (volunteers.length === 0) {
+    return [];
+  }
+  const totals = await aggregateVolunteerActivityTotals(
+    volunteers.map((volunteer) => volunteer._id),
+    { activityStatus }
   );
 
-  return stages;
+  const rows: VolunteerStatsRow[] = [];
+  for (const volunteer of volunteers) {
+    const volunteerTotals = totals.get(volunteer._id.toString()) ?? EMPTY_VOLUNTEER_TOTALS;
+    if (activityStatus && volunteerTotals.matchingStatusCount === 0) {
+      continue;
+    }
+    rows.push(toVolunteerStatsRow(volunteer, volunteerTotals, certificateHours));
+  }
+  return rows;
 }
 
 interface ActivityByVolunteerRow {
@@ -195,25 +266,29 @@ async function aggregateGroupedStats(
   // per-volunteer totals up to faculty/category in memory through a
   // volunteer -> group map. Results are identical to the previous
   // join-then-group pipeline: activities whose volunteer is out of scope
-  // (or deleted) are excluded, exactly as $unwind dropped them.
-  const [volunteers, activityRows] = await Promise.all([
-    Volunteer.find(volunteerFilter)
-      .select(groupField)
-      .lean<{ _id: mongoose.Types.ObjectId; faculty?: string; category?: string }[]>(),
-    Activity.aggregate<ActivityByVolunteerRow>([
-      {
-        $group: {
-          _id: '$volunteer',
-          totalActivities: { $sum: 1 },
-          approvedActivities: {
-            $sum: { $cond: [{ $eq: ['$status', 'approved'] }, 1, 0] },
-          },
-          approvedHours: {
-            $sum: { $cond: [{ $eq: ['$status', 'approved'] }, '$hours', 0] },
-          },
+  // (or deleted) are excluded, exactly as $unwind dropped them. When the
+  // caller is faculty-scoped the aggregation is $matched to that faculty's
+  // volunteers up front instead of grouping the whole university and
+  // discarding rows in JS.
+  const volunteers = await Volunteer.find(volunteerFilter)
+    .select(groupField)
+    .lean<{ _id: mongoose.Types.ObjectId; faculty?: string; category?: string }[]>();
+  const activityRows = await Activity.aggregate<ActivityByVolunteerRow>([
+    ...(scope.faculty
+      ? [{ $match: { volunteer: { $in: volunteers.map((volunteer) => volunteer._id) } } }]
+      : []),
+    {
+      $group: {
+        _id: '$volunteer',
+        totalActivities: { $sum: 1 },
+        approvedActivities: {
+          $sum: { $cond: [{ $eq: ['$status', 'approved'] }, 1, 0] },
+        },
+        approvedHours: {
+          $sum: { $cond: [{ $eq: ['$status', 'approved'] }, '$hours', 0] },
         },
       },
-    ]),
+    },
   ]);
 
   const groupByVolunteerId = new Map<string, string>();
@@ -379,9 +454,23 @@ async function fetchZeroHourVolunteers(
   // Volunteers with no approved activity, without a $lookup subquery per
   // volunteer (that cost ~380ms at 5k volunteers): collect the ids of
   // volunteers who DO have an approved activity in one indexed group pass,
-  // then exclude them. Same set, same sort, same limit, same fields.
+  // then exclude them. Same set, same sort, same limit, same fields. When
+  // the caller is faculty-scoped, the group pass is restricted to that
+  // faculty's volunteers instead of grouping the whole university.
+  let scopedVolunteerIds: mongoose.Types.ObjectId[] | null = null;
+  if (volunteerFilter.faculty) {
+    const scopedVolunteers = await Volunteer.find({ faculty: volunteerFilter.faculty })
+      .select('_id')
+      .lean<{ _id: mongoose.Types.ObjectId }[]>();
+    scopedVolunteerIds = scopedVolunteers.map((volunteer) => volunteer._id);
+  }
   const activeRows = await Activity.aggregate<{ _id: mongoose.Types.ObjectId }>([
-    { $match: { status: 'approved' } },
+    {
+      $match: {
+        status: 'approved',
+        ...(scopedVolunteerIds ? { volunteer: { $in: scopedVolunteerIds } } : {}),
+      },
+    },
     { $group: { _id: '$volunteer' } },
   ]);
   const activeIds = activeRows.map((row) => row._id);
@@ -524,15 +613,22 @@ async function aggregateActiveVolunteersByFaculty(
   // Distinct volunteers with at least one approved activity, counted per
   // faculty — computed without joining every approved activity to its
   // volunteer document: group approved activities by volunteer in MongoDB,
-  // then map each volunteer to his faculty in memory.
-  const [volunteers, activeRows] = await Promise.all([
-    Volunteer.find(volunteerFilter)
-      .select('faculty')
-      .lean<{ _id: mongoose.Types.ObjectId; faculty?: string }[]>(),
-    Activity.aggregate<{ _id: mongoose.Types.ObjectId }>([
-      { $match: { status: 'approved' } },
-      { $group: { _id: '$volunteer' } },
-    ]),
+  // then map each volunteer to his faculty in memory. A faculty scope is
+  // pushed into the aggregation's $match (the scope's volunteer ids) rather
+  // than grouping every approved activity in the university.
+  const volunteers = await Volunteer.find(volunteerFilter)
+    .select('faculty')
+    .lean<{ _id: mongoose.Types.ObjectId; faculty?: string }[]>();
+  const activeRows = await Activity.aggregate<{ _id: mongoose.Types.ObjectId }>([
+    {
+      $match: {
+        status: 'approved',
+        ...(scope.faculty
+          ? { volunteer: { $in: volunteers.map((volunteer) => volunteer._id) } }
+          : {}),
+      },
+    },
+    { $group: { _id: '$volunteer' } },
   ]);
 
   const facultyByVolunteerId = new Map<string, string>();
@@ -663,11 +759,14 @@ async function computeLeaderboard(
     ...(scope.faculty ? { faculty: scope.faculty } : {}),
   };
 
-  const rows = await Volunteer.aggregate<VolunteerStatsRow>([
-    ...buildVolunteerStatsStages(matchStage, certificateHours),
-    { $sort: { approvedHours: -1, approvedActivities: -1, volunteerId: 1 } },
-    { $limit: parsedLimit },
-  ]);
+  const rows = (await computeVolunteerStatsRows(matchStage, certificateHours))
+    .sort(
+      (left, right) =>
+        right.approvedHours - left.approvedHours ||
+        right.approvedActivities - left.approvedActivities ||
+        left.volunteerId.localeCompare(right.volunteerId)
+    )
+    .slice(0, parsedLimit);
 
   const leaderboard = rows.map((row) => ({
     ...row,
@@ -834,18 +933,25 @@ export async function aggregateApplicationFunnelCounts(
 export async function aggregateCompletedNoShowCount(
   applicationFilter: Record<string, unknown>
 ): Promise<number> {
+  // The old pipeline $lookup+$unwind-ed every accepted-unattended
+  // application just to test its opportunity's status. Fetch the completed
+  // opportunity ids once (served by the status index) and match on them
+  // directly — same count, no per-application join.
+  const completedOpportunities = await Opportunity.find({ status: 'completed' })
+    .select('_id')
+    .lean<{ _id: mongoose.Types.ObjectId }[]>();
+  if (completedOpportunities.length === 0) {
+    return 0;
+  }
   const rows = await Application.aggregate<{ _id: null; noShow: number }>([
-    { $match: { ...applicationFilter, status: 'accepted', attended: false } },
     {
-      $lookup: {
-        from: 'opportunities',
-        localField: 'opportunity',
-        foreignField: '_id',
-        as: 'opportunityDoc',
+      $match: {
+        ...applicationFilter,
+        status: 'accepted',
+        attended: false,
+        opportunity: { $in: completedOpportunities.map((opportunity) => opportunity._id) },
       },
     },
-    { $unwind: '$opportunityDoc' },
-    { $match: { 'opportunityDoc.status': 'completed' } },
     { $group: { _id: null, noShow: { $sum: 1 } } },
   ]);
   return rows[0]?.noShow ?? 0;
@@ -1080,12 +1186,25 @@ export async function getMonthlyHoursStats(scope: ScopeFilter = {}): Promise<Mon
 
 async function computeMonthlyHoursStats(scope: ScopeFilter = {}): Promise<MonthlyHoursResponse> {
   const activityScopeFilter = await scopeActivities(scope);
+  // Only the last 12 months are ever returned (rows.slice(-12) below), so
+  // bound the grouping to the last 13 Cairo months instead of every month
+  // since the first activity — the extra month keeps the slice exact.
+  const { year, month } = getCairoDateTimeParts(new Date());
+  const windowTotalMonths = year * 12 + (month - 1) - 12;
+  const windowStartUtc = cairoLocalToUtc({
+    year: Math.floor(windowTotalMonths / 12),
+    month: (windowTotalMonths % 12) + 1,
+    day: 1,
+    hour: 0,
+    minute: 0,
+    second: 0,
+  });
   const rows = await Activity.aggregate<{
     _id: string;
     approvedHours: number;
     approvedActivities: number;
   }>([
-    { $match: { status: 'approved', ...activityScopeFilter } },
+    { $match: { status: 'approved', date: { $gte: windowStartUtc }, ...activityScopeFilter } },
     {
       $group: {
         _id: {
@@ -1160,6 +1279,9 @@ interface PendingCountRow {
  * published opportunities with pending applications whose start is imminent
  * (registration closed, already running, or starting within 72 hours).
  */
+/** The dashboard shows 5 rows per block; the server caps well above that. */
+export const ACTION_ITEMS_CAP = 50;
+
 export async function getActionItems(user: PublicUser): Promise<ActionItemsResponse> {
   const now = new Date();
   const scope = buildManageScopeFilter(user);
@@ -1170,6 +1292,7 @@ export async function getActionItems(user: PublicUser): Promise<ActionItemsRespo
     endAt: { $lt: now },
   })
     .sort({ endAt: -1 })
+    .limit(ACTION_ITEMS_CAP)
     .lean<OpportunityLean[]>();
 
   const countRows =
@@ -1208,10 +1331,30 @@ export async function getActionItems(user: PublicUser): Promise<ActionItemsRespo
     };
   });
 
-  const pendingRows = await Application.aggregate<PendingCountRow>([
-    { $match: { status: 'pending' } },
-    { $group: { _id: '$opportunity', pendingCount: { $sum: 1 } } },
-  ]);
+  // Scope first, aggregate second: resolve the caller's manageable,
+  // published, not-yet-ended opportunities and group pending applications
+  // for those only — the old order grouped EVERY pending application in
+  // the university and discarded other faculties' rows afterwards.
+  const scopedOpenOpportunities = await Opportunity.find({
+    ...scope,
+    status: 'published',
+    endAt: { $gte: now },
+  })
+    .select('_id')
+    .lean<{ _id: mongoose.Types.ObjectId }[]>();
+
+  const pendingRows =
+    scopedOpenOpportunities.length > 0
+      ? await Application.aggregate<PendingCountRow>([
+          {
+            $match: {
+              status: 'pending',
+              opportunity: { $in: scopedOpenOpportunities.map((opportunity) => opportunity._id) },
+            },
+          },
+          { $group: { _id: '$opportunity', pendingCount: { $sum: 1 } } },
+        ])
+      : [];
   const pendingByOpportunity = new Map(
     pendingRows.map((row) => [row._id.toString(), row.pendingCount] as const)
   );
@@ -1219,9 +1362,6 @@ export async function getActionItems(user: PublicUser): Promise<ActionItemsRespo
   const pendingCandidates =
     pendingRows.length > 0
       ? await Opportunity.find({
-          ...scope,
-          status: 'published',
-          endAt: { $gte: now },
           _id: { $in: pendingRows.map((row) => row._id) },
         })
           .sort({ startAt: 1 })
@@ -1239,6 +1379,7 @@ export async function getActionItems(user: PublicUser): Promise<ActionItemsRespo
         phase === 'in_progress' ||
         opportunity.startAt.getTime() - now.getTime() <= PENDING_URGENT_WINDOW_MS
     )
+    .slice(0, ACTION_ITEMS_CAP)
     .map(({ opportunity, phase }) => ({
       opportunityId: opportunity._id.toString(),
       title: opportunity.title,

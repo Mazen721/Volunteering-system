@@ -17,7 +17,7 @@ import {
   getCertificateHours,
 } from '../utils/volunteerLookup.js';
 import type { VolunteerStatsRow } from './stats.service.js';
-import { buildVolunteerStatsStages } from './stats.service.js';
+import { computeVolunteerStatsRows } from './stats.service.js';
 
 export interface VolunteerListQuery {
   search?: string;
@@ -98,10 +98,10 @@ export async function listAllVolunteersWithStats(
 ): Promise<VolunteerWithLabel[]> {
   const certificateHours = await getCertificateHours();
   const matchFilter: VolunteerFilter = scope.faculty ? { faculty: scope.faculty } : {};
-  const rows = await Volunteer.aggregate<VolunteerStatsRow>([
-    ...buildVolunteerStatsStages(matchFilter, certificateHours),
-    { $sort: { approvedHours: -1, volunteerId: 1 } },
-  ]);
+  const rows = (await computeVolunteerStatsRows(matchFilter, certificateHours)).sort(
+    (left, right) =>
+      right.approvedHours - left.approvedHours || left.volunteerId.localeCompare(right.volunteerId)
+  );
   return attachCategoryLabels(rows);
 }
 
@@ -121,38 +121,29 @@ export async function listVolunteers(
   const certificateHours = await getCertificateHours();
   const matchStage = buildVolunteerMatchFilter(query, scope);
 
-  const pipeline: PipelineStage[] = [
-    ...buildVolunteerStatsStages(
-      matchStage,
-      certificateHours,
-      query.activityStatus as ActivityStatus | undefined
-    ),
-  ];
+  // Group-first rows (see computeVolunteerStatsRows): the eligibility
+  // filter, the approved-hours sort, and the page window are applied to the
+  // assembled rows — the same set, order, and total the $facet pipeline
+  // produced, without joining the whole Activities collection per volunteer.
+  let rows = await computeVolunteerStatsRows(
+    matchStage,
+    certificateHours,
+    query.activityStatus as ActivityStatus | undefined
+  );
   if (query.eligibility === 'eligible') {
-    pipeline.push({ $match: { eligible: true } });
+    rows = rows.filter((row) => row.eligible);
   } else if (query.eligibility === 'in_progress') {
-    pipeline.push({ $match: { eligible: false } });
+    rows = rows.filter((row) => !row.eligible);
   }
-
-  pipeline.push(
-    { $sort: { approvedHours: -1, volunteerId: 1 } },
-    {
-      $facet: {
-        items: [{ $skip: (page - 1) * limit }, { $limit: limit }],
-        meta: [{ $count: 'total' }],
-      },
-    }
+  rows.sort(
+    (left, right) =>
+      right.approvedHours - left.approvedHours || left.volunteerId.localeCompare(right.volunteerId)
   );
 
-  interface VolunteerFacetResult {
-    items: VolunteerStatsRow[];
-    meta: { total: number }[];
-  }
-
-  const [aggregated] = await Volunteer.aggregate<VolunteerFacetResult>(pipeline);
-  const total = aggregated.meta[0]?.total || 0;
-  const linkedUsers = await fetchLinkedStudentUserIds(aggregated.items.map((item) => item._id));
-  const volunteers = attachCategoryLabels(aggregated.items).map((volunteer) => ({
+  const total = rows.length;
+  const pageItems = rows.slice((page - 1) * limit, page * limit);
+  const linkedUsers = await fetchLinkedStudentUserIds(pageItems.map((item) => item._id));
+  const volunteers = attachCategoryLabels(pageItems).map((volunteer) => ({
     ...volunteer,
     linkedUserId: linkedUsers.get(volunteer._id.toString()) ?? null,
   }));
@@ -174,9 +165,7 @@ export async function getVolunteerProfile(
   const certificateHours = await getCertificateHours();
 
   const [[aggregated], activities, linkedUsers] = await Promise.all([
-    Volunteer.aggregate<VolunteerStatsRow>(
-      buildVolunteerStatsStages({ _id: volunteerDoc._id }, certificateHours)
-    ),
+    computeVolunteerStatsRows({ _id: volunteerDoc._id }, certificateHours),
     Activity.find({ volunteer: volunteerDoc._id })
       .sort({ date: -1, createdAt: -1 })
       .lean<ActivityLean[]>(),

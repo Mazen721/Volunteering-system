@@ -38,37 +38,57 @@ export async function scopeActivities(scope: ScopeFilter): Promise<Record<string
   return { volunteer: { $in: volunteerIds } };
 }
 
-function buildActivityFilter(
+/**
+ * Splits the list filters into the part that can $match Activities BEFORE
+ * the volunteer join (the activity's own fields, plus volunteer-side
+ * equality filters resolved to volunteer ids through the small indexed
+ * Volunteer collection) and the free-text search, which spans joined
+ * fields and must stay after the $lookup. The old pipeline joined the
+ * whole collection first and matched afterwards, so no Activity index
+ * could serve any list call.
+ */
+async function buildActivityFilter(
   query: ActivityListQuery,
   scope: ScopeFilter = {}
-): Record<string, unknown> {
-  const match: Record<string, unknown> = {};
+): Promise<{ preMatch: Record<string, unknown>; searchMatch: Record<string, unknown> | null }> {
+  const preMatch: Record<string, unknown> = {};
   if (query.status) {
-    match.status = query.status;
+    preMatch.status = query.status;
   }
   if (query.type) {
-    match.type = query.type;
+    preMatch.type = query.type;
   }
+
+  const volunteerFilter: Record<string, unknown> = {};
   if (query.volunteerId) {
-    match['volunteer.volunteerId'] = query.volunteerId;
+    volunteerFilter.volunteerId = query.volunteerId;
   }
   if (query.category) {
-    match['volunteer.category'] = query.category;
+    volunteerFilter.category = query.category;
   }
   const effectiveFaculty = scope.faculty ?? query.faculty;
   if (effectiveFaculty) {
-    match['volunteer.faculty'] = effectiveFaculty;
+    volunteerFilter.faculty = effectiveFaculty;
   }
+  if (Object.keys(volunteerFilter).length > 0) {
+    preMatch.volunteer = {
+      $in: await Volunteer.distinct('_id', volunteerFilter),
+    };
+  }
+
+  let searchMatch: Record<string, unknown> | null = null;
   if (query.search?.trim()) {
     const pattern = new RegExp(escapeRegex(query.search.trim()), 'i');
-    match.$or = [
-      { title: pattern },
-      { supervisor: pattern },
-      { 'volunteer.fullName': pattern },
-      { 'volunteer.volunteerId': pattern },
-    ];
+    searchMatch = {
+      $or: [
+        { title: pattern },
+        { supervisor: pattern },
+        { 'volunteer.fullName': pattern },
+        { 'volunteer.volunteerId': pattern },
+      ],
+    };
   }
-  return match;
+  return { preMatch, searchMatch };
 }
 
 export async function listActivities(
@@ -77,9 +97,13 @@ export async function listActivities(
 ): Promise<ActivityListResult> {
   const page = Math.max(Number(query.page) || 1, 1);
   const limit = Math.min(Math.max(Number(query.limit) || 20, 1), 100);
-  const matchStage = buildActivityFilter(query, scope);
+  const { preMatch, searchMatch } = await buildActivityFilter(query, scope);
 
-  const pipeline: PipelineStage[] = [
+  const pipeline: PipelineStage[] = [];
+  if (Object.keys(preMatch).length > 0) {
+    pipeline.push({ $match: preMatch });
+  }
+  pipeline.push(
     {
       $lookup: {
         from: 'volunteers',
@@ -88,11 +112,10 @@ export async function listActivities(
         as: 'volunteer',
       },
     },
-    { $unwind: '$volunteer' },
-  ];
-
-  if (Object.keys(matchStage).length > 0) {
-    pipeline.push({ $match: matchStage });
+    { $unwind: '$volunteer' }
+  );
+  if (searchMatch) {
+    pipeline.push({ $match: searchMatch });
   }
 
   pipeline.push(

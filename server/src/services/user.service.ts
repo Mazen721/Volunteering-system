@@ -15,6 +15,15 @@ export interface UserListQuery {
   role?: string;
   faculty?: string;
   status?: string;
+  page?: string | number;
+  limit?: string | number;
+}
+
+export interface UserListResult {
+  users: PublicUser[];
+  total: number;
+  page: number;
+  pages: number;
 }
 
 export interface UpdateUserAccountParams {
@@ -52,15 +61,30 @@ function buildUserListFilter(query: UserListQuery): Record<string, unknown> {
 }
 
 /**
- * Lists user accounts filtered by optional role, faculty, and status (admin only).
+ * Lists user accounts filtered by optional role, faculty, and status (admin
+ * only), paginated — the old implementation returned every account ever
+ * created on each page load.
  */
-export async function listUsers(query: UserListQuery = {}): Promise<{ users: PublicUser[] }> {
-  const users = await User.find(buildUserListFilter(query))
-    .select('-passwordHash')
-    .sort({ createdAt: -1 })
-    .lean<UserLean[]>();
+export async function listUsers(query: UserListQuery = {}): Promise<UserListResult> {
+  const page = Math.max(Number(query.page) || 1, 1);
+  const limit = Math.min(Math.max(Number(query.limit) || 200, 1), 500);
+  const filter = buildUserListFilter(query);
+  const [users, total] = await Promise.all([
+    User.find(filter)
+      .select('-passwordHash')
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean<UserLean[]>(),
+    User.countDocuments(filter),
+  ]);
 
-  return { users: users.map(serializeUser) };
+  return {
+    users: users.map(serializeUser),
+    total,
+    page,
+    pages: Math.ceil(total / limit) || 1,
+  };
 }
 
 /**

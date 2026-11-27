@@ -20,6 +20,7 @@ import { Application } from '../models/Application.js';
 import type { OpportunityLean } from '../models/Opportunity.js';
 import { Opportunity } from '../models/Opportunity.js';
 import { User } from '../models/User.js';
+import type { VolunteerLean } from '../models/Volunteer.js';
 import { Volunteer } from '../models/Volunteer.js';
 import { CAIRO_TIME_ZONE, cairoLocalToUtc, getCairoDateTimeParts } from '../utils/cairoTime.js';
 import { getCertificateHours } from '../utils/volunteerLookup.js';
@@ -38,8 +39,10 @@ import type {
   ZeroHourVolunteerRow,
 } from './stats.service.js';
 import {
+  EMPTY_VOLUNTEER_TOTALS,
   aggregateApplicationFunnelCounts,
   aggregateCompletedNoShowCount,
+  aggregateVolunteerActivityTotals,
   formatCairoMonthLabel,
   getCategoryStats,
   getFacultyStats,
@@ -48,6 +51,7 @@ import {
   getOverviewStats,
   getParticipationStats,
   roundMetric,
+  toVolunteerStatsRow,
 } from './stats.service.js';
 
 export interface ReportMeta {
@@ -151,7 +155,10 @@ function percentage(numerator: number, denominator: number): number {
 
 async function fetchScopedOpportunities(scope: ScopeFilter): Promise<OpportunityLean[]> {
   const opportunityFilter = scope.faculty ? { faculty: scope.faculty } : {};
+  // The report never reads covers; projecting out the ~1 MB customCover
+  // data-URLs keeps whole-scope fetches from dragging them into memory.
   return Opportunity.find(opportunityFilter)
+    .select('-customCover')
     .sort({ startAt: -1, createdAt: -1 })
     .lean<OpportunityLean[]>();
 }
@@ -380,6 +387,45 @@ function getCurrentCairoMonthRange(now: Date = new Date()): { startUtc: Date; en
 }
 
 /**
+ * The period leaderboard, group-first: per-volunteer totals over the
+ * period's activities only (one grouped pass over Activities), assembled
+ * onto the scoped volunteers in memory — the same rows the retired
+ * per-volunteer $lookup pipeline produced (approved > 0, top 10 by hours).
+ */
+async function buildRangedLeaderboard(
+  scope: ScopeFilter,
+  opportunityIds: Types.ObjectId[],
+  certificateHours: number
+): Promise<VolunteerStatsRow[]> {
+  const volunteers = await Volunteer.find(scope.faculty ? { faculty: scope.faculty } : {}).lean<
+    VolunteerLean[]
+  >();
+  if (volunteers.length === 0 || opportunityIds.length === 0) {
+    return [];
+  }
+  const totals = await aggregateVolunteerActivityTotals(
+    volunteers.map((volunteer) => volunteer._id),
+    { activityMatch: { opportunity: { $in: opportunityIds } } }
+  );
+  return volunteers
+    .map((volunteer) =>
+      toVolunteerStatsRow(
+        volunteer,
+        totals.get(volunteer._id.toString()) ?? EMPTY_VOLUNTEER_TOTALS,
+        certificateHours
+      )
+    )
+    .filter((row) => row.approvedActivities > 0)
+    .sort(
+      (left, right) =>
+        right.approvedHours - left.approvedHours ||
+        right.approvedActivities - left.approvedActivities ||
+        left.volunteerId.localeCompare(right.volunteerId)
+    )
+    .slice(0, 10);
+}
+
+/**
  * Period variant of the report. ONE definition drives every section: the
  * report covers the opportunities whose startAt falls inside the period
  * (within the caller's faculty scope), and everything else — hours,
@@ -416,6 +462,7 @@ async function buildRangedReport(
     ...(scope.faculty ? { faculty: scope.faculty } : {}),
     startAt: startAtFilter,
   })
+    .select('-customCover')
     .sort({ startAt: -1, createdAt: -1 })
     .lean<OpportunityLean[]>();
   const opportunityIds = opportunities.map((opportunity) => opportunity._id);
@@ -486,54 +533,7 @@ async function buildRangedReport(
       },
       { $sort: { _id: 1 } },
     ]),
-    Volunteer.aggregate<VolunteerStatsRow>([
-      ...(scope.faculty ? [{ $match: { faculty: scope.faculty } }] : []),
-      {
-        $lookup: {
-          from: 'activities',
-          let: { periodVolunteerId: '$_id' },
-          pipeline: [
-            {
-              $match: {
-                $expr: { $eq: ['$volunteer', '$$periodVolunteerId'] },
-                opportunity: { $in: opportunityIds },
-              },
-            },
-          ],
-          as: 'activities',
-        },
-      },
-      {
-        $addFields: {
-          totalActivities: { $size: '$activities' },
-          approvedActivitiesList: {
-            $filter: {
-              input: '$activities',
-              as: 'act',
-              cond: { $eq: ['$$act.status', 'approved'] },
-            },
-          },
-        },
-      },
-      {
-        $addFields: {
-          approvedActivities: { $size: '$approvedActivitiesList' },
-          approvedHours: { $sum: '$approvedActivitiesList.hours' },
-        },
-      },
-      {
-        $addFields: {
-          remainingHours: {
-            $max: [0, { $subtract: [certificateHours, '$approvedHours'] }],
-          },
-          eligible: { $gte: ['$approvedHours', certificateHours] },
-        },
-      },
-      { $project: { activities: 0, approvedActivitiesList: 0, __v: 0 } },
-      { $match: { approvedActivities: { $gt: 0 } } },
-      { $sort: { approvedHours: -1, approvedActivities: -1, volunteerId: 1 } },
-      { $limit: 10 },
-    ]),
+    buildRangedLeaderboard(scope, opportunityIds, certificateHours),
   ]);
 
   // Period population: volunteers with at least one activity credited by a
@@ -588,18 +588,19 @@ async function buildRangedReport(
     }
   }
 
-  const approvedVolunteerIds = new Set(
-    periodMetrics
-      .filter((row) => row.approvedActivities > 0)
-      .map((row) => row.volunteerId.toString())
-  );
-  const zeroHourCandidates = await Volunteer.find(scope.faculty ? { faculty: scope.faculty } : {})
+  const approvedVolunteerIds = periodMetrics
+    .filter((row) => row.approvedActivities > 0)
+    .map((row) => row.volunteerId);
+  // The exclusion and the 20-row cut happen in MongoDB now — the old code
+  // fetched every scoped volunteer to keep 20.
+  const zeroHourVolunteers = await Volunteer.find({
+    ...(scope.faculty ? { faculty: scope.faculty } : {}),
+    _id: { $nin: approvedVolunteerIds },
+  })
     .sort({ createdAt: -1, volunteerId: 1 })
+    .limit(20)
     .select({ volunteerId: 1, fullName: 1, category: 1, faculty: 1 })
     .lean<ZeroHourVolunteerRow[]>();
-  const zeroHourVolunteers = zeroHourCandidates
-    .filter((volunteer) => !approvedVolunteerIds.has(volunteer._id.toString()))
-    .slice(0, 20);
 
   const { startUtc, endUtc } = getCurrentCairoMonthRange();
   const eventsThisMonth = opportunities.filter(

@@ -128,11 +128,31 @@ async function recordStudentAttendance(application: ApplicationLean): Promise<Ap
   return current;
 }
 
-async function upsertApprovedActivityForAttendee(
+/**
+ * A bulkWrite failure counts as the known idempotency race only when every
+ * failed operation failed on the duplicate-key index (a concurrent
+ * completion inserted the same activity first); anything else is real.
+ */
+function isOnlyDuplicateKeyBulkError(error: unknown): boolean {
+  if (isDuplicateKeyError(error)) {
+    return true;
+  }
+  if (typeof error !== 'object' || error === null || !('writeErrors' in error)) {
+    return false;
+  }
+  const writeErrors = (error as { writeErrors?: { code?: unknown }[] }).writeErrors;
+  return (
+    Array.isArray(writeErrors) &&
+    writeErrors.length > 0 &&
+    writeErrors.every((writeError) => writeError.code === 11000)
+  );
+}
+
+function buildApprovedActivityInsert(
   opportunity: OpportunityLean,
   application: ApplicationLean
-): Promise<void> {
-  const activityDefaults = {
+): Record<string, unknown> {
+  return {
     volunteer: application.volunteer,
     title: opportunity.title,
     type: opportunity.activityType,
@@ -143,19 +163,6 @@ async function upsertApprovedActivityForAttendee(
     opportunity: opportunity._id,
     application: application._id,
   };
-
-  try {
-    await Activity.findOneAndUpdate(
-      { application: application._id },
-      { $setOnInsert: activityDefaults },
-      { upsert: true, returnDocument: 'after' }
-    );
-  } catch (error) {
-    // Concurrent completion calls can race on the partial unique index; ignore if already inserted.
-    if (!isDuplicateKeyError(error)) {
-      throw error;
-    }
-  }
 }
 
 async function creditCompletedEventApplications(
@@ -163,7 +170,29 @@ async function creditCompletedEventApplications(
   attendedApps: ApplicationLean[],
   noShowApps: ApplicationLean[]
 ): Promise<void> {
-  await Promise.all(attendedApps.map((app) => upsertApprovedActivityForAttendee(opportunity, app)));
+  if (attendedApps.length > 0) {
+    // One bulkWrite for every attendee instead of N parallel upserts (300
+    // attendees used to mean ~300 concurrent round-trips against the
+    // partial unique index). ordered:false lets the batch finish every
+    // insert; a duplicate key from a concurrent completion is the known
+    // idempotency race and is swallowed exactly as before.
+    try {
+      await Activity.bulkWrite(
+        attendedApps.map((app) => ({
+          updateOne: {
+            filter: { application: app._id },
+            update: { $setOnInsert: buildApprovedActivityInsert(opportunity, app) },
+            upsert: true,
+          },
+        })),
+        { ordered: false }
+      );
+    } catch (error) {
+      if (!isOnlyDuplicateKeyBulkError(error)) {
+        throw error;
+      }
+    }
+  }
 
   if (attendedApps.length > 0) {
     await Application.updateMany(
@@ -312,31 +341,30 @@ export async function getLiveOpportunityState(
   // Per-volunteer absence totals across every opportunity that already
   // ended: accepted but never attended. Attended applications never count,
   // and neither do absences on opportunities that have not taken place yet.
+  // The ended-opportunity ids are resolved first (status/endAt index) so
+  // the aggregation matches on them directly — no $lookup+$unwind per
+  // application just to test endAt.
   const absenceByVolunteer = new Map<string, number>();
   if (accepted.length > 0) {
     const volunteerIds = [...new Set(accepted.map((attendee) => attendee.volunteer._id))];
-    const rows = await Application.aggregate<{ _id: mongoose.Types.ObjectId; count: number }>([
-      {
-        $match: {
-          volunteer: { $in: volunteerIds },
-          status: 'accepted',
-          attended: false,
+    const endedOpportunities = await Opportunity.find({ endAt: { $lt: new Date() } })
+      .select('_id')
+      .lean<{ _id: mongoose.Types.ObjectId }[]>();
+    if (endedOpportunities.length > 0) {
+      const rows = await Application.aggregate<{ _id: mongoose.Types.ObjectId; count: number }>([
+        {
+          $match: {
+            volunteer: { $in: volunteerIds },
+            status: 'accepted',
+            attended: false,
+            opportunity: { $in: endedOpportunities.map((opportunity) => opportunity._id) },
+          },
         },
-      },
-      {
-        $lookup: {
-          from: 'opportunities',
-          localField: 'opportunity',
-          foreignField: '_id',
-          as: 'absenceOpportunity',
-        },
-      },
-      { $unwind: '$absenceOpportunity' },
-      { $match: { 'absenceOpportunity.endAt': { $lt: new Date() } } },
-      { $group: { _id: '$volunteer', count: { $sum: 1 } } },
-    ]);
-    for (const row of rows) {
-      absenceByVolunteer.set(row._id.toString(), row.count);
+        { $group: { _id: '$volunteer', count: { $sum: 1 } } },
+      ]);
+      for (const row of rows) {
+        absenceByVolunteer.set(row._id.toString(), row.count);
+      }
     }
   }
   const attendees: LiveAttendee[] = accepted.map((attendee) => ({
