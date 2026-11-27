@@ -1,4 +1,4 @@
-import type { PipelineStage, Types } from 'mongoose';
+import type { Types } from 'mongoose';
 import type { ActivityStatus, Faculty, VolunteerCategory } from '../constants/enums.js';
 import { ACTIVITY_STATUSES, CATEGORY_LABELS } from '../constants/enums.js';
 import type { ScopeFilter } from '../middleware/auth.js';

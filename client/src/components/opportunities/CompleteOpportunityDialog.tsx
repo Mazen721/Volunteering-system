@@ -10,14 +10,10 @@ import type {
   LiveOpportunityResponse,
   Opportunity,
 } from '../../types';
+import { byAbsenceCountThenName, byCheckInTime } from '../../utils/attendeeLists';
 import { formatDateTimeAr, formatNumber } from '../../utils/format';
 import { ModalFrame } from '../ModalFrame';
-import {
-  AbsenceBadge,
-  byAbsenceCountThenName,
-  byCheckInTime,
-  CompactVolunteerList,
-} from './CompactVolunteerList';
+import { AbsenceBadge, CompactVolunteerList } from './CompactVolunteerList';
 import { WarnAbsentControl } from './WarnAbsentControl';
 
 interface CompleteOpportunityDialogProps {
