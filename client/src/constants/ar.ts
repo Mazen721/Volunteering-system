@@ -22,6 +22,7 @@ export const AR = {
   notifications: {
     title: 'الإشعارات',
     empty: 'لا توجد إشعارات بعد',
+    loadError: 'تعذر تحميل الإشعارات حالياً',
   },
   roles: {
     admin: 'مسؤول النظام',

@@ -162,6 +162,29 @@ export function coverPresetsForFields(fields: readonly InterestKey[]): CoverPres
   return COVER_PRESETS.filter((preset) => preset.fields.some((field) => fields.includes(field)));
 }
 
+/** How many preset thumbnails the compact form picker shows inline. */
+export const COMPACT_COVER_PRESET_LIMIT = 8;
+
+/**
+ * The compact picker's inline presets: at most COMPACT_COVER_PRESET_LIMIT
+ * field-relevant thumbnails (the first catalogue presets when no field is
+ * chosen yet). The currently selected preset is always among them, so the
+ * active choice never hides behind the «عرض المزيد» gallery.
+ */
+export function selectCompactCoverPresets(
+  fields: readonly InterestKey[],
+  effectiveCoverKey: string
+): CoverPreset[] {
+  const relevant = coverPresetsForFields(fields).slice(0, COMPACT_COVER_PRESET_LIMIT);
+  if (relevant.some((preset) => preset.key === effectiveCoverKey)) {
+    return relevant;
+  }
+  const selectedPreset = COVER_PRESETS.find((preset) => preset.key === effectiveCoverKey);
+  return selectedPreset
+    ? [selectedPreset, ...relevant.slice(0, COMPACT_COVER_PRESET_LIMIT - 1)]
+    : relevant;
+}
+
 /**
  * Resolves the cover image for an opportunity: its uploaded custom photo
  * when present, then its stored preset when valid, otherwise its primary

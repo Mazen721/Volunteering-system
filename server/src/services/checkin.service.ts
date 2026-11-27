@@ -359,6 +359,44 @@ export async function toggleManualCheckIn(
 /**
  * Loads live event attendance counters and accepted attendees for the organizer live screen.
  */
+/**
+ * Per-volunteer absence totals across every opportunity that already
+ * ended: accepted but never attended. Attended applications never count,
+ * and neither do absences on opportunities that have not taken place yet.
+ * The ended-opportunity ids are resolved first (status/endAt index) so
+ * the aggregation matches on them directly — no $lookup+$unwind per
+ * application just to test endAt.
+ */
+async function computeAbsenceCountsByVolunteer(
+  volunteerIds: mongoose.Types.ObjectId[]
+): Promise<Map<string, number>> {
+  const absenceByVolunteer = new Map<string, number>();
+  if (volunteerIds.length === 0) {
+    return absenceByVolunteer;
+  }
+  const endedOpportunities = await Opportunity.find({ endAt: { $lt: new Date() } })
+    .select('_id')
+    .lean<{ _id: mongoose.Types.ObjectId }[]>();
+  if (endedOpportunities.length === 0) {
+    return absenceByVolunteer;
+  }
+  const rows = await Application.aggregate<{ _id: mongoose.Types.ObjectId; count: number }>([
+    {
+      $match: {
+        volunteer: { $in: volunteerIds },
+        status: 'accepted',
+        attended: false,
+        opportunity: { $in: endedOpportunities.map((opportunity) => opportunity._id) },
+      },
+    },
+    { $group: { _id: '$volunteer', count: { $sum: 1 } } },
+  ]);
+  for (const row of rows) {
+    absenceByVolunteer.set(row._id.toString(), row.count);
+  }
+  return absenceByVolunteer;
+}
+
 export async function getLiveOpportunityState(
   opportunityId: string,
   user: PublicUser
@@ -372,35 +410,9 @@ export async function getLiveOpportunityState(
     .populate('volunteer')
     .lean<ApplicationWithVolunteerLean[]>();
 
-  // Per-volunteer absence totals across every opportunity that already
-  // ended: accepted but never attended. Attended applications never count,
-  // and neither do absences on opportunities that have not taken place yet.
-  // The ended-opportunity ids are resolved first (status/endAt index) so
-  // the aggregation matches on them directly — no $lookup+$unwind per
-  // application just to test endAt.
-  const absenceByVolunteer = new Map<string, number>();
-  if (accepted.length > 0) {
-    const volunteerIds = [...new Set(accepted.map((attendee) => attendee.volunteer._id))];
-    const endedOpportunities = await Opportunity.find({ endAt: { $lt: new Date() } })
-      .select('_id')
-      .lean<{ _id: mongoose.Types.ObjectId }[]>();
-    if (endedOpportunities.length > 0) {
-      const rows = await Application.aggregate<{ _id: mongoose.Types.ObjectId; count: number }>([
-        {
-          $match: {
-            volunteer: { $in: volunteerIds },
-            status: 'accepted',
-            attended: false,
-            opportunity: { $in: endedOpportunities.map((opportunity) => opportunity._id) },
-          },
-        },
-        { $group: { _id: '$volunteer', count: { $sum: 1 } } },
-      ]);
-      for (const row of rows) {
-        absenceByVolunteer.set(row._id.toString(), row.count);
-      }
-    }
-  }
+  const absenceByVolunteer = await computeAbsenceCountsByVolunteer([
+    ...new Set(accepted.map((attendee) => attendee.volunteer._id)),
+  ]);
   const attendees: LiveAttendee[] = accepted.map((attendee) => ({
     ...attendee,
     absenceCount: absenceByVolunteer.get(attendee.volunteer._id.toString()) ?? 0,

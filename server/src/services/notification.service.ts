@@ -1,6 +1,9 @@
+import type mongoose from 'mongoose';
 import { Application } from '../models/Application.js';
+import type { ApplicationLean } from '../models/Application.js';
 import { Notification } from '../models/Notification.js';
 import type { NotificationLean } from '../models/Notification.js';
+import type { OpportunityLean } from '../models/Opportunity.js';
 import type { PublicUser } from './auth.service.js';
 import { findManagedOpportunity } from './opportunity.service.js';
 
@@ -38,33 +41,48 @@ export async function markAllNotificationsRead(user: PublicUser): Promise<{ upda
  * deans only their own faculty's opportunities that they created, and
  * out-of-scope targets answer 404. No other application state is notified.
  */
+/** The accepted-but-absent applications whose volunteers get a warning. */
+async function findAbsentApplications(
+  opportunityId: mongoose.Types.ObjectId
+): Promise<ApplicationLean[]> {
+  return Application.find({
+    opportunity: opportunityId,
+    status: 'accepted',
+    attended: false,
+  }).lean<ApplicationLean[]>();
+}
+
+/** Builds the absence-warning notification document for one recipient. */
+function buildAbsenceWarningNotification(
+  opportunity: OpportunityLean,
+  application: ApplicationLean
+): Record<string, unknown> {
+  return {
+    user: application.user,
+    type: 'absence_warning' as const,
+    title: 'إنذار غياب',
+    body:
+      `تم قبولك في فرصة «${opportunity.title}» لكنك لم تحضر ولم تسجّل حضورك فيها. ` +
+      'نرجو الالتزام بالحضور في الفرص التي يتم قبولك فيها، فالغياب المتكرر دون اعتذار قد يؤثر على قبول طلباتك في الفرص القادمة.',
+    link: `/opportunities/${opportunity._id.toString()}`,
+    opportunity: opportunity._id,
+  };
+}
+
 export async function warnAbsentVolunteers(
   opportunityId: string,
   user: PublicUser
 ): Promise<WarnAbsentResult> {
   const opportunity = await findManagedOpportunity(opportunityId, user);
-
-  const absentApplications = await Application.find({
-    opportunity: opportunity._id,
-    status: 'accepted',
-    attended: false,
-  }).lean();
-
+  const absentApplications = await findAbsentApplications(opportunity._id);
   if (absentApplications.length === 0) {
     return { sent: 0 };
   }
 
   await Notification.insertMany(
-    absentApplications.map((application) => ({
-      user: application.user,
-      type: 'absence_warning' as const,
-      title: 'إنذار غياب',
-      body:
-        `تم قبولك في فرصة «${opportunity.title}» لكنك لم تحضر ولم تسجّل حضورك فيها. ` +
-        'نرجو الالتزام بالحضور في الفرص التي يتم قبولك فيها، فالغياب المتكرر دون اعتذار قد يؤثر على قبول طلباتك في الفرص القادمة.',
-      link: `/opportunities/${opportunity._id.toString()}`,
-      opportunity: opportunity._id,
-    }))
+    absentApplications.map((application) =>
+      buildAbsenceWarningNotification(opportunity, application)
+    )
   );
 
   return { sent: absentApplications.length };

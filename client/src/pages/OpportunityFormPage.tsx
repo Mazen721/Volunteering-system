@@ -29,9 +29,9 @@ import type {
 } from '../types';
 import {
   COVER_PRESETS,
-  coverPresetsForFields,
   coverUrlForKey,
   defaultCoverKeyForFields,
+  selectCompactCoverPresets,
 } from '../utils/covers';
 import { downscaleImageFileToDataUrl } from '../utils/imageFile';
 import { toCairoInputDateTime } from '../utils/format';
@@ -274,17 +274,10 @@ export function OpportunityFormPage() {
   const [coverUploadError, setCoverUploadError] = useState('');
   const [coverProcessing, setCoverProcessing] = useState(false);
   const effectiveCoverKey = form.coverPreset || defaultCoverKeyForFields(form.fields);
-  // Compact picker: at most 8 field-relevant thumbnails inline (the first 8
-  // catalogue presets when no field is chosen yet). The selected preset is
-  // always among them so the current choice never hides behind the gallery.
-  const compactCoverPresets = (() => {
-    const relevant = coverPresetsForFields(form.fields).slice(0, 8);
-    if (relevant.some((preset) => preset.key === effectiveCoverKey)) {
-      return relevant;
-    }
-    const selectedPreset = COVER_PRESETS.find((preset) => preset.key === effectiveCoverKey);
-    return selectedPreset ? [selectedPreset, ...relevant.slice(0, 7)] : relevant;
-  })();
+  const compactCoverPresets = useMemo(
+    () => selectCompactCoverPresets(form.fields, effectiveCoverKey),
+    [form.fields, effectiveCoverKey]
+  );
 
   const isDean = user?.role === 'dean';
 
