@@ -105,11 +105,12 @@ async function assertNoDuplicateRegistrationClaim(
 }
 
 function assertAllowedEmailDomain(email: string, allowedEmailDomains: readonly string[]): void {
-  if (allowedEmailDomains.length === 0) {
-    return;
-  }
+  // Fail CLOSED: an empty configured list used to disable the check
+  // entirely (any public email could register). It now falls back to the
+  // university domain, matching resolveAllowedEmailDomains in env config.
+  const effectiveDomains = allowedEmailDomains.length > 0 ? allowedEmailDomains : ['mnu.edu.eg'];
   const domain = email.split('@')[1]?.toLowerCase() ?? '';
-  if (!allowedEmailDomains.includes(domain)) {
+  if (!effectiveDomains.includes(domain)) {
     throw new AppError(400, 'يجب التسجيل باستخدام البريد الإلكتروني التابع للنطاق الجامعي المعتمد');
   }
 }

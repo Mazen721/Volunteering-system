@@ -11,12 +11,18 @@ export interface RateLimiterOverrides {
   loginIp?: Partial<RateLimitWindowConfig>;
   register?: Partial<RateLimitWindowConfig>;
   checkIn?: Partial<RateLimitWindowConfig>;
+  global?: Partial<RateLimitWindowConfig>;
+  excelImport?: Partial<RateLimitWindowConfig>;
+  report?: Partial<RateLimitWindowConfig>;
 }
 
 export interface AppRateLimiters {
   login: RequestHandler;
   register: RequestHandler;
   checkIn: RequestHandler;
+  global: RequestHandler;
+  excelImport: RequestHandler;
+  report: RequestHandler;
 }
 
 const DEFAULT_LOGIN_CONFIG: RateLimitWindowConfig = {
@@ -27,10 +33,14 @@ const DEFAULT_LOGIN_CONFIG: RateLimitWindowConfig = {
 // Coarse per-IP flood cap for the login route. The strict limit is per
 // IP+account (below); this second layer only stops a single source from
 // hammering the endpoint across many accounts, without locking out a whole
-// campus network that legitimately shares one public IP (NAT).
+// campus network that legitimately shares one public IP (NAT). The audit's
+// load test showed 300/15 min is low enough for one campus NAT address to
+// lock out every student behind it during a login rush, so the flood cap
+// is an order of magnitude higher; brute force stays controlled by the
+// per-account limit.
 const DEFAULT_LOGIN_IP_CONFIG: RateLimitWindowConfig = {
   windowMs: 15 * 60 * 1000,
-  limit: 300,
+  limit: 3000,
 };
 
 const DEFAULT_REGISTER_CONFIG: RateLimitWindowConfig = {
@@ -42,6 +52,29 @@ const DEFAULT_CHECKIN_CONFIG: RateLimitWindowConfig = {
   windowMs: 60 * 1000,
   limit: 30,
 };
+
+// Global flood guard for the whole API (W-1). Deliberately generous — a
+// campus NAT address fronts hundreds of students — and tunable through
+// RATE_LIMIT_GLOBAL_MAX so load-test stacks can raise it without a rebuild.
+const DEFAULT_GLOBAL_CONFIG: RateLimitWindowConfig = {
+  windowMs: 15 * 60 * 1000,
+  limit: 3000,
+};
+
+const DEFAULT_EXCEL_IMPORT_CONFIG: RateLimitWindowConfig = {
+  windowMs: 60 * 60 * 1000,
+  limit: 10,
+};
+
+const DEFAULT_REPORT_CONFIG: RateLimitWindowConfig = {
+  windowMs: 15 * 60 * 1000,
+  limit: 120,
+};
+
+function envGlobalLimit(): number | undefined {
+  const raw = Number(process.env.RATE_LIMIT_GLOBAL_MAX);
+  return Number.isInteger(raw) && raw > 0 ? raw : undefined;
+}
 
 function buildRateLimiter(
   defaults: RateLimitWindowConfig,
@@ -116,6 +149,21 @@ export function createAppRateLimiters(overrides: RateLimiterOverrides = {}): App
       overrides.checkIn,
       'تم تجاوز الحد المسموح به لمحاولات تسجيل الحضور، يرجى الانتظار قليلاً ثم المحاولة مرة أخرى',
       checkInUserKey
+    ),
+    global: buildRateLimiter(
+      { ...DEFAULT_GLOBAL_CONFIG, limit: envGlobalLimit() ?? DEFAULT_GLOBAL_CONFIG.limit },
+      overrides.global,
+      'تم تجاوز الحد المسموح به للطلبات، يرجى الانتظار والمحاولة لاحقاً'
+    ),
+    excelImport: buildRateLimiter(
+      DEFAULT_EXCEL_IMPORT_CONFIG,
+      overrides.excelImport,
+      'تم تجاوز الحد المسموح به لعمليات الاستيراد، يرجى الانتظار والمحاولة لاحقاً'
+    ),
+    report: buildRateLimiter(
+      DEFAULT_REPORT_CONFIG,
+      overrides.report,
+      'تم تجاوز الحد المسموح به لطلبات التقارير، يرجى الانتظار والمحاولة لاحقاً'
     ),
   };
 }

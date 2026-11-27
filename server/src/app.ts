@@ -96,6 +96,12 @@ export function createApp({
     })
   );
   app.use('/api', createAuthMiddleware(jwtSecret));
+  // Global flood guard + heavier-endpoint limiters (W-1). Mounted after the
+  // public auth routes and the health/cover endpoints above.
+  app.use('/api', rateLimiters.global);
+  app.use('/api/excel/import', rateLimiters.excelImport);
+  app.use('/api/stats/report', rateLimiters.report);
+
   app.use('/api/auth', createProtectedAuthRouter());
   app.use('/api/users', createUsersRouter());
   app.use('/api/registrations', createRegistrationsRouter());

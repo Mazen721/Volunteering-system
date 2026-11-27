@@ -37,7 +37,7 @@ function extractBearerToken(authorizationHeader: string | undefined): string | n
 
 function verifyAuthSubject(token: string, jwtSecret: string): string | null {
   try {
-    const payload = jwt.verify(token, jwtSecret);
+    const payload = jwt.verify(token, jwtSecret, { algorithms: ['HS256'] });
     if (typeof payload === 'string' || typeof payload.sub !== 'string') {
       return null;
     }

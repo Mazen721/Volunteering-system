@@ -54,13 +54,28 @@ export function validateEnv(rawEnv: Record<string, string | undefined>): AppEnv 
     throw new Error(`Invalid PORT value: ${rawEnv.PORT}`);
   }
 
+  const jwtSecret = rawEnv.JWT_SECRET!.trim();
+  const adminPassword = rawEnv.ADMIN_PASSWORD!;
+  // Production refuses to boot on weak secrets (S-3): a short JWT secret is
+  // brute-forceable offline from any leaked token, and the seeded admin
+  // password is the keys to the whole system. Development/test keep working
+  // with local values; strength is enforced where it matters.
+  if (rawEnv.NODE_ENV?.trim() === 'production') {
+    if (jwtSecret.length < 32) {
+      throw new Error('JWT_SECRET must be at least 32 characters in production');
+    }
+    if (adminPassword.length < 12) {
+      throw new Error('ADMIN_PASSWORD must be at least 12 characters in production');
+    }
+  }
+
   return {
     port,
     mongoUri: rawEnv.MONGO_URI!.trim(),
-    jwtSecret: rawEnv.JWT_SECRET!.trim(),
+    jwtSecret,
     clientUrl: rawEnv.CLIENT_URL!.trim(),
     adminEmail: rawEnv.ADMIN_EMAIL!.trim(),
-    adminPassword: rawEnv.ADMIN_PASSWORD!,
+    adminPassword,
     allowedEmailDomains: resolveAllowedEmailDomains(rawEnv.ALLOWED_EMAIL_DOMAINS),
   };
 }

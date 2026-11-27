@@ -84,6 +84,16 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
     return;
   }
 
+  if (
+    typeof err === 'object' &&
+    err !== null &&
+    'type' in err &&
+    err.type === 'entity.too.large'
+  ) {
+    res.status(413).json({ message: 'حجم البيانات المرسلة يتجاوز الحد المسموح به' });
+    return;
+  }
+
   const mapped = mapMongooseError(err);
   if (mapped) {
     res.status(mapped.statusCode).json({ message: mapped.message });

@@ -47,6 +47,9 @@ const locationSchema = z.object({
     .string()
     .trim()
     .url('رابط الخريطة غير صالح')
+    // Only web URLs may be stored: a javascript:/data: value would become a
+    // stored-XSS sink the day any client renders this field as a link.
+    .refine((value) => /^https?:\/\//i.test(value), 'رابط الخريطة يجب أن يبدأ بـ http أو https')
     .optional()
     .or(z.literal(''))
     .transform((value) => (value ? value : undefined)),

@@ -1,6 +1,7 @@
 import type { PipelineStage } from 'mongoose';
 import mongoose from 'mongoose';
 import type { ActivityStatus } from '../constants/enums.js';
+import { ACTIVITY_STATUSES, ACTIVITY_TYPES, CATEGORIES, FACULTIES } from '../constants/enums.js';
 import type { ScopeFilter } from '../middleware/auth.js';
 import { Activity } from '../models/Activity.js';
 import type { ActivityLean, ActivityWithVolunteerLean } from '../models/Activity.js';
@@ -47,28 +48,53 @@ export async function scopeActivities(scope: ScopeFilter): Promise<Record<string
  * whole collection first and matched afterwards, so no Activity index
  * could serve any list call.
  */
+function assertActivityFilterValue<T extends string>(
+  value: string | undefined,
+  allowedValues: readonly T[],
+  message: string
+): T | undefined {
+  if (!value) {
+    return undefined;
+  }
+  if (!(allowedValues as readonly string[]).includes(value)) {
+    throw new AppError(400, message);
+  }
+  return value as T;
+}
+
 async function buildActivityFilter(
   query: ActivityListQuery,
   scope: ScopeFilter = {}
 ): Promise<{ preMatch: Record<string, unknown>; searchMatch: Record<string, unknown> | null }> {
+  // Enum-validate the filters like the sibling list services do (W-6):
+  // arbitrary strings used to flow straight into the aggregation, where a
+  // crafted value could widen the match instead of failing fast with 400.
+  const status = assertActivityFilterValue(query.status, ACTIVITY_STATUSES, 'حالة النشاط غير صالحة');
+  const type = assertActivityFilterValue(query.type, ACTIVITY_TYPES, 'نوع النشاط غير صالح');
+  const category = assertActivityFilterValue(query.category, CATEGORIES, 'فئة المتطوع غير صالحة');
+  const faculty = assertActivityFilterValue(
+    scope.faculty ?? query.faculty,
+    FACULTIES,
+    'الكلية غير صالحة'
+  );
+
   const preMatch: Record<string, unknown> = {};
-  if (query.status) {
-    preMatch.status = query.status;
+  if (status) {
+    preMatch.status = status;
   }
-  if (query.type) {
-    preMatch.type = query.type;
+  if (type) {
+    preMatch.type = type;
   }
 
   const volunteerFilter: Record<string, unknown> = {};
   if (query.volunteerId) {
     volunteerFilter.volunteerId = query.volunteerId;
   }
-  if (query.category) {
-    volunteerFilter.category = query.category;
+  if (category) {
+    volunteerFilter.category = category;
   }
-  const effectiveFaculty = scope.faculty ?? query.faculty;
-  if (effectiveFaculty) {
-    volunteerFilter.faculty = effectiveFaculty;
+  if (faculty) {
+    volunteerFilter.faculty = faculty;
   }
   if (Object.keys(volunteerFilter).length > 0) {
     preMatch.volunteer = {

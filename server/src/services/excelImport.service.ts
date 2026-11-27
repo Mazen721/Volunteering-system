@@ -359,10 +359,40 @@ async function persistImport({
   };
 }
 
+/** Row ceiling per sheet: a 5 MB upload can otherwise declare ~1M rows. */
+export const MAX_IMPORT_ROWS_PER_SHEET = 10_000;
+
+/**
+ * Verifies the upload is really an xlsx (a ZIP container, PK\x03\x04)
+ * instead of trusting the file name (W-7) — a renamed payload used to reach
+ * the parser unchecked.
+ */
+function assertXlsxMagicBytes(buffer: Buffer): void {
+  const isZip =
+    buffer.length >= 4 &&
+    buffer[0] === 0x50 &&
+    buffer[1] === 0x4b &&
+    buffer[2] === 0x03 &&
+    buffer[3] === 0x04;
+  if (!isZip) {
+    throw new AppError(400, 'محتوى الملف ليس ملف إكسل صالحاً بصيغة .xlsx');
+  }
+}
+
+function assertSheetRowCap(sheet: ExcelJS.Worksheet): void {
+  if (sheet.rowCount > MAX_IMPORT_ROWS_PER_SHEET) {
+    throw new AppError(
+      400,
+      `عدد الصفوف في ورقة «${sheet.name}» يتجاوز الحد المسموح به (${MAX_IMPORT_ROWS_PER_SHEET} صف)`
+    );
+  }
+}
+
 export async function importExcelWorkbook(
   buffer: Buffer,
   { commit = false }: { commit?: boolean } = {}
 ): Promise<ImportResult> {
+  assertXlsxMagicBytes(buffer);
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(buffer as unknown as ExcelJS.Buffer);
 
@@ -371,6 +401,8 @@ export async function importExcelWorkbook(
   if (!volunteersSheet || !activitiesSheet) {
     throw new AppError(400, 'ملف الإكسل لا يحتوي على الأوراق المطلوبة');
   }
+  assertSheetRowCap(volunteersSheet);
+  assertSheetRowCap(activitiesSheet);
 
   const [existingVolunteers, existingActivities] = await Promise.all([
     Volunteer.find().lean<VolunteerLean[]>(),

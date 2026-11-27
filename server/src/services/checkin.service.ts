@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 import { Activity } from '../models/Activity.js';
@@ -53,12 +54,18 @@ export interface CompleteOpportunityResult {
 interface CheckInJwtPayload {
   opportunityId?: unknown;
   type?: unknown;
+  jti?: unknown;
 }
 
-function verifyCheckInJwt(token: string, expectedOpportunityId: string, jwtSecret: string): void {
+function verifyCheckInJwt(
+  token: string,
+  expectedOpportunityId: string,
+  jwtSecret: string,
+  liveNonces: { current: string; previous: string }
+): void {
   let payload: string | jwt.JwtPayload;
   try {
-    payload = jwt.verify(token, jwtSecret);
+    payload = jwt.verify(token, jwtSecret, { algorithms: ['HS256'] });
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {
       throw new AppError(400, 'انتهت صلاحية رمز الحضور، يرجى مسح الرمز المحدث');
@@ -72,6 +79,16 @@ function verifyCheckInJwt(token: string, expectedOpportunityId: string, jwtSecre
   }
   if (candidate.opportunityId !== expectedOpportunityId) {
     throw new AppError(400, 'رمز الحضور لا يخص هذه الفرصة التطوعية');
+  }
+  // Replay guard (W-4): the token's jti must be the opportunity's current
+  // or previous rotating nonce. One QR is shown to a whole room, so the
+  // token itself is shared by design — but a photographed copy dies at the
+  // second rotation instead of staying replayable for its full lifetime.
+  if (
+    typeof candidate.jti !== 'string' ||
+    (candidate.jti !== liveNonces.current && candidate.jti !== liveNonces.previous)
+  ) {
+    throw new AppError(400, 'رمز الحضور غير صالح');
   }
 }
 
@@ -239,11 +256,25 @@ export async function generateCheckInToken(
     throw new AppError(409, 'لا يمكن إنشاء رمز حضور لفرصة غير منشورة أو منتهية');
   }
 
-  const token = jwt.sign(
-    { opportunityId: opportunity._id.toString(), type: 'checkin' },
-    jwtSecret,
-    { expiresIn: CHECK_IN_TOKEN_TTL_SECONDS }
+  // Rotate the nonce on every issued token: the new token's jti is the new
+  // current nonce, and the previously current one stays acceptable for one
+  // more rotation so a screen the room is still looking at keeps working.
+  const nextNonce = randomUUID();
+  await Opportunity.updateOne(
+    { _id: opportunity._id },
+    {
+      $set: {
+        checkInNoncePrevious: opportunity.checkInNonceCurrent ?? '',
+        checkInNonceCurrent: nextNonce,
+      },
+    }
   );
+  const signOptions: jwt.SignOptions = {
+    expiresIn: CHECK_IN_TOKEN_TTL_SECONDS,
+    jwtid: nextNonce,
+  };
+  const payload = { opportunityId: opportunity._id.toString(), type: 'checkin' };
+  const token = jwt.sign(payload, jwtSecret, signOptions);
   const expiresAt = new Date(Date.now() + CHECK_IN_TOKEN_TTL_SECONDS * 1000).toISOString();
   return { token, expiresAt };
 }
@@ -262,7 +293,10 @@ export async function verifyAndCheckIn(
     throw new AppError(403, 'تسجيل الحضور متاح بعد اعتماد حسابك');
   }
   const opportunity = await findCheckInEligibleOpportunity(opportunityId, user);
-  verifyCheckInJwt(token, opportunity._id.toString(), jwtSecret);
+  verifyCheckInJwt(token, opportunity._id.toString(), jwtSecret, {
+    current: opportunity.checkInNonceCurrent ?? '',
+    previous: opportunity.checkInNoncePrevious ?? '',
+  });
 
   const application = await Application.findOne({
     opportunity: opportunity._id,

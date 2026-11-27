@@ -54,6 +54,8 @@ export interface OpportunityDoc {
   status: OpportunityStatus;
   createdBy: mongoose.Types.ObjectId;
   attendanceDeputy: mongoose.Types.ObjectId | null;
+  checkInNonceCurrent: string;
+  checkInNoncePrevious: string;
 }
 
 export interface OpportunityLean extends OpportunityDoc {
@@ -266,6 +268,18 @@ const opportunitySchema = new mongoose.Schema<OpportunityDoc>(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       default: null,
+    },
+    // Rotating check-in nonces (W-4): each generated QR token carries the
+    // current nonce as its jti; verification accepts the current or the
+    // previous nonce, so a photographed token dies at the second rotation
+    // (~90 seconds) instead of living for its full JWT lifetime anywhere.
+    checkInNonceCurrent: {
+      type: String,
+      default: '',
+    },
+    checkInNoncePrevious: {
+      type: String,
+      default: '',
     },
   },
   { timestamps: true }
