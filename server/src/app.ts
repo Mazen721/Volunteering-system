@@ -77,6 +77,11 @@ export function createApp({
       res.setHeader('Content-Type', image.contentType);
       res.setHeader('ETag', image.etag);
       res.setHeader('Cache-Control', 'private, no-cache');
+      // The client is served from a different origin (Vercel vs the API
+      // host), and helmet's default same-origin resource policy would make
+      // the browser refuse to render this <img> at all. This public display
+      // asset is explicitly cross-origin embeddable.
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
       if (req.headers['if-none-match'] === image.etag) {
         res.status(304).end();
         return;

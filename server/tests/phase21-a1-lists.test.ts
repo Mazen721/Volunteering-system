@@ -230,6 +230,9 @@ describe('Phase 21 (A1/A9) bounded list payloads, cover route, phase predicates,
     const response = await fetch(`${apiServer.baseUrl}/api/opportunities/${coverId}/cover`);
     assert.equal(response.status, 200);
     assert.equal(response.headers.get('content-type'), 'image/png');
+    // The client origin differs from the API origin; without this override
+    // helmet's same-origin resource policy makes browsers refuse the <img>.
+    assert.equal(response.headers.get('cross-origin-resource-policy'), 'cross-origin');
     const etag = response.headers.get('etag');
     assert.ok(etag);
     assert.deepEqual(Buffer.from(await response.arrayBuffer()), PNG_BYTES);
