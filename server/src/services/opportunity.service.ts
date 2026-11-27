@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import mongoose from 'mongoose';
 import type {
   ApplicationStatus,
@@ -35,7 +36,12 @@ export interface OpportunityListQuery {
   field?: string;
   phase?: string;
   sort?: string;
+  page?: string;
+  limit?: string;
 }
+
+/** Hard ceiling for one list page; clients page through with limit=200. */
+export const OPPORTUNITY_LIST_MAX_LIMIT = 500;
 
 export interface OpportunityDTO extends OpportunityLean {
   phase: OpportunityPhase;
@@ -50,6 +56,9 @@ export interface OpportunityDTO extends OpportunityLean {
 
 export interface OpportunityListResult {
   opportunities: OpportunityDTO[];
+  total: number;
+  page: number;
+  pages: number;
 }
 
 export interface OpportunityApplicantsResult {
@@ -170,6 +179,51 @@ async function buildRecommendedOpportunities(
 }
 
 /**
+ * Translates a phase filter into the equivalent date-range predicates so
+ * MongoDB does the filtering (the old code fetched every visible
+ * opportunity and dropped the wrong phases in JS). The boundaries mirror
+ * evaluateOpportunityPhase exactly.
+ */
+function buildPhaseDateFilter(phase: OpportunityPhase, now: Date): Record<string, unknown> {
+  switch (phase) {
+    case 'upcoming':
+      return { registrationDeadline: { $gt: now } };
+    case 'registration_closed':
+      return { registrationDeadline: { $lte: now }, startAt: { $gt: now } };
+    case 'in_progress':
+      return { startAt: { $lte: now }, endAt: { $gte: now } };
+    case 'ended':
+      return { endAt: { $lt: now } };
+  }
+}
+
+/**
+ * Replaces the full custom-cover data URLs on a page of list DTOs with the
+ * cover route path (`/opportunities/<id>/cover`) for the opportunities that
+ * have one, and '' for the rest. List payloads used to inline every cover
+ * (~1 MB of base64 each); the bytes are now served once, cacheably, by the
+ * cover route. Detail responses keep the full data URL (the edit form
+ * round-trips it), so this mapping applies to LIST DTOs only.
+ */
+export async function applyCoverPathsToListDtos(dtos: OpportunityDTO[]): Promise<void> {
+  if (dtos.length === 0) {
+    return;
+  }
+  const withCover = await Opportunity.find({
+    _id: { $in: dtos.map((dto) => dto._id) },
+    customCover: { $nin: [null, ''] },
+  })
+    .select('_id')
+    .lean<{ _id: mongoose.Types.ObjectId }[]>();
+  const coverIds = new Set(withCover.map((row) => row._id.toString()));
+  for (const dto of dtos) {
+    dto.customCover = coverIds.has(dto._id.toString())
+      ? `/opportunities/${dto._id.toString()}/cover`
+      : '';
+  }
+}
+
+/**
  * Lists opportunities visible to the authenticated role, with computed Cairo phase metadata.
  */
 export async function listOpportunities(
@@ -207,19 +261,54 @@ export async function listOpportunities(
     filter.faculty = faculty;
   }
 
-  let opportunities = await Opportunity.find(filter)
+  const now = new Date();
+  const extraConditions: Record<string, unknown>[] = [];
+  if (phase) {
+    extraConditions.push(buildPhaseDateFilter(phase, now));
+  }
+  // Students discover only opportunities that have not ended; ended ones
+  // live in their history («طلباتي»), which does not use this endpoint.
+  // Pushing the predicate into the query keeps finished events' bytes off
+  // the wire entirely (previously they were transferred, decorated, then
+  // dropped by the client's own ended filter).
+  if (user.role === 'student' && phase !== 'ended') {
+    extraConditions.push({ endAt: { $gt: now } });
+  }
+  if (extraConditions.length > 0) {
+    filter.$and = [...((filter.$and as Record<string, unknown>[] | undefined) ?? []), ...extraConditions];
+  }
+
+  const page = Math.max(Number(query.page) || 1, 1);
+  const limit = Math.min(
+    Math.max(Number(query.limit) || OPPORTUNITY_LIST_MAX_LIMIT, 1),
+    OPPORTUNITY_LIST_MAX_LIMIT
+  );
+  const paginate = <T,>(rows: T[]): { pageRows: T[]; total: number; pages: number } => ({
+    pageRows: rows.slice((page - 1) * limit, page * limit),
+    total: rows.length,
+    pages: Math.ceil(rows.length / limit) || 1,
+  });
+
+  // The cover bytes never travel in list payloads.
+  if (user.role !== 'student') {
+    const [total, opportunities] = await Promise.all([
+      Opportunity.countDocuments(filter),
+      Opportunity.find(filter)
+        .select('-customCover')
+        .sort({ startAt: 1, createdAt: 1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean<OpportunityLean[]>(),
+    ]);
+    const decorated = opportunities.map((opportunity) => decorateOpportunity(opportunity));
+    await applyCoverPathsToListDtos(decorated);
+    return { opportunities: decorated, total, page, pages: Math.ceil(total / limit) || 1 };
+  }
+
+  const opportunities = await Opportunity.find(filter)
+    .select('-customCover')
     .sort({ startAt: 1, createdAt: 1 })
     .lean<OpportunityLean[]>();
-
-  if (phase) {
-    opportunities = opportunities.filter(
-      (opportunity) => evaluateOpportunityPhase(opportunity) === phase
-    );
-  }
-
-  if (user.role !== 'student') {
-    return { opportunities: opportunities.map((opportunity) => decorateOpportunity(opportunity)) };
-  }
 
   const applications = await Application.find({
     user: new mongoose.Types.ObjectId(user.id),
@@ -230,20 +319,60 @@ export async function listOpportunities(
   );
 
   if (query.sort === 'recommended') {
-    return {
-      opportunities: await buildRecommendedOpportunities(
-        opportunities,
-        applicationsByOpportunity,
-        user
-      ),
-    };
+    const ranked = await buildRecommendedOpportunities(
+      opportunities,
+      applicationsByOpportunity,
+      user
+    );
+    const { pageRows, total, pages } = paginate(ranked);
+    await applyCoverPathsToListDtos(pageRows);
+    return { opportunities: pageRows, total, page, pages };
   }
 
-  return {
-    opportunities: opportunities.map((opportunity) =>
-      decorateOpportunity(opportunity, applicationsByOpportunity.get(opportunity._id.toString()))
-    ),
-  };
+  const { pageRows, total, pages } = paginate(opportunities);
+  const decorated = pageRows.map((opportunity) =>
+    decorateOpportunity(opportunity, applicationsByOpportunity.get(opportunity._id.toString()))
+  );
+  await applyCoverPathsToListDtos(decorated);
+  return { opportunities: decorated, total, page, pages };
+}
+
+export interface OpportunityCoverImage {
+  contentType: string;
+  body: Buffer;
+  etag: string;
+}
+
+/**
+ * Decodes an opportunity's stored custom cover for the public cover route.
+ * The image is a display asset the organizer uploaded to be shown on the
+ * board — the same exposure as the public CDN photo URLs the sister
+ * projects use — addressed by an unguessable ObjectId. Returns null when
+ * the opportunity does not exist or has no usable custom cover.
+ */
+export async function getOpportunityCoverImage(
+  id: string
+): Promise<OpportunityCoverImage | null> {
+  if (!mongoose.isValidObjectId(id)) {
+    return null;
+  }
+  const opportunity = await Opportunity.findById(id)
+    .select('customCover')
+    .lean<{ customCover?: string | null }>();
+  const dataUrl = opportunity?.customCover;
+  if (!dataUrl) {
+    return null;
+  }
+  const match = /^data:(image\/[a-z0-9.+-]+);base64,([a-z0-9+/=\s]+)$/i.exec(dataUrl);
+  if (!match) {
+    return null;
+  }
+  const body = Buffer.from(match[2] ?? '', 'base64');
+  if (body.length === 0) {
+    return null;
+  }
+  const etag = `"${createHash('sha256').update(dataUrl).digest('hex').slice(0, 32)}"`;
+  return { contentType: match[1] ?? 'application/octet-stream', body, etag };
 }
 
 /**

@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../api/client';
 import type { InterestKey } from '../constants/enums';
 import type { Opportunity } from '../types';
 
@@ -170,7 +171,12 @@ export function resolveOpportunityCover(
   opportunity: Pick<Opportunity, 'coverPreset' | 'customCover' | 'fields'>
 ): string {
   if (opportunity.customCover) {
-    return opportunity.customCover;
+    // List payloads carry the cover route path instead of the photo bytes;
+    // detail payloads still carry the full data URL (edit form), and older
+    // payloads may carry either — only the path form needs the API origin.
+    return opportunity.customCover.startsWith('/opportunities/')
+      ? `${API_BASE_URL}${opportunity.customCover}`
+      : opportunity.customCover;
   }
   if (opportunity.coverPreset && PRESET_BY_KEY.has(opportunity.coverPreset)) {
     return coverUrlForKey(opportunity.coverPreset);

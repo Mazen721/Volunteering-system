@@ -13,7 +13,11 @@ import type {
 import { AppError, isDuplicateKeyError } from '../utils/errors.js';
 import type { PublicUser } from './auth.service.js';
 import type { OpportunityDTO } from './opportunity.service.js';
-import { assertCanManageOpportunity, decorateOpportunity } from './opportunity.service.js';
+import {
+  applyCoverPathsToListDtos,
+  assertCanManageOpportunity,
+  decorateOpportunity,
+} from './opportunity.service.js';
 
 export const ACTIVE_APPLICATION_STATUSES: readonly ApplicationStatus[] = [
   'pending',
@@ -349,8 +353,12 @@ export async function listStudentApplications(user: PublicUser): Promise<Student
     .populate('opportunity')
     .lean<ApplicationWithOpportunityLean[]>();
 
-  return applications.map((application) => ({
+  const dtos = applications.map((application) => ({
     ...application,
     opportunity: decorateOpportunity(application.opportunity),
   }));
+  // The populated opportunities carry full cover data URLs; in this list
+  // context they are replaced with cover route paths like every other list.
+  await applyCoverPathsToListDtos(dtos.map((application) => application.opportunity));
+  return dtos;
 }

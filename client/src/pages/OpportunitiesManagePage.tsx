@@ -15,6 +15,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { apiClient, extractApiErrorMessage } from '../api/client';
+import { fetchAllOpportunities } from '../api/opportunities';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { Navbar } from '../components/Navbar';
 import { ApplicantsModal } from '../components/opportunities/ApplicantsModal';
@@ -28,12 +29,7 @@ import {
 } from '../constants/enums';
 import { useAuth } from '../context/authContext';
 import { useToast } from '../context/toastContext';
-import type {
-  AuthUser,
-  Opportunity,
-  OpportunityListResponse,
-  OpportunityResponse,
-} from '../types';
+import type { AuthUser, Opportunity, OpportunityResponse } from '../types';
 import { resolveOpportunityCover } from '../utils/covers';
 import { formatDateTimeAr, formatNumber } from '../utils/format';
 
@@ -80,8 +76,8 @@ function isClosedOpportunity(opportunity: Opportunity): boolean {
 }
 
 async function fetchOpportunities(): Promise<Opportunity[]> {
-  const response = await apiClient.get<OpportunityListResponse>('/opportunities');
-  return response.data.opportunities;
+  const response = await fetchAllOpportunities();
+  return response.opportunities;
 }
 
 function filterOpportunities(

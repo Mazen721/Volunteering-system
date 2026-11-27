@@ -1,10 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { apiClient, extractApiErrorMessage } from '../api/client';
-import type {
-  Opportunity,
-  OpportunityListResponse,
-  StudentDashboardSummary,
-} from '../types';
+import { fetchAllOpportunities } from '../api/opportunities';
+import type { Opportunity, StudentDashboardSummary } from '../types';
 
 /**
  * Loads the student dashboard summary and top recommended opportunities with retry support.
@@ -20,16 +17,14 @@ export function useStudentDashboard() {
     let cancelled = false;
     Promise.all([
       apiClient.get<StudentDashboardSummary>('/stats/me'),
-      apiClient.get<OpportunityListResponse>('/opportunities', {
-        params: { sort: 'recommended' },
-      }),
+      fetchAllOpportunities({ sort: 'recommended' }),
     ])
       .then(([summaryResponse, opportunitiesResponse]) => {
         if (cancelled) {
           return;
         }
         setSummary(summaryResponse.data);
-        setRecommendations(opportunitiesResponse.data.opportunities.slice(0, 3));
+        setRecommendations(opportunitiesResponse.opportunities.slice(0, 3));
         setError('');
       })
       .catch((requestError: unknown) => {

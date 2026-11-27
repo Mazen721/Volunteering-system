@@ -1,4 +1,5 @@
 import express from 'express';
+import compression from 'compression';
 import cors from 'cors';
 import helmet from 'helmet';
 import { createAuthMiddleware } from './middleware/auth.js';
@@ -16,6 +17,7 @@ import { createSettingsRouter } from './routes/settings.routes.js';
 import { createStatsRouter } from './routes/stats.routes.js';
 import { createUsersRouter } from './routes/users.routes.js';
 import { createVolunteersRouter } from './routes/volunteers.routes.js';
+import { getOpportunityCoverImage } from './services/opportunity.service.js';
 
 export interface CreateAppOptions {
   clientUrl: string;
@@ -51,12 +53,38 @@ export function createApp({
 
   app.use(helmet());
   app.use(cors({ origin: parseAllowedOrigins(clientUrl) }));
+  // gzip for API responses: list payloads are JSON-heavy and were shipped
+  // uncompressed (the audit measured the board call at ~752 KB raw).
+  app.use(compression());
   // 2 MB so an uploaded opportunity cover (a downscaled data URL of at most
   // ~1 MB of image data, validated per-field) fits in the JSON body.
   app.use(express.json({ limit: '2mb' }));
 
   app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok' });
+  });
+
+  // Public cover images (see getOpportunityCoverImage): mounted before the
+  // JWT middleware because <img> tags cannot send Authorization headers.
+  // ETag revalidation keeps repeat views at a 304.
+  app.get('/api/opportunities/:id/cover', async (req, res, next) => {
+    try {
+      const image = await getOpportunityCoverImage(req.params.id);
+      if (!image) {
+        res.status(404).json({ message: 'الصورة غير موجودة' });
+        return;
+      }
+      res.setHeader('Content-Type', image.contentType);
+      res.setHeader('ETag', image.etag);
+      res.setHeader('Cache-Control', 'private, no-cache');
+      if (req.headers['if-none-match'] === image.etag) {
+        res.status(304).end();
+        return;
+      }
+      res.send(image.body);
+    } catch (error) {
+      next(error);
+    }
   });
 
   app.use(

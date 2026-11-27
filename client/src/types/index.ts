@@ -591,6 +591,10 @@ export interface Application {
 
 export interface OpportunityListResponse {
   opportunities: Opportunity[];
+  /** Pagination metadata (present on real API responses; absent in older payloads). */
+  total?: number;
+  page?: number;
+  pages?: number;
 }
 
 export interface OpportunityResponse {

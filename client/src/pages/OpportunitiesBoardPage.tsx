@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Info, LayoutGrid, RefreshCw, XCircle } from 'lucide-react';
-import { apiClient, extractApiErrorMessage } from '../api/client';
+import { extractApiErrorMessage } from '../api/client';
+import { fetchAllOpportunities } from '../api/opportunities';
 import { Navbar } from '../components/Navbar';
 import { OpportunityCard } from '../components/student/OpportunityCard';
 import { AR } from '../constants/ar';
-import type { Opportunity, OpportunityListResponse } from '../types';
+import type { Opportunity } from '../types';
 import { isStudentDiscoverable, sortByPhasePriority } from '../utils/opportunityPhase';
 
 interface BoardItem {
@@ -28,12 +29,7 @@ export function OpportunitiesBoardPage() {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([
-      apiClient.get<OpportunityListResponse>('/opportunities'),
-      apiClient.get<OpportunityListResponse>('/opportunities', {
-        params: { sort: 'recommended' },
-      }),
-    ])
+    Promise.all([fetchAllOpportunities(), fetchAllOpportunities({ sort: 'recommended' })])
       .then(([allResponse, recommendedResponse]) => {
         if (cancelled) {
           return;
@@ -41,8 +37,8 @@ export function OpportunitiesBoardPage() {
         // Discovery shows actionable work only: ended (and completed or
         // cancelled) opportunities are filtered out of both lists, even the
         // ones he applied to — their history lives in «طلباتي».
-        const all = allResponse.data.opportunities.filter(isStudentDiscoverable);
-        const recommended = recommendedResponse.data.opportunities.filter(isStudentDiscoverable);
+        const all = allResponse.opportunities.filter(isStudentDiscoverable);
+        const recommended = recommendedResponse.opportunities.filter(isStudentDiscoverable);
         const allById = new Map(all.map((opportunity) => [opportunity._id, opportunity]));
         const recommendedIds = new Set(recommended.map((opportunity) => opportunity._id));
         const suggestedItems: BoardItem[] = recommended.map((opportunity) => ({

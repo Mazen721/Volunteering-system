@@ -1,10 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { apiClient, extractApiErrorMessage } from '../api/client';
-import type {
-  Opportunity,
-  OpportunityListResponse,
-  StudentDashboardSummary,
-} from '../types';
+import { fetchAllOpportunities } from '../api/opportunities';
+import type { Opportunity, StudentDashboardSummary } from '../types';
 import { isStudentDiscoverable, sortByPhasePriority } from '../utils/opportunityPhase';
 
 const HOME_OPPORTUNITIES_PREVIEW = 3;
@@ -27,10 +24,8 @@ export function useStudentHome() {
     let cancelled = false;
     Promise.all([
       apiClient.get<StudentDashboardSummary>('/stats/me'),
-      apiClient.get<OpportunityListResponse>('/opportunities', {
-        params: { sort: 'recommended' },
-      }),
-      apiClient.get<OpportunityListResponse>('/opportunities'),
+      fetchAllOpportunities({ sort: 'recommended' }),
+      fetchAllOpportunities(),
     ])
       .then(([summaryResponse, recommendedResponse, allResponse]) => {
         if (cancelled) {
@@ -41,14 +36,14 @@ export function useStudentHome() {
         // cancelled) opportunities never appear — they are history, so the
         // hero's recommendation pool and both row sections stay actionable.
         setRecommendations(
-          recommendedResponse.data.opportunities
+          recommendedResponse.opportunities
             .filter(isStudentDiscoverable)
             .slice(0, HOME_OPPORTUNITIES_PREVIEW),
         );
         // The plain list arrives oldest-first; after dropping ended work,
         // surface registration-open opportunities first in the preview.
         setAllOpportunities(
-          sortByPhasePriority(allResponse.data.opportunities.filter(isStudentDiscoverable)).slice(
+          sortByPhasePriority(allResponse.opportunities.filter(isStudentDiscoverable)).slice(
             0,
             HOME_OPPORTUNITIES_PREVIEW,
           ),

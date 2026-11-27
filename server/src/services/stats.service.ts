@@ -32,7 +32,11 @@ import type {
 } from './application.service.js';
 import { ACTIVE_APPLICATION_STATUSES, findStudentVolunteer } from './application.service.js';
 import type { OpportunityDTO } from './opportunity.service.js';
-import { buildManageScopeFilter, decorateOpportunity } from './opportunity.service.js';
+import {
+  applyCoverPathsToListDtos,
+  buildManageScopeFilter,
+  decorateOpportunity,
+} from './opportunity.service.js';
 import type { PublicUser } from './auth.service.js';
 
 export interface VolunteerStatsRow {
@@ -831,6 +835,10 @@ export async function getStudentDashboardSummary(
     ...application,
     opportunity: decorateOpportunity(application.opportunity),
   }));
+  // Dashboard payloads are list contexts: cover bytes become cover paths.
+  await applyCoverPathsToListDtos(
+    decoratedApplications.map((application) => application.opportunity)
+  );
   const acceptedApplications = decoratedApplications.filter(
     (application) => application.status === 'accepted'
   );

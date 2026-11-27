@@ -2,7 +2,7 @@ import axios from 'axios';
 import { AR } from '../constants/ar';
 
 const TOKEN_STORAGE_KEY = 'mnu_admin_token';
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 let unauthorizedHandler: (() => void) | null = null;
 
